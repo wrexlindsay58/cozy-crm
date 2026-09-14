@@ -1,0 +1,4 @@
+{
+  "buildCommand": "node scripts/with-app-env.mjs vite build",
+  "installCommand": "npm ci"
+}
