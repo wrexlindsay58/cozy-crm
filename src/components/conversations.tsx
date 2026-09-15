@@ -5,9 +5,11 @@ import {
   ChevronDown,
   ClipboardList,
   Clock,
+  GitBranch,
   Image,
   Inbox,
   Layers,
+  ListFilter,
   ListChecks,
   Mail,
   MessageSquare,
@@ -26,7 +28,7 @@ import { cn } from "@/lib/cn";
 import { accounts, byId } from "@/lib/crm-data";
 import { SHOP_ACTOR } from "@/lib/chrome";
 import { pipelineOf } from "@/lib/pipeline-of";
-import { stageWash, toneForStatus } from "@/lib/lead-status";
+import { stageWash, toneForStatus, LEAD_STATUSES } from "@/lib/lead-status";
 import { ClickToCall } from "@/features/lead/click-to-call";
 import { DndPick } from "@/features/lead/dnd-pick";
 import { BookWidget } from "@/features/lead/book-widget";
@@ -62,6 +64,15 @@ const TYPE = [
   { id: "internal", label: "Internal", icon: Users },
 ] as const;
 
+const PIPE = [
+  { id: "all", label: "All pipelines", icon: GitBranch },
+  { id: "Lead", label: "Lead", icon: GitBranch },
+  { id: "Assessment", label: "Assessment", icon: GitBranch },
+  { id: "Opportunity", label: "Opportunity", icon: GitBranch },
+  { id: "Job", label: "Job", icon: GitBranch },
+  { id: "Account", label: "Account", icon: GitBranch },
+] as const;
+
 const LANES = [
   { id: "customer", label: "Customer", icon: MessageSquare },
   { id: "internal", label: "Internal", icon: Users },
@@ -77,6 +88,7 @@ type Lane = (typeof LANES)[number]["id"];
 type Who = (typeof WHO)[number]["id"];
 type Channel = (typeof CHANNEL)[number]["id"];
 type TalkType = (typeof TYPE)[number]["id"];
+type Pipe = (typeof PIPE)[number]["id"];
 
 function initials(name: string) {
   return name
@@ -101,7 +113,7 @@ function unreadCount(msgs: { from: string; channel: string }[], personId: string
 
 export function Conversations() {
   const messages = useMessages();
-  const { leads, followers, history, appointments } = useOps();
+  const { leads, followers, history, appointments, tickets } = useOps();
   const { viewAs } = useStaff();
   useAssessments();
   const me = viewAs === "Owner" ? SHOP_ACTOR : viewAs;
@@ -110,6 +122,8 @@ export function Conversations() {
   const [talkType, setTalkType] = useState<TalkType>("all");
   const [starredOnly, setStarredOnly] = useState(false);
   const [unreadOnly, setUnreadOnly] = useState(false);
+  const [pipe, setPipe] = useState<Pipe>("all");
+  const [extra, setExtra] = useState({ dnd: false, booked: false, actions: false, status: "" });
   const [query, setQuery] = useState("");
   const [activeId, setActiveId] = useState("L-4821");
   const [lane, setLane] = useState<Lane>("customer");
@@ -176,6 +190,7 @@ export function Conversations() {
           dndOn,
           status: lead?.status ?? "",
           tone: lead?.tone ?? toneForStatus(lead?.status ?? ""),
+          openActions: tickets.some((tix) => (tix.related === p.id || tix.related === p.leadId) && tix.status !== "Complete" && tix.status !== "Cancel"),
         };
       })
       .filter((p) => {
@@ -183,6 +198,11 @@ export function Conversations() {
         if (who === "following" && !p.following) return false;
         if (starredOnly && !p.starred) return false;
         if (unreadOnly && !p.unread) return false;
+        if (pipe !== "all" && p.pipe.label !== pipe) return false;
+        if (extra.dnd && !p.dndOn) return false;
+        if (extra.booked && !p.appt) return false;
+        if (extra.actions && !p.openActions) return false;
+        if (extra.status && p.status !== extra.status) return false;
         if (talkType === "customer" && !p.msgs.some((m) => m.channel === "sms" || m.channel === "call" || m.channel === "email")) return false;
         if (talkType === "internal" && !p.msgs.some((m) => m.channel === "internal")) return false;
         if (channel === "sms" && !p.msgs.some((m) => m.channel === "sms")) return false;
@@ -196,7 +216,7 @@ export function Conversations() {
         if (Boolean(a.unread) !== Boolean(b.unread)) return a.unread ? -1 : 1;
         return Number(Boolean(b.last)) - Number(Boolean(a.last));
       });
-  }, [people, messages, followers, me, who, channel, talkType, starredOnly, unreadOnly, query, appointments, leads]);
+  }, [people, messages, followers, me, who, channel, talkType, starredOnly, unreadOnly, pipe, extra, query, appointments, leads, tickets]);
 
   const active = rows.find((r) => r.id === activeId) ?? rows[0];
   const lead = active ? byId(leads, active.leadId ?? active.id) : undefined;
@@ -250,6 +270,8 @@ export function Conversations() {
               <span className="mx-0.5 h-4 w-px shrink-0 bg-line" />
               <Pick items={CHANNEL} value={channel} onChange={setChannel} />
               <Pick items={TYPE} value={talkType} onChange={setTalkType} />
+              <Pick items={PIPE} value={pipe} onChange={setPipe} />
+              <ExtraPick value={extra} onChange={setExtra} />
             </div>
           </div>
           <ul className="min-h-0 flex-1 overflow-auto">
@@ -277,17 +299,9 @@ export function Conversations() {
                           ) : null}
                         </span>
                         <span className="min-w-0 flex-1">
-                          <span className={cn("block truncate text-sm", t.unread ? "font-bold" : "font-semibold")}>{t.name}</span>
-                          <span className="mt-0.5 flex flex-wrap items-center gap-1">
-                            {t.status ? (
-                              <span className={cn("h-5 rounded px-1.5 text-[10px] font-bold tracking-wide uppercase leading-5", stageWash(t.tone))}>
-                                {t.status}
-                              </span>
-                            ) : null}
-                            <span className="h-5 rounded bg-page px-1.5 text-[10px] font-bold tracking-wide text-muted uppercase leading-5">
-                              {t.pipe.label}
-                            </span>
-                            {t.dndOn ? <BellOff className="size-3 text-alert" /> : null}
+                          <span className="flex items-center gap-1">
+                            <span className={cn("truncate text-sm", t.unread ? "font-bold" : "font-semibold")}>{t.name}</span>
+                            {t.dndOn ? <BellOff className="size-3 shrink-0 text-alert" /> : null}
                           </span>
                         </span>
                         <span className="shrink-0 text-[10px] text-faint">{t.last?.at ?? ""}</span>
@@ -460,6 +474,73 @@ function Pick<T extends string>({
               </button>
             );
           })}
+        </Float>
+      ) : null}
+    </>
+  );
+}
+
+type Extra = { dnd: boolean; booked: boolean; actions: boolean; status: string };
+
+function ExtraPick({ value, onChange }: { value: Extra; onChange: (v: Extra) => void }) {
+  const [open, setOpen] = useState(false);
+  const [anchor, setAnchor] = useState<DOMRect | null>(null);
+  const hot = value.dnd || value.booked || value.actions || Boolean(value.status);
+  const rows: { key: keyof Extra; label: string; on: boolean }[] = [
+    { key: "dnd", label: "DND on", on: value.dnd },
+    { key: "booked", label: "Has a book", on: value.booked },
+    { key: "actions", label: "Open actions", on: value.actions },
+  ];
+  return (
+    <>
+      <Tip label="Filters" on side="bottom">
+        <button
+          type="button"
+          aria-label="Filters"
+          aria-expanded={open}
+          onClick={(e) => {
+            setAnchor(e.currentTarget.getBoundingClientRect());
+            setOpen((v) => !v);
+          }}
+          className={cn("inline-flex h-8 shrink-0 items-center rounded-md px-1.5", hot ? "bg-navy text-card" : "text-muted hover:bg-page")}
+        >
+          <ListFilter className="size-3.5" />
+          <ChevronDown className="size-3 opacity-70" />
+        </button>
+      </Tip>
+      {open && anchor ? (
+        <Float anchor={anchor} prefer="bottom" onClose={() => setOpen(false)}>
+          {rows.map((row) => (
+            <button
+              key={row.key}
+              type="button"
+              className="flex h-10 w-full min-w-48 items-center justify-between gap-2 px-3 text-sm hover:bg-page"
+              onClick={() => onChange({ ...value, [row.key]: !value[row.key] })}
+            >
+              <span>{row.label}</span>
+              <span className={cn("text-[11px] font-bold", row.on ? "text-navy" : "text-muted")}>{row.on ? "On" : "Off"}</span>
+            </button>
+          ))}
+          <p className="px-3 pt-2 pb-1 text-[11px] font-bold tracking-wide text-muted uppercase">Status</p>
+          <button
+            type="button"
+            className="flex h-10 w-full items-center justify-between px-3 text-sm hover:bg-page"
+            onClick={() => onChange({ ...value, status: "" })}
+          >
+            Any
+            {!value.status ? <span className="text-[11px] font-bold text-navy">On</span> : null}
+          </button>
+          {LEAD_STATUSES.map((s) => (
+            <button
+              key={s.label}
+              type="button"
+              className="flex h-10 w-full items-center justify-between px-3 text-sm hover:bg-page"
+              onClick={() => onChange({ ...value, status: value.status === s.label ? "" : s.label })}
+            >
+              {s.label}
+              {value.status === s.label ? <span className="text-[11px] font-bold text-navy">On</span> : null}
+            </button>
+          ))}
         </Float>
       ) : null}
     </>
