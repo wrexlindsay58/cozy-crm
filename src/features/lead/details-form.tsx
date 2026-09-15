@@ -1,10 +1,13 @@
 import { useState } from "react";
+import { ChevronDown } from "lucide-react";
 import type { LeadDraft } from "@/features/ops/store";
 import { useStaff } from "@/features/staff/store";
-import { INTEREST_OPTIONS, inferInterests, toggleInterest } from "./interests";
+import { Float } from "@/components/float";
+import { INTEREST_OPTIONS, inferInterests, interestsLabel, toggleInterest } from "./interests";
 import { cn } from "@/lib/cn";
 
 const inputClass = "mt-1 h-11 w-full rounded-md border border-line bg-card px-3 text-base md:text-sm outline-none focus:border-navy";
+const selectClass = `${inputClass} appearance-none pr-10`;
 
 export function DetailsForm({
   initial,
@@ -33,9 +36,13 @@ export function DetailsForm({
     referrerPhone: initial?.referrerPhone ?? "",
   });
   const [secondOpen, setSecondOpen] = useState(Boolean(initial?.secondaryName));
+  const [intOpen, setIntOpen] = useState(false);
+  const [intBox, setIntBox] = useState<DOMRect | null>(null);
   function set<K extends keyof LeadDraft>(key: K, value: LeadDraft[K]) {
     setDraft((d) => ({ ...d, [key]: value }));
   }
+  const picked = draft.interests ?? [];
+  const interestText = picked.length ? interestsLabel(picked, draft.otherInterest) || picked.join(", ") : "Pick interests";
   return (
     <form
       className="grid gap-3"
@@ -87,13 +94,14 @@ export function DetailsForm({
         <span className="text-[11px] font-bold tracking-wide text-muted uppercase">City</span>
         <input value={draft.city} onChange={(e) => set("city", e.target.value)} className={inputClass} />
       </label>
-      <label className="block">
+      <label className="relative block">
         <span className="text-[11px] font-bold tracking-wide text-muted uppercase">Lead source</span>
-        <select value={draft.source} onChange={(e) => set("source", e.target.value)} className={inputClass}>
+        <select value={draft.source} onChange={(e) => set("source", e.target.value)} className={selectClass}>
           {sources.map((s) => (
             <option key={s}>{s}</option>
           ))}
         </select>
+        <ChevronDown className="pointer-events-none absolute right-3 bottom-3.5 size-4 text-muted" />
       </label>
       {draft.source === "Referral" ? (
         <div className="grid gap-3 sm:grid-cols-2">
@@ -108,30 +116,52 @@ export function DetailsForm({
         </div>
       ) : null}
 
-      <fieldset>
-        <legend className="text-[11px] font-bold tracking-wide text-muted uppercase">Main interests</legend>
-        <div className="mt-2 flex flex-wrap gap-2">
-          {INTEREST_OPTIONS.map((opt) => {
-            const on = (draft.interests ?? []).includes(opt);
-            return (
-              <button
-                key={opt}
-                type="button"
-                onClick={() => set("interests", toggleInterest(draft.interests ?? [], opt))}
-                className={cn("h-11 rounded-md px-3 text-sm font-semibold", on ? "bg-navy text-card" : "border border-line")}
-              >
-                {opt}
-              </button>
-            );
-          })}
+      <div>
+        <p className="text-[11px] font-bold tracking-wide text-muted uppercase">Main interests</p>
+        <div className="relative mt-1">
+          <button
+            type="button"
+            aria-haspopup="listbox"
+            aria-expanded={intOpen}
+            onClick={(e) => {
+              setIntBox(e.currentTarget.getBoundingClientRect());
+              setIntOpen((v) => !v);
+            }}
+            className="flex h-11 w-full items-center rounded-md border border-line bg-card px-3 pr-10 text-left text-sm outline-none focus:border-navy"
+          >
+            <span className={cn("min-w-0 truncate", picked.length ? "text-ink" : "text-muted")}>{interestText}</span>
+          </button>
+          <ChevronDown className="pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2 text-muted" />
         </div>
-        {(draft.interests ?? []).includes("Other") ? (
+        {intOpen && intBox ? (
+          <Float anchor={intBox} prefer="bottom" onClose={() => setIntOpen(false)}>
+            {INTEREST_OPTIONS.map((opt) => {
+              const on = picked.includes(opt);
+              return (
+                <button
+                  key={opt}
+                  type="button"
+                  role="option"
+                  aria-selected={on}
+                  className="flex w-full min-w-56 items-center gap-2 px-3 py-2 text-left text-sm hover:bg-page"
+                  onClick={() => set("interests", toggleInterest(picked, opt))}
+                >
+                  <span className={cn("grid size-4 place-items-center rounded-sm border", on ? "border-navy bg-navy text-card" : "border-line")}>
+                    {on ? "✓" : ""}
+                  </span>
+                  {opt}
+                </button>
+              );
+            })}
+          </Float>
+        ) : null}
+        {picked.includes("Other") ? (
           <label className="mt-3 block">
             <span className="text-[11px] font-bold tracking-wide text-muted uppercase">Other</span>
             <input value={draft.otherInterest} onChange={(e) => set("otherInterest", e.target.value)} className={inputClass} />
           </label>
         ) : null}
-      </fieldset>
+      </div>
 
       <label className="block">
         <span className="text-[11px] font-bold tracking-wide text-muted uppercase">Homeowner notes</span>
