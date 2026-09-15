@@ -14,7 +14,7 @@ export const Route = createFileRoute("/_app/leads")({
   component: LeadsPage,
 });
 
-const VIEWS = ["All", "Unmarked", "Pending", "Set, no run", "Ran", "Sold", "Dropped", "Phoenix"] as const;
+const VIEWS = ["All", "Unmarked", "Pending", "Confirmed", "Ran", "Sold", "Dropped", "Phoenix"] as const;
 
 function LeadsPage() {
   const { q = "" } = Route.useSearch();

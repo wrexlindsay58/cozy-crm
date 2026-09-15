@@ -76,7 +76,7 @@ export const drills: Record<string, Drill> = {
     grid: "g4",
     items: [
       { n: "710", l: "Ran" },
-      { n: "216", l: "Set, no run" },
+      { n: "216", l: "Confirmed" },
       { n: "88", l: "Pending" },
       { n: "41", l: "Unmarked", a: true },
     ],

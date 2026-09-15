@@ -3,7 +3,6 @@ import type { Tone } from "@/lib/crm-data";
 export const LEAD_STATUSES: { label: string; tone: Tone }[] = [
   { label: "Unmarked", tone: "alert" },
   { label: "Pending", tone: "muted" },
-  { label: "Set, no run", tone: "alert" },
   { label: "Confirmed", tone: "navy" },
   { label: "Ran", tone: "up" },
   { label: "One legger", tone: "alert" },
