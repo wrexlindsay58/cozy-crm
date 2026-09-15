@@ -1,5 +1,6 @@
 import { useSyncExternalStore } from "react";
 import { activities, appointments as seedAppts, leads as seedLeads, tickets as seedTickets, type Appointment, type Lead, type Ticket } from "@/lib/crm-data";
+import { interestsLabel } from "@/features/lead/interests";
 import { followersByPerson, type PersonRef } from "@/lib/file-data";
 import { logCallMessage } from "@/features/thread/store";
 
@@ -16,6 +17,13 @@ export type LeadDraft = {
   notes?: string;
   setter?: string;
   closer?: string;
+  interests?: string[];
+  otherInterest?: string;
+  secondaryName?: string;
+  secondaryPhone?: string;
+  secondaryEmail?: string;
+  referrerName?: string;
+  referrerPhone?: string;
 };
 export type Task = { id: string; title: string; personId: string; owner: string; due: string; status: "Open" | "Done" };
 export type CallInput = { direction: "Out" | "In"; result: "Answered" | "VM" | "No answer"; duration: string; note: string };
@@ -123,9 +131,16 @@ export function createLead(draft: LeadDraft) {
     office: "Phoenix",
     created: "now",
     next: "Qualify",
-    product: draft.product || "",
+    product: interestsLabel(draft.interests ?? [], draft.otherInterest) || draft.product || "",
     value: 0,
     notes: draft.notes || "",
+    interests: draft.interests ?? [],
+    otherInterest: draft.otherInterest || "",
+    secondaryName: draft.secondaryName || "",
+    secondaryPhone: draft.secondaryPhone || "",
+    secondaryEmail: draft.secondaryEmail || "",
+    referrerName: draft.referrerName || "",
+    referrerPhone: draft.referrerPhone || "",
   } as Lead;
   leads = [lead, ...leads];
   followers = { ...followers, [id]: [{ name: lead.setter, role: "Setter" }] };
@@ -135,9 +150,19 @@ export function createLead(draft: LeadDraft) {
 export function useLead(id: string) {
   return useOps().leads.find((l) => l.id === id);
 }
-export function updateLead(id: string, patch: Partial<Lead>) {
-  leads = leads.map((l) => (l.id === id ? { ...l, ...patch } : l));
+export function updateLead(id: string, patch: Partial<Lead> & LeadDraft) {
+  const product =
+    patch.interests && patch.interests.length
+      ? interestsLabel(patch.interests, patch.otherInterest)
+      : patch.product;
+  leads = leads.map((l) => (l.id === id ? { ...l, ...patch, ...(product !== undefined ? { product } : {}) } : l));
   addHistory(id, ACTOR, "Details saved.");
+}
+export function dropLead(id: string, reason: string) {
+  const why = reason.trim();
+  if (!why) return;
+  leads = leads.map((l) => (l.id === id ? { ...l, status: "Dropped", tone: "muted", next: "Dropped", dropReason: why } : l));
+  addHistory(id, ACTOR, `Dropped. ${why}.`);
 }
 export function logCall(personId: string, input: CallInput) {
   const mins = input.duration.trim() ? ` · ${input.duration} min` : "";

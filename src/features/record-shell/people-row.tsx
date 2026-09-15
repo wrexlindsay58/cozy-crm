@@ -44,10 +44,15 @@ export function PeopleRow({
           <p className="text-[10px] font-bold tracking-wide text-muted uppercase">Followers</p>
           {list.length === 0 ? <p className="text-sm text-muted">None</p> : null}
           {list.map((f) => (
-            <span key={f.name} className="inline-flex items-center gap-1.5 text-sm">
+            <span key={f.name} className="group inline-flex items-center gap-1.5 text-sm">
               <Initials name={f.name} />
               <span className="font-medium">{f.name}</span>
-              <button type="button" className="text-[11px] font-semibold text-muted hover:text-stop" onClick={() => removeFollower(personId, f.name)} aria-label={`Remove ${f.name}`}>
+              <button
+                type="button"
+                className="text-[11px] font-semibold text-muted opacity-0 hover:text-stop group-hover:opacity-100 group-focus-within:opacity-100"
+                onClick={() => removeFollower(personId, f.name)}
+                aria-label={`Remove ${f.name}`}
+              >
                 x
               </button>
             </span>

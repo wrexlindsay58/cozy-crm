@@ -5,7 +5,6 @@ import { RecordTable } from "@/components/record-table";
 import { NewLeadSheet } from "@/features/lead/new-sheet";
 import { ListPage } from "@/features/lists/list-page";
 import { useOps } from "@/features/ops/store";
-import { money } from "@/lib/crm-data";
 
 export const Route = createFileRoute("/_app/leads")({
   validateSearch: (s: Record<string, unknown>): { q?: string } => {
@@ -15,7 +14,7 @@ export const Route = createFileRoute("/_app/leads")({
   component: LeadsPage,
 });
 
-const VIEWS = ["All", "Unmarked", "Pending", "Set, no run", "Ran", "Sold", "Phoenix"] as const;
+const VIEWS = ["All", "Unmarked", "Pending", "Set, no run", "Ran", "Sold", "Dropped", "Phoenix"] as const;
 
 function LeadsPage() {
   const { q = "" } = Route.useSearch();
@@ -33,7 +32,7 @@ function LeadsPage() {
         return false;
       }
       if (!needle) return true;
-      return [l.name, l.city, l.setter, l.closer, l.product, l.id, l.source, l.phone, l.address].join(" ").toLowerCase().includes(needle);
+      return [l.name, l.city, l.setter, l.closer, l.product, l.id, l.source, l.phone, l.address, l.email].join(" ").toLowerCase().includes(needle);
     });
   }, [leads, view, query]);
 
@@ -63,7 +62,6 @@ function LeadsPage() {
             { key: "next", label: "Next", hide: "md", render: (r) => <span className="text-muted">{r.next}</span> },
             { key: "who", label: "Who", hide: "md", render: (r) => r.closer },
             { key: "office", label: "Office", hide: "lg", render: (r) => r.office },
-            { key: "value", label: "$", render: (r) => <span className="font-semibold tabular-nums">{money(r.value)}</span> },
             { key: "touch", label: "Last touch", hide: "lg", render: (r) => <span className="text-muted">{history[r.id]?.[0]?.at ?? r.created}</span> },
           ]}
         />

@@ -18,6 +18,14 @@ export type Lead = {
   product: string;
   value: number;
   notes: string;
+  interests?: string[];
+  otherInterest?: string;
+  secondaryName?: string;
+  secondaryPhone?: string;
+  secondaryEmail?: string;
+  referrerName?: string;
+  referrerPhone?: string;
+  dropReason?: string;
 };
 
 export type Opportunity = {
@@ -102,7 +110,7 @@ export const reps: { name: string; role: string; office: string; sold: number; r
 export const leads: Lead[] = [
   { id: "L-4821", name: "Elena Vargas", phone: "(623) 555-0144", email: "elena.vargas@gmail.com", address: "18422 W Bell Rd", city: "Surprise, AZ", source: "Canvass", status: "Set, no run", tone: "alert", setter: "Priya Shah", closer: "Marco Velez", office: "Phoenix", created: "Sep 11", next: "Sep 14 6:00p", product: "Attic R-49 + air seal", value: 18420, notes: "Both spouses need to be home. Dog in backyard." },
   { id: "L-4819", name: "Todd & Kim Hale", phone: "(480) 555-0198", email: "khale@cox.net", address: "7721 E Via de Ventura", city: "Scottsdale, AZ", source: "Google", status: "Ran", tone: "up", setter: "Amber Quinn", closer: "Dana Ortiz", office: "Scottsdale", created: "Sep 10", next: "Proposal out", product: "HVAC 4-ton + ducts", value: 28640, notes: "Existing 16-year Goodman. Interested in financing." },
-  { id: "L-4814", name: "Marcus Bell", phone: "(214) 555-0112", email: "mbell@outlook.com", address: "4418 Swiss Ave", city: "Dallas, TX", source: "Referral", status: "Pending", tone: "muted", setter: "Priya Shah", closer: "Luis Haddad", office: "Dallas", created: "Sep 9", next: "Sep 15 5:30p", product: "Aeroseal + attic", value: 12480, notes: "Referred by the Whitakers. Utility rebate eligible." },
+  { id: "L-4814", name: "Marcus Bell", phone: "(214) 555-0112", email: "mbell@outlook.com", address: "4418 Swiss Ave", city: "Dallas, TX", source: "Referral", status: "Pending", tone: "muted", setter: "Priya Shah", closer: "Luis Haddad", office: "Dallas", created: "Sep 9", next: "Sep 15 5:30p", product: "Aeroseal + attic", value: 12480, notes: "Referred by the Whitakers. Utility rebate eligible.", referrerName: "The Whitakers", referrerPhone: "(480) 555-0121" },
   { id: "L-4808", name: "Sharon Nguyen", phone: "(623) 555-0177", email: "snguyen@yahoo.com", address: "14001 N Prasada Pkwy", city: "Surprise, AZ", source: "Website", status: "Unmarked", tone: "alert", setter: "Priya Shah", closer: "Marco Velez", office: "Phoenix", created: "Sep 8", next: "Needs disposition", product: "Insulation removal", value: 6400, notes: "Setter said run happened. No outcome logged." },
   { id: "L-4802", name: "Jamal Ortiz", phone: "(817) 555-0133", email: "j.ortiz@gmail.com", address: "2901 W 7th St", city: "Fort Worth, TX", source: "Partner", status: "Ran", tone: "up", setter: "Amber Quinn", closer: "Cole Brennan", office: "Fort Worth", created: "Sep 7", next: "Follow-up Sep 16", product: "Attic R-49", value: 9800, notes: "One-legger, spouse out of town. Wants weekend close." },
   { id: "L-4796", name: "Rita Colson", phone: "(602) 555-0160", email: "rita.colson@gmail.com", address: "3122 E Camelback Rd", city: "Phoenix, AZ", source: "Canvass", status: "Cancelled", tone: "muted", setter: "Priya Shah", closer: "Nate Solis", office: "Phoenix", created: "Sep 6", next: "None", product: "Windows", value: 21400, notes: "Cancelled 2 hours before run. Reschedule later." },
