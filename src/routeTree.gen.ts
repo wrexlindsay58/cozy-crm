@@ -36,6 +36,7 @@ import { Route as AppOpportunitiesOppIdRouteImport } from './routes/_app/opportu
 import { Route as AppProjectsProjectIdRouteImport } from './routes/_app/projects_.$projectId'
 import { Route as AppReportsReportIdRouteImport } from './routes/_app/reports_.$reportId'
 import { Route as AppReportsNewRouteImport } from './routes/_app/reports_.new'
+import { Route as AppSettingsAssessmentsRouteImport } from './routes/_app/settings_.assessments'
 import { Route as AppSettingsBucketsRouteImport } from './routes/_app/settings_.buckets'
 import { Route as AppSettingsCalendarFiltersRouteImport } from './routes/_app/settings_.calendar-filters'
 import { Route as AppSettingsCatalogExtrasRouteImport } from './routes/_app/settings_.catalog-extras'
@@ -211,6 +212,11 @@ const AppReportsReportIdRoute = AppReportsReportIdRouteImport.update({
 const AppReportsNewRoute = AppReportsNewRouteImport.update({
   id: '/reports_/new',
   path: '/reports/new',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppSettingsAssessmentsRoute = AppSettingsAssessmentsRouteImport.update({
+  id: '/settings_/assessments',
+  path: '/settings/assessments',
   getParentRoute: () => AppRoute,
 } as any)
 const AppSettingsBucketsRoute = AppSettingsBucketsRouteImport.update({
@@ -454,6 +460,7 @@ export interface FileRoutesByFullPath {
   '/projects/$projectId': typeof AppProjectsProjectIdRoute
   '/reports/$reportId': typeof AppReportsReportIdRoute
   '/reports/new': typeof AppReportsNewRoute
+  '/settings/assessments': typeof AppSettingsAssessmentsRoute
   '/settings/buckets': typeof AppSettingsBucketsRoute
   '/settings/calendar-filters': typeof AppSettingsCalendarFiltersRoute
   '/settings/catalog-extras': typeof AppSettingsCatalogExtrasRoute
@@ -523,6 +530,7 @@ export interface FileRoutesByTo {
   '/projects/$projectId': typeof AppProjectsProjectIdRoute
   '/reports/$reportId': typeof AppReportsReportIdRoute
   '/reports/new': typeof AppReportsNewRoute
+  '/settings/assessments': typeof AppSettingsAssessmentsRoute
   '/settings/buckets': typeof AppSettingsBucketsRoute
   '/settings/calendar-filters': typeof AppSettingsCalendarFiltersRoute
   '/settings/catalog-extras': typeof AppSettingsCatalogExtrasRoute
@@ -594,6 +602,7 @@ export interface FileRoutesById {
   '/_app/projects_/$projectId': typeof AppProjectsProjectIdRoute
   '/_app/reports_/$reportId': typeof AppReportsReportIdRoute
   '/_app/reports_/new': typeof AppReportsNewRoute
+  '/_app/settings_/assessments': typeof AppSettingsAssessmentsRoute
   '/_app/settings_/buckets': typeof AppSettingsBucketsRoute
   '/_app/settings_/calendar-filters': typeof AppSettingsCalendarFiltersRoute
   '/_app/settings_/catalog-extras': typeof AppSettingsCatalogExtrasRoute
@@ -665,6 +674,7 @@ export interface FileRouteTypes {
     | '/projects/$projectId'
     | '/reports/$reportId'
     | '/reports/new'
+    | '/settings/assessments'
     | '/settings/buckets'
     | '/settings/calendar-filters'
     | '/settings/catalog-extras'
@@ -734,6 +744,7 @@ export interface FileRouteTypes {
     | '/projects/$projectId'
     | '/reports/$reportId'
     | '/reports/new'
+    | '/settings/assessments'
     | '/settings/buckets'
     | '/settings/calendar-filters'
     | '/settings/catalog-extras'
@@ -804,6 +815,7 @@ export interface FileRouteTypes {
     | '/_app/projects_/$projectId'
     | '/_app/reports_/$reportId'
     | '/_app/reports_/new'
+    | '/_app/settings_/assessments'
     | '/_app/settings_/buckets'
     | '/_app/settings_/calendar-filters'
     | '/_app/settings_/catalog-extras'
@@ -1040,6 +1052,13 @@ declare module '@tanstack/react-router' {
       path: '/reports/new'
       fullPath: '/reports/new'
       preLoaderRoute: typeof AppReportsNewRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/settings_/assessments': {
+      id: '/_app/settings_/assessments'
+      path: '/settings/assessments'
+      fullPath: '/settings/assessments'
+      preLoaderRoute: typeof AppSettingsAssessmentsRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/settings_/buckets': {
@@ -1359,6 +1378,7 @@ interface AppRouteChildren {
   AppProjectsProjectIdRoute: typeof AppProjectsProjectIdRoute
   AppReportsReportIdRoute: typeof AppReportsReportIdRoute
   AppReportsNewRoute: typeof AppReportsNewRoute
+  AppSettingsAssessmentsRoute: typeof AppSettingsAssessmentsRoute
   AppSettingsBucketsRoute: typeof AppSettingsBucketsRoute
   AppSettingsCalendarFiltersRoute: typeof AppSettingsCalendarFiltersRoute
   AppSettingsCatalogExtrasRoute: typeof AppSettingsCatalogExtrasRoute
@@ -1429,6 +1449,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppProjectsProjectIdRoute: AppProjectsProjectIdRoute,
   AppReportsReportIdRoute: AppReportsReportIdRoute,
   AppReportsNewRoute: AppReportsNewRoute,
+  AppSettingsAssessmentsRoute: AppSettingsAssessmentsRoute,
   AppSettingsBucketsRoute: AppSettingsBucketsRoute,
   AppSettingsCalendarFiltersRoute: AppSettingsCalendarFiltersRoute,
   AppSettingsCatalogExtrasRoute: AppSettingsCatalogExtrasRoute,
