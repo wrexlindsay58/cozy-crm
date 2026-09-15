@@ -2,6 +2,7 @@ import { useNavigate, createFileRoute } from "@tanstack/react-router";
 import { AssessmentWorkspace } from "@/features/assessment/workspace";
 import { completeAssessment, useAssessment } from "@/features/assessment/store";
 import { RecordShell } from "@/features/record-shell/record-shell";
+import { PriorStages } from "@/features/record-shell/prior-stages";
 import { useOps } from "@/features/ops/store";
 import { followersByPerson, photosByPerson } from "@/lib/file-data";
 
@@ -31,6 +32,7 @@ function AssessmentFile() {
       photos={photosByPerson[file.leadId] ?? []}
     >
       <AssessmentWorkspace file={file} />
+      <PriorStages leadId={file.leadId} current="assessment" />
     </RecordShell>
   );
 }

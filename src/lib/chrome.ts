@@ -22,6 +22,8 @@ import {
  * 4. Comments on tickets, tasks, notes, and media nest in Internal.
  * 5. Owner clicks the title to edit. Anyone on the file can comment.
  * 6. Tap targets are 44px. Internal is the shop log. Customer is the house.
+ * 7. The lead file is the pipeline chrome. Later stages keep it and add
+ *    their work. Prior stages sit in expanders on the file, not in talk tabs.
  */
 export const NAV_COLLAPSE_PX = 1279;
 export const TAP = 44;
