@@ -26,7 +26,7 @@ export function LeadTools({ lead }: { lead: Lead }) {
             key={t}
             type="button"
             onClick={() => toggleLeadTag(lead.id, t)}
-            className={cn("h-10 rounded-md px-3 text-sm font-semibold", tags.includes(t) ? "bg-navy text-card" : "border border-line")}
+            className={cn("h-7 rounded-md px-2 text-[11px] font-semibold", tags.includes(t) ? "bg-navy text-card" : "border border-line")}
           >
             {t}
           </button>
