@@ -1,12 +1,11 @@
 import { useRef, useState } from "react";
-import { createPortal } from "react-dom";
 import { ChevronDown, Braces, DollarSign, FileText, Link, Paperclip, Phone, Plus, Smile } from "lucide-react";
 import { addHistory, dndOn } from "@/features/ops/store";
 import { sendMessage, useThread } from "@/features/thread/store";
 import { kindFromFile } from "@/features/photos/store";
 import type { DndChannel } from "@/lib/crm-data";
 import { cannedFor, COMPOSE_EMOJI, CUSTOM_VALUES, PAY_ASKS, TRIGGER_LINKS } from "@/lib/canned";
-import { Scrim } from "@/components/scrim";
+import { Float } from "@/components/float";
 import { Tip } from "@/components/tip";
 import { setCallFrom, setEmailFrom, setSmsFrom, useFrom } from "@/features/from/store";
 import { useMoneySettings } from "@/features/money-settings/store";
@@ -315,14 +314,8 @@ function ComposeExtras({
           ) : null}
         </button>
       </Tip>
-      {open && box
-        ? createPortal(
-            <>
-              <button type="button" aria-label="Close" className="fixed inset-0 z-40 cursor-default bg-transparent" onClick={close} />
-              <div
-                className="fixed z-50 min-w-72 rounded-md border border-line bg-card shadow-sm"
-                style={{ left: Math.max(8, box.right - 320), top: box.top - 8, transform: "translateY(-100%)" }}
-              >
+      {open && box ? (
+        <Float key={pane} anchor={box} prefer="top" onClose={close}>
               {pane === "icons" ? (
                 <div className="flex items-center gap-2 p-1.5">
                   {(
@@ -429,11 +422,8 @@ function ComposeExtras({
                   ) : null}
                 </div>
               )}
-            </div>
-            </>,
-            document.body,
-          )
-        : null}
+        </Float>
+      ) : null}
     </div>
   );
 }
@@ -500,32 +490,23 @@ function FromSplit({
           <ChevronDown className="size-3.5" />
         </button>
       </Tip>
-      {open && box
-        ? createPortal(
-            <>
-              <button type="button" aria-label="Close" className="fixed inset-0 z-40 cursor-default bg-transparent" onClick={() => setOpen(false)} />
-              <div
-                className="fixed z-50 min-w-52 rounded-md border border-line bg-card py-1 shadow-sm"
-                style={{ left: box.left, top: box.top - 8, transform: "translateY(-100%)" }}
-              >
-                {options.map((o) => (
-                  <button
-                    key={o.value}
-                    type="button"
-                    className={cn("block w-full px-3 py-2 text-left text-sm hover:bg-page", o.value === current && "font-semibold")}
-                    onClick={() => {
-                      onFrom(o.value);
-                      setOpen(false);
-                    }}
-                  >
-                    {o.label}
-                  </button>
-                ))}
-              </div>
-            </>,
-            document.body,
-          )
-        : null}
+      {open && box ? (
+        <Float anchor={box} prefer="top" onClose={() => setOpen(false)}>
+          {options.map((o) => (
+            <button
+              key={o.value}
+              type="button"
+              className={cn("block w-full min-w-52 px-3 py-2 text-left text-sm hover:bg-page", o.value === current && "font-semibold")}
+              onClick={() => {
+                onFrom(o.value);
+                setOpen(false);
+              }}
+            >
+              {o.label}
+            </button>
+          ))}
+        </Float>
+      ) : null}
     </div>
   );
 }

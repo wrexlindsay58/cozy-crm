@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { cn } from "@/lib/cn";
+import { placeFloat, type FloatSide } from "@/lib/place-float";
 
 export function Tip({
   label,
@@ -11,12 +12,14 @@ export function Tip({
 }: {
   label: string;
   on: boolean;
-  side?: "bottom" | "right" | "top";
+  side?: FloatSide;
   className?: string;
   children: ReactNode;
 }) {
   const [box, setBox] = useState<DOMRect | null>(null);
   if (!on) return children;
+  const w = Math.min(280, Math.max(48, label.length * 7 + 16));
+  const style = box ? placeFloat(box, w, 28, side) : undefined;
   return (
     <span
       className={cn("inline-flex", className)}
@@ -26,18 +29,9 @@ export function Tip({
       onBlur={() => setBox(null)}
     >
       {children}
-      {box
+      {box && style
         ? createPortal(
-            <span
-              className="pointer-events-none fixed z-50 rounded-md bg-ink px-2 py-1 text-[11px] font-semibold whitespace-nowrap text-card"
-              style={
-                side === "right"
-                  ? { top: box.top + box.height / 2, left: box.right + 8, transform: "translateY(-50%)" }
-                  : side === "top"
-                    ? { top: box.top - 6, left: box.left + box.width / 2, transform: "translate(-50%, -100%)" }
-                    : { top: box.bottom + 6, left: box.left + box.width / 2, transform: "translateX(-50%)" }
-              }
-            >
+            <span className="pointer-events-none fixed z-50 max-w-[min(280px,calc(100vw-16px))] rounded-md bg-ink px-2 py-1 text-[11px] font-semibold text-card" style={style}>
               {label}
             </span>,
             document.body,

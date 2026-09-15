@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { ChevronDown } from "lucide-react";
 import { ActBar } from "@/components/act-bar";
-import { Scrim } from "@/components/scrim";
+import { Float } from "@/components/float";
 import { cn } from "@/lib/cn";
 import type { Tone } from "@/lib/crm-data";
 import { LEAD_STATUSES, stageWash } from "@/lib/lead-status";
@@ -25,6 +25,7 @@ function StageChip({
   onStage?: (status: string) => void;
 }) {
   const [open, setOpen] = useState(false);
+  const [anchor, setAnchor] = useState<DOMRect | null>(null);
   const wash = stageWash(tone);
   if (!onStage) {
     return (
@@ -38,32 +39,32 @@ function StageChip({
       <button
         type="button"
         aria-label="Disposition"
-        onClick={() => setOpen((v) => !v)}
+        onClick={(e) => {
+          setAnchor(e.currentTarget.getBoundingClientRect());
+          setOpen((v) => !v);
+        }}
         className={cn("inline-flex h-7 shrink-0 items-center gap-1 rounded-md px-2 text-[11px] font-bold tracking-wide uppercase", wash)}
       >
         {label}
         <ChevronDown className="size-3" />
       </button>
-      {open ? (
-        <>
-          <Scrim onClose={() => setOpen(false)} />
-          <div className="absolute top-8 left-0 z-30 min-w-44 rounded-md border border-line bg-card py-1 shadow-sm">
-            {LEAD_STATUSES.map((s) => (
-              <button
-                key={s.label}
-                type="button"
-                className={cn("block w-full px-3 py-2 text-left text-sm hover:bg-page", s.label === label && "font-semibold")}
-                onClick={() => {
-                  onStage(s.label);
-                  setOpen(false);
-                }}
-              >
-                <span className={cn("mr-2 inline-block size-2 rounded-full", stageWash(s.tone))} />
-                {s.label}
-              </button>
-            ))}
-          </div>
-        </>
+      {open && anchor ? (
+        <Float anchor={anchor} prefer="bottom" onClose={() => setOpen(false)}>
+          {LEAD_STATUSES.map((s) => (
+            <button
+              key={s.label}
+              type="button"
+              className={cn("block w-full min-w-44 px-3 py-2 text-left text-sm hover:bg-page", s.label === label && "font-semibold")}
+              onClick={() => {
+                onStage(s.label);
+                setOpen(false);
+              }}
+            >
+              <span className={cn("mr-2 inline-block size-2 rounded-full", stageWash(s.tone))} />
+              {s.label}
+            </button>
+          ))}
+        </Float>
       ) : null}
     </div>
   );
@@ -116,6 +117,7 @@ export function TitleRow({
         <div className="flex min-w-0 flex-1 flex-wrap items-center justify-end gap-1.5">
           {moneyLabel ? <p className="mr-1 text-sm font-extrabold tabular-nums">{moneyLabel}</p> : null}
           <ActBar
+            iconsOnly
             items={acts.map((act) => ({
               label: act.label,
               variant: act.opens === "thread" ? "navy" : "line",

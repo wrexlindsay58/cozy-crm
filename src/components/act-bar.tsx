@@ -3,7 +3,7 @@ import { ChevronDown } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { ACT_ICONS } from "@/lib/chrome";
-import { Scrim } from "@/components/scrim";
+import { Float } from "@/components/float";
 import { Tip } from "@/components/tip";
 import { useFit } from "@/components/use-fit";
 
@@ -15,23 +15,52 @@ export type ActItem = {
   variant?: "navy" | "line";
 };
 
-export function ActBar({ items }: { items: ActItem[] }) {
-  const { barRef, measureRef, iconsOnly } = useFit();
+export function ActBar({ items, iconsOnly: forceIcons }: { items: ActItem[]; iconsOnly?: boolean }) {
+  const { barRef, measureRef, iconsOnly: fitIcons } = useFit();
+  const iconsOnly = forceIcons ?? fitIcons;
   return (
     <div className="relative min-w-0">
-      <div ref={measureRef} className="pointer-events-none invisible absolute flex gap-1.5 whitespace-nowrap" aria-hidden>
-        {items.map((item) => (
-          <span key={item.label} className="inline-flex h-11 items-center gap-1.5 px-3 text-sm font-semibold">
-            {item.label}
-          </span>
-        ))}
-      </div>
+      {forceIcons ? null : (
+        <div ref={measureRef} className="pointer-events-none invisible absolute flex gap-1.5 whitespace-nowrap" aria-hidden>
+          {items.map((item) => (
+            <span key={item.label} className="inline-flex h-11 items-center gap-1.5 px-3 text-sm font-semibold">
+              {item.label}
+            </span>
+          ))}
+        </div>
+      )}
       <div ref={barRef} className="flex flex-wrap justify-end gap-1.5">
         {items.map((item) => (
           <ActBtn key={item.label} item={item} iconsOnly={iconsOnly} />
         ))}
       </div>
     </div>
+  );
+}
+
+function MenuItems({
+  menu,
+  onPick,
+}: {
+  menu: { label: string; onClick?: () => void }[];
+  onPick: () => void;
+}) {
+  return (
+    <>
+      {menu.map((m) => (
+        <button
+          key={m.label}
+          type="button"
+          className="block w-full min-w-44 px-3 py-2 text-left text-sm hover:bg-page"
+          onClick={() => {
+            m.onClick?.();
+            onPick();
+          }}
+        >
+          {m.label}
+        </button>
+      ))}
+    </>
   );
 }
 
@@ -43,6 +72,7 @@ export function ActBtn({
   iconsOnly: boolean;
 }) {
   const [open, setOpen] = useState(false);
+  const [anchor, setAnchor] = useState<DOMRect | null>(null);
   const Icon = item.icon ?? ACT_ICONS[item.label];
   const cls = cn(
     "inline-flex h-11 shrink-0 items-center justify-center gap-1.5 rounded-md px-3 text-sm font-semibold",
@@ -55,68 +85,44 @@ export function ActBtn({
       {iconsOnly ? <span className="sr-only">{item.label}</span> : item.label}
     </>
   );
+
+  function openAt(el: HTMLElement) {
+    setAnchor(el.getBoundingClientRect());
+    setOpen((v) => !v);
+  }
+
   let control: ReactNode;
   if (item.menu && item.onClick) {
     control = (
       <div className="relative flex">
-        <button type="button" aria-label={item.label} className={cn(cls, "rounded-r-none pr-2")} onClick={item.onClick}>
+        <button type="button" aria-label={item.label} className={cn(cls, "rounded-r-none pr-2", iconsOnly && "w-9")} onClick={item.onClick}>
           {inner}
         </button>
         <button
           type="button"
           aria-label={`${item.label} from`}
           className={cn(cls, "w-8 rounded-l-none px-0")}
-          onClick={() => setOpen((v) => !v)}
+          onClick={(e) => openAt(e.currentTarget)}
         >
           <ChevronDown className="size-3.5" />
         </button>
-        {open ? (
-          <>
-            <Scrim onClose={() => setOpen(false)} />
-            <div className="absolute top-11 right-0 z-30 min-w-48 rounded-md border border-line bg-card py-1 shadow-sm">
-              {item.menu.map((m) => (
-                <button
-                  key={m.label}
-                  type="button"
-                  className="block w-full px-3 py-2 text-left text-sm hover:bg-page"
-                  onClick={() => {
-                    m.onClick?.();
-                    setOpen(false);
-                  }}
-                >
-                  {m.label}
-                </button>
-              ))}
-            </div>
-          </>
+        {open && anchor ? (
+          <Float anchor={anchor} prefer="bottom" onClose={() => setOpen(false)}>
+            <MenuItems menu={item.menu} onPick={() => setOpen(false)} />
+          </Float>
         ) : null}
       </div>
     );
   } else if (item.menu) {
     control = (
       <div className="relative">
-        <button type="button" aria-label={item.label} className={cls} onClick={() => setOpen((v) => !v)}>
+        <button type="button" aria-label={item.label} className={cls} onClick={(e) => openAt(e.currentTarget)}>
           {inner}
         </button>
-        {open ? (
-          <>
-            <Scrim onClose={() => setOpen(false)} />
-            <div className="absolute top-11 right-0 z-30 min-w-40 rounded-md border border-line bg-card py-1 shadow-sm">
-              {item.menu.map((m) => (
-                <button
-                  key={m.label}
-                  type="button"
-                  className="block w-full px-3 py-2 text-left text-sm hover:bg-page"
-                  onClick={() => {
-                    m.onClick?.();
-                    setOpen(false);
-                  }}
-                >
-                  {m.label}
-                </button>
-              ))}
-            </div>
-          </>
+        {open && anchor ? (
+          <Float anchor={anchor} prefer="bottom" onClose={() => setOpen(false)}>
+            <MenuItems menu={item.menu} onPick={() => setOpen(false)} />
+          </Float>
         ) : null}
       </div>
     );
