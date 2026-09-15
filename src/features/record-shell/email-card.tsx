@@ -9,6 +9,9 @@ export function EmailCard({ msg }: { msg: ThreadMessage }) {
       </p>
       {msg.subject ? <p className="mt-1 text-sm font-semibold">{msg.subject}</p> : null}
       <p className="mt-1 whitespace-pre-wrap text-sm">{msg.text}</p>
+      {msg.files?.length ? (
+        <p className="mt-2 text-[11px] font-semibold text-muted">{msg.files.map((f) => f.name).join(" · ")}</p>
+      ) : null}
     </article>
   );
 }

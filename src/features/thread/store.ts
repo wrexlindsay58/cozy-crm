@@ -17,10 +17,10 @@ export function sendMessage(
   personId: string,
   text: string,
   lane: boolean | "sms" | "internal" | "note" | "email" = false,
-  extra?: { subject?: string; nest?: ThreadMessage["nest"]; replyTo?: string },
+  extra?: { subject?: string; nest?: ThreadMessage["nest"]; replyTo?: string; files?: ThreadMessage["files"] },
 ) {
   const trimmed = text.trim();
-  if (!trimmed) return;
+  if (!trimmed && !extra?.files?.length) return;
   const now = new Date();
   const at = now.toLocaleString("en-US", {
     month: "short",
@@ -36,10 +36,11 @@ export function sendMessage(
     channel: extra?.nest ? "internal" : channel,
     from: "shop",
     at,
-    text: trimmed,
+    text: trimmed || (extra?.files?.length ? `Sent ${extra.files.map((f) => f.name).join(", ")}.` : ""),
     subject: extra?.subject?.trim() || undefined,
     nest: extra?.nest,
     replyTo: extra?.replyTo,
+    files: extra?.files,
   };
   messages = [...messages, row];
   emit();

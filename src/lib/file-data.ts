@@ -34,6 +34,7 @@ export type ThreadMessage = {
   nest?: ThreadNest;
   replyTo?: string;
   reactions?: { emoji: string; by: string }[];
+  files?: { name: string; kind?: FileKind; src?: string }[];
 };
 
 export const followersByPerson: Record<string, PersonRef[]> = {

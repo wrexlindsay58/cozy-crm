@@ -1,14 +1,17 @@
-import { useState } from "react";
-import { Phone } from "lucide-react";
+import { useRef, useState } from "react";
+import { FileText, Paperclip, Phone } from "lucide-react";
 import { addHistory, dndOn } from "@/features/ops/store";
 import { sendMessage, useThread } from "@/features/thread/store";
+import { kindFromFile } from "@/features/photos/store";
 import type { DndChannel } from "@/lib/crm-data";
+import { cannedFor } from "@/lib/canned";
+import { Tip } from "@/components/tip";
 import { TalkLine } from "./talk-line";
 import { CommentBox } from "./comment-box";
 import { CallCard } from "./call-card";
 import { EmailCard } from "./email-card";
 import { cn } from "@/lib/cn";
-import type { ThreadMessage, ThreadNest } from "@/lib/file-data";
+import type { FileKind, ThreadMessage, ThreadNest } from "@/lib/file-data";
 
 export function ThreadPane({
   personId,
@@ -25,6 +28,7 @@ export function ThreadPane({
   const [draft, setDraft] = useState("");
   const [subject, setSubject] = useState("");
   const [channel, setChannel] = useState<"sms" | "email">("sms");
+  const [files, setFiles] = useState<{ name: string; kind: FileKind; src?: string }[]>([]);
   const blockText = dndOn({ dnd }, "text");
   const blockEmail = dndOn({ dnd }, "email");
   const blockCall = dndOn({ dnd }, "call");
@@ -37,15 +41,16 @@ export function ThreadPane({
       sendMessage(personId, draft, "internal");
     } else if (channel === "email") {
       if (blockEmail) return;
-      sendMessage(personId, draft, "email", { subject });
+      sendMessage(personId, draft, "email", { subject, files: files.length ? files : undefined });
       addHistory(personId, "Wrex Lindsay", `Email sent${subject.trim() ? `. ${subject.trim()}` : "."}`);
       setSubject("");
     } else {
       if (blockText) return;
-      sendMessage(personId, draft, "sms");
+      sendMessage(personId, draft, "sms", { files: files.length ? files : undefined });
       addHistory(personId, "Wrex Lindsay", "Text sent.");
     }
     setDraft("");
+    setFiles([]);
   }
 
   const emptyCopy = mode === "internal" ? "None yet." : mode === "notes" ? "None yet." : "Nothing on this thread yet.";
@@ -97,6 +102,7 @@ export function ThreadPane({
                   <p className={cn("mt-0.5 rounded-md px-2.5 py-2 text-sm", m.from === "shop" || mode === "notes" ? "bg-navy text-card" : "bg-page text-ink")}>
                     {m.text}
                   </p>
+                  {m.files?.length ? <p className="mt-1 text-[11px] text-muted">{m.files.map((f) => f.name).join(" · ")}</p> : null}
                   {mode === "notes" ? <CommentBox personId={personId} nest={{ kind: "note", id: m.id, title: m.text.slice(0, 48) }} /> : null}
                 </div>
               ),
@@ -146,7 +152,18 @@ export function ThreadPane({
         <label className="sr-only" htmlFor={`composer-${personId}-${mode}`}>
           {placeholder}
         </label>
-        <div className="flex gap-2">
+        <div className="flex gap-1">
+          {mode === "customer" ? (
+            <ComposeExtras
+              channel={channel}
+              files={files}
+              onFiles={setFiles}
+              onTemplate={(body, sub) => {
+                setDraft(body);
+                if (sub) setSubject(sub);
+              }}
+            />
+          ) : null}
           <input
             id={`composer-${personId}-${mode}`}
             value={draft}
@@ -211,6 +228,68 @@ function PlainInternal({ msg, personId, replies }: { msg: ThreadMessage; personI
       <div className="mt-1">
         <TalkLine msg={msg} personId={personId} replies={replies} />
       </div>
+    </div>
+  );
+}
+
+function ComposeExtras({
+  channel,
+  files,
+  onFiles,
+  onTemplate,
+}: {
+  channel: "sms" | "email";
+  files: { name: string; kind: FileKind; src?: string }[];
+  onFiles: (rows: { name: string; kind: FileKind; src?: string }[]) => void;
+  onTemplate: (body: string, subject?: string) => void;
+}) {
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [open, setOpen] = useState(false);
+  const list = cannedFor(channel);
+
+  function addFile(file: File | undefined) {
+    if (!file) return;
+    const kind = kindFromFile(file);
+    const reader = new FileReader();
+    reader.onload = () => {
+      onFiles([...files, { name: file.name, kind, src: typeof reader.result === "string" ? reader.result : undefined }]);
+    };
+    reader.readAsDataURL(file);
+  }
+
+  return (
+    <div className="relative flex shrink-0">
+      <input ref={fileRef} type="file" className="sr-only" accept="image/*,video/*,.pdf,.doc,.docx" onChange={(e) => addFile(e.target.files?.[0])} />
+      <Tip label={files.length ? files.map((f) => f.name).join(", ") : "Attach"} on side="top">
+        <button type="button" aria-label="Attach" onClick={() => fileRef.current?.click()} className="relative grid size-11 place-items-center rounded-md text-navy">
+          <Paperclip className="size-4" />
+          {files.length ? (
+            <span className="absolute top-1 right-1 grid size-4 place-items-center rounded-full bg-navy text-[9px] font-bold text-card">{files.length}</span>
+          ) : null}
+        </button>
+      </Tip>
+      <Tip label="Templates" on={!open} side="top">
+        <button type="button" aria-label="Templates" onClick={() => setOpen((v) => !v)} className="grid size-11 place-items-center rounded-md text-navy">
+          <FileText className="size-4" />
+        </button>
+      </Tip>
+      {open ? (
+        <div className="absolute bottom-12 left-0 z-30 min-w-56 rounded-md border border-line bg-card py-1 shadow-sm">
+          {list.map((c) => (
+            <button
+              key={c.id}
+              type="button"
+              className="block w-full px-3 py-2 text-left text-sm hover:bg-page"
+              onClick={() => {
+                onTemplate(c.body, c.subject);
+                setOpen(false);
+              }}
+            >
+              {c.label}
+            </button>
+          ))}
+        </div>
+      ) : null}
     </div>
   );
 }

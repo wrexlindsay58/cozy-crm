@@ -11,7 +11,7 @@ export function Tip({
 }: {
   label: string;
   on: boolean;
-  side?: "bottom" | "right";
+  side?: "bottom" | "right" | "top";
   className?: string;
   children: ReactNode;
 }) {
@@ -33,7 +33,9 @@ export function Tip({
               style={
                 side === "right"
                   ? { top: box.top + box.height / 2, left: box.right + 8, transform: "translateY(-50%)" }
-                  : { top: box.bottom + 6, left: box.left + box.width / 2, transform: "translateX(-50%)" }
+                  : side === "top"
+                    ? { top: box.top - 6, left: box.left + box.width / 2, transform: "translate(-50%, -100%)" }
+                    : { top: box.bottom + 6, left: box.left + box.width / 2, transform: "translateX(-50%)" }
               }
             >
               {label}
