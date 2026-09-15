@@ -2,10 +2,12 @@ import { useMemo, useState } from "react";
 import {
   BellOff,
   Calendar,
+  ChevronDown,
   ClipboardList,
   Clock,
   Image,
   Inbox,
+  Layers,
   ListChecks,
   Mail,
   MessageSquare,
@@ -36,6 +38,7 @@ import { HistoryList, PhotoRail } from "@/features/record-shell/side-rails";
 import { FormAnswers } from "@/features/record-shell/form-answers";
 import { ThreadPane } from "@/features/record-shell/thread-pane";
 import { WorkTab } from "@/features/record-shell/work-tab";
+import { Float } from "@/components/float";
 import { Tip } from "@/components/tip";
 import { useFit } from "@/components/use-fit";
 import { PageTitle } from "@/components/ui-bits";
@@ -43,19 +46,20 @@ import { PageTitle } from "@/components/ui-bits";
 const WHO = [
   { id: "all", label: "All contacts", icon: Users },
   { id: "mine", label: "Assigned to me", icon: User },
-  { id: "following", label: "Following", icon: UserPlus },
-  { id: "starred", label: "Starred", icon: Star },
+  { id: "following", label: "Followed by me", icon: UserPlus },
 ] as const;
 
-const KIND = [
+const CHANNEL = [
   { id: "all", label: "All talk", icon: MessagesSquare },
-  { id: "unread", label: "Unread", icon: Inbox },
+  { id: "sms", label: "SMS", icon: Smartphone },
+  { id: "call", label: "Phone", icon: Phone },
+  { id: "email", label: "Email", icon: Mail },
+] as const;
+
+const TYPE = [
+  { id: "all", label: "All types", icon: Layers },
   { id: "customer", label: "Customer", icon: MessageSquare },
   { id: "internal", label: "Internal", icon: Users },
-  { id: "sms", label: "SMS", icon: Smartphone },
-  { id: "call", label: "Calls", icon: Phone },
-  { id: "email", label: "Email", icon: Mail },
-  { id: "dnd", label: "DND on", icon: BellOff },
 ] as const;
 
 const LANES = [
@@ -71,7 +75,8 @@ const LANES = [
 
 type Lane = (typeof LANES)[number]["id"];
 type Who = (typeof WHO)[number]["id"];
-type Kind = (typeof KIND)[number]["id"];
+type Channel = (typeof CHANNEL)[number]["id"];
+type TalkType = (typeof TYPE)[number]["id"];
 
 function initials(name: string) {
   return name
@@ -101,7 +106,10 @@ export function Conversations() {
   useAssessments();
   const me = viewAs === "Owner" ? SHOP_ACTOR : viewAs;
   const [who, setWho] = useState<Who>("all");
-  const [kind, setKind] = useState<Kind>("all");
+  const [channel, setChannel] = useState<Channel>("all");
+  const [talkType, setTalkType] = useState<TalkType>("all");
+  const [starredOnly, setStarredOnly] = useState(false);
+  const [unreadOnly, setUnreadOnly] = useState(false);
   const [query, setQuery] = useState("");
   const [activeId, setActiveId] = useState("L-4821");
   const [lane, setLane] = useState<Lane>("customer");
@@ -173,14 +181,13 @@ export function Conversations() {
       .filter((p) => {
         if (who === "mine" && !p.assigned) return false;
         if (who === "following" && !p.following) return false;
-        if (who === "starred" && !p.starred) return false;
-        if (kind === "unread" && !p.unread) return false;
-        if (kind === "dnd" && !p.dndOn) return false;
-        if (kind === "customer" && !p.msgs.some((m) => m.channel === "sms" || m.channel === "call" || m.channel === "email")) return false;
-        if (kind === "internal" && !p.msgs.some((m) => m.channel === "internal")) return false;
-        if (kind === "sms" && !p.msgs.some((m) => m.channel === "sms")) return false;
-        if (kind === "call" && !p.msgs.some((m) => m.channel === "call")) return false;
-        if (kind === "email" && !p.msgs.some((m) => m.channel === "email")) return false;
+        if (starredOnly && !p.starred) return false;
+        if (unreadOnly && !p.unread) return false;
+        if (talkType === "customer" && !p.msgs.some((m) => m.channel === "sms" || m.channel === "call" || m.channel === "email")) return false;
+        if (talkType === "internal" && !p.msgs.some((m) => m.channel === "internal")) return false;
+        if (channel === "sms" && !p.msgs.some((m) => m.channel === "sms")) return false;
+        if (channel === "call" && !p.msgs.some((m) => m.channel === "call")) return false;
+        if (channel === "email" && !p.msgs.some((m) => m.channel === "email")) return false;
         if (!q) return true;
         return [p.name, p.phone, p.last?.text, p.pipe.label, p.status].join(" ").toLowerCase().includes(q);
       })
@@ -189,7 +196,7 @@ export function Conversations() {
         if (Boolean(a.unread) !== Boolean(b.unread)) return a.unread ? -1 : 1;
         return Number(Boolean(b.last)) - Number(Boolean(a.last));
       });
-  }, [people, messages, followers, me, who, kind, query, appointments, leads]);
+  }, [people, messages, followers, me, who, channel, talkType, starredOnly, unreadOnly, query, appointments, leads]);
 
   const active = rows.find((r) => r.id === activeId) ?? rows[0];
   const lead = active ? byId(leads, active.leadId ?? active.id) : undefined;
@@ -214,8 +221,8 @@ export function Conversations() {
       </header>
 
       <div className="flex min-h-0 min-w-0 flex-1">
-        <aside className={cn("flex w-full shrink-0 flex-col border-r border-line bg-card md:w-96", mobileThread && "max-md:hidden")}>
-          <div className="border-b border-line px-3 py-2">
+        <aside className={cn("flex w-full shrink-0 flex-col border-r border-line bg-card md:w-72", mobileThread && "max-md:hidden")}>
+          <div className="border-b border-line px-2 py-2">
             <label className="relative block">
               <Search className="pointer-events-none absolute top-1/2 left-3 size-3.5 -translate-y-1/2 text-faint" />
               <input
@@ -225,14 +232,24 @@ export function Conversations() {
                 className="h-10 w-full rounded-md border border-line bg-page pr-3 pl-9 text-sm outline-none"
               />
             </label>
-            <div className="mt-2 flex items-center gap-0.5 overflow-x-auto">
-              {WHO.map((f) => (
-                <IconChip key={f.id} label={f.label} icon={f.icon} on={who === f.id} onClick={() => setWho(f.id)} filled={f.id === "starred" && who === "starred"} />
-              ))}
-              <span className="mx-1 h-5 w-px shrink-0 bg-line" />
-              {KIND.map((f) => (
-                <IconChip key={f.id} label={f.label} icon={f.icon} on={kind === f.id} onClick={() => setKind(f.id)} />
-              ))}
+            <div className="mt-1.5 flex items-center gap-0.5">
+              <Pick items={WHO} value={who} onChange={setWho} />
+              <IconChip
+                label="Starred"
+                icon={Star}
+                on={starredOnly}
+                filled={starredOnly}
+                onClick={() => setStarredOnly((v) => !v)}
+              />
+              <IconChip
+                label="Unread"
+                icon={Inbox}
+                on={unreadOnly}
+                onClick={() => setUnreadOnly((v) => !v)}
+              />
+              <span className="mx-0.5 h-4 w-px shrink-0 bg-line" />
+              <Pick items={CHANNEL} value={channel} onChange={setChannel} />
+              <Pick items={TYPE} value={talkType} onChange={setTalkType} />
             </div>
           </div>
           <ul className="min-h-0 flex-1 overflow-auto">
@@ -382,6 +399,70 @@ export function Conversations() {
         </section>
       </div>
     </div>
+  );
+}
+
+function Pick<T extends string>({
+  items,
+  value,
+  onChange,
+}: {
+  items: readonly { id: T; label: string; icon: typeof Star }[];
+  value: T;
+  onChange: (v: T) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [anchor, setAnchor] = useState<DOMRect | null>(null);
+  const current = items.find((i) => i.id === value) ?? items[0];
+  const Icon = current.icon;
+  const hot = value !== items[0].id;
+  return (
+    <>
+      <Tip label={current.label} on side="bottom">
+        <button
+          type="button"
+          aria-label={current.label}
+          aria-expanded={open}
+          onClick={(e) => {
+            setAnchor(e.currentTarget.getBoundingClientRect());
+            setOpen((v) => !v);
+          }}
+          className={cn(
+            "inline-flex h-8 shrink-0 items-center rounded-md px-1.5",
+            hot ? "bg-navy text-card" : "text-muted hover:bg-page",
+          )}
+        >
+          <Icon className="size-3.5" />
+          <ChevronDown className="size-3 opacity-70" />
+        </button>
+      </Tip>
+      {open && anchor ? (
+        <Float
+          anchor={anchor}
+          prefer="bottom"
+          onClose={() => setOpen(false)}
+        >
+          {items.map((item) => {
+            const ItemIcon = item.icon;
+            return (
+              <button
+                key={item.id}
+                type="button"
+                className="flex h-10 w-full min-w-44 items-center gap-2 px-3 text-left text-sm hover:bg-page"
+                onClick={() => {
+                  onChange(item.id);
+                  setOpen(false);
+                }}
+              >
+                <ItemIcon className="size-3.5" />
+                <span className="flex-1">{item.label}</span>
+                {item.id === value ? <span className="text-[11px] font-bold text-navy">On</span> : null}
+              </button>
+            );
+          })}
+        </Float>
+      ) : null}
+    </>
   );
 }
 
