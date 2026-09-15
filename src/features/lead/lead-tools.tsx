@@ -1,71 +1,26 @@
 import { useState } from "react";
-import { addWorkflow, dndOn, stopWorkflow, toggleLeadDnd, toggleLeadTag } from "@/features/ops/store";
-import type { DndChannel, Lead } from "@/lib/crm-data";
+import { addWorkflow, createTag, createWorkflow, stopWorkflow, toggleLeadTag, useOps } from "@/features/ops/store";
+import type { Lead } from "@/lib/crm-data";
 import { cn } from "@/lib/cn";
-import { Scrim } from "@/components/scrim";
-
-const TAGS = ["HOA", "Rebate", "Renter", "Spanish", "Veteran", "Callback", "Air seal"];
-const WORKFLOWS = ["New lead drip", "No-sit follow-up", "Ran, no decision", "Review ask"];
-const DND_ROWS: { id: DndChannel | "all"; label: string }[] = [
-  { id: "all", label: "All" },
-  { id: "text", label: "Text" },
-  { id: "call", label: "Call" },
-  { id: "email", label: "Email" },
-];
-
-function dndLabel(lead: Lead) {
-  const d = lead.dnd ?? [];
-  if (d.length === 0) return "DND off";
-  if (d.length === 3) return "DND all";
-  const names = d.map((c) => (c === "text" ? "text" : c === "call" ? "call" : "email"));
-  return `DND ${names.join(", ")}`;
-}
+import { DndPick } from "./dnd-pick";
 
 export function LeadTools({ lead }: { lead: Lead }) {
   const tags = lead.tags ?? [];
   const flows = lead.workflows ?? [];
-  const [dndOpen, setDndOpen] = useState(false);
-  const allOn = (lead.dnd ?? []).length === 3;
-  const hot = (lead.dnd ?? []).length > 0;
+  const { tagPool, flowPool } = useOps();
+  const [tagDraft, setTagDraft] = useState("");
+  const [flowDraft, setFlowDraft] = useState("");
 
   return (
     <section className="rounded-md border border-line bg-card p-4">
-      <div className="relative flex flex-wrap items-center justify-between gap-2">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-[11px] font-bold tracking-wide text-muted uppercase">DND</h2>
-        <button
-          type="button"
-          className={cn("h-11 min-w-36 rounded-md px-3 text-sm font-semibold", hot ? "bg-stop text-card" : "border border-line")}
-          aria-expanded={dndOpen}
-          onClick={() => setDndOpen((v) => !v)}
-        >
-          {dndLabel(lead)}
-        </button>
-        {dndOpen ? (
-          <>
-            <Scrim onClose={() => setDndOpen(false)} />
-            <div className="absolute top-12 right-0 z-30 min-w-44 rounded-md border border-line bg-card py-1 shadow-sm">
-            {DND_ROWS.map((row) => {
-              const on = row.id === "all" ? allOn : dndOn(lead, row.id);
-              return (
-                <button
-                  key={row.id}
-                  type="button"
-                  className="flex h-11 w-full items-center justify-between px-3 text-sm hover:bg-page"
-                  onClick={() => toggleLeadDnd(lead.id, row.id)}
-                >
-                  <span>DND {row.label}</span>
-                  <span className={cn("text-[11px] font-bold", on ? "text-navy" : "text-muted")}>{on ? "On" : "Off"}</span>
-                </button>
-              );
-            })}
-          </div>
-          </>
-        ) : null}
+        <DndPick lead={lead} />
       </div>
 
       <h2 className="mt-4 text-[11px] font-bold tracking-wide text-muted uppercase">Tags</h2>
       <div className="mt-2 flex flex-wrap gap-2">
-        {TAGS.map((t) => (
+        {tagPool.map((t) => (
           <button
             key={t}
             type="button"
@@ -76,6 +31,24 @@ export function LeadTools({ lead }: { lead: Lead }) {
           </button>
         ))}
       </div>
+      <form
+        className="mt-2 flex gap-2"
+        onSubmit={(e) => {
+          e.preventDefault();
+          createTag(lead.id, tagDraft);
+          setTagDraft("");
+        }}
+      >
+        <input
+          value={tagDraft}
+          onChange={(e) => setTagDraft(e.target.value)}
+          placeholder="New tag"
+          className="h-11 min-w-0 flex-1 rounded-md border border-line px-3 text-sm outline-none focus:border-navy"
+        />
+        <button type="submit" className="h-11 rounded-md bg-navy px-3 text-sm font-semibold text-card">
+          Add tag
+        </button>
+      </form>
 
       <h2 className="mt-4 text-[11px] font-bold tracking-wide text-muted uppercase">Workflows</h2>
       <ul className="mt-2 space-y-1">
@@ -97,10 +70,28 @@ export function LeadTools({ lead }: { lead: Lead }) {
         }}
       >
         <option value="">Add to workflow</option>
-        {WORKFLOWS.filter((w) => !flows.includes(w)).map((w) => (
+        {flowPool.filter((w) => !flows.includes(w)).map((w) => (
           <option key={w}>{w}</option>
         ))}
       </select>
+      <form
+        className="mt-2 flex gap-2"
+        onSubmit={(e) => {
+          e.preventDefault();
+          createWorkflow(lead.id, flowDraft);
+          setFlowDraft("");
+        }}
+      >
+        <input
+          value={flowDraft}
+          onChange={(e) => setFlowDraft(e.target.value)}
+          placeholder="New workflow"
+          className="h-11 min-w-0 flex-1 rounded-md border border-line px-3 text-sm outline-none focus:border-navy"
+        />
+        <button type="submit" className="h-11 rounded-md bg-navy px-3 text-sm font-semibold text-card">
+          Start
+        </button>
+      </form>
     </section>
   );
 }

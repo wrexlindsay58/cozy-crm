@@ -93,18 +93,25 @@ export function ActBtn({
 
   let control: ReactNode;
   if (item.menu && item.onClick) {
+    const navy = item.variant === "navy";
     control = (
-      <div className="relative flex">
-        <button type="button" aria-label={item.label} className={cn(cls, "rounded-r-none pr-2", iconsOnly && "w-9")} onClick={item.onClick}>
+      <div
+        className={cn(
+          "inline-flex h-11 overflow-hidden rounded-md",
+          navy ? "bg-navy text-card" : "border border-line bg-card",
+        )}
+      >
+        <button type="button" aria-label={item.label} className="grid w-11 place-items-center" onClick={item.onClick}>
           {inner}
         </button>
+        <span className={cn("w-px self-stretch", navy ? "bg-card/20" : "bg-line")} />
         <button
           type="button"
           aria-label={`${item.label} from`}
-          className={cn(cls, "w-8 rounded-l-none px-0")}
+          className="grid w-8 place-items-center"
           onClick={(e) => openAt(e.currentTarget)}
         >
-          <ChevronDown className="size-3.5" />
+          <ChevronDown className="size-3.5 opacity-80" />
         </button>
         {open && anchor ? (
           <Float anchor={anchor} prefer="bottom" onClose={() => setOpen(false)}>

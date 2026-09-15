@@ -52,10 +52,12 @@ let history: Record<string, { at: string; who: string; what: string }[]> = Objec
   Object.entries(activities).map(([id, rows]) => [id, rows.map((r) => ({ ...r }))]),
 );
 let followers: Record<string, PersonRef[]> = Object.fromEntries(Object.entries(followersByPerson).map(([k, v]) => [k, [...v]]));
+let tagPool = ["HOA", "Rebate", "Renter", "Spanish", "Veteran", "Callback", "Air seal"];
+let flowPool = ["New lead drip", "No-sit follow-up", "Ran, no decision", "Review ask"];
 let cached = pack();
 const listeners = new Set<() => void>();
 function pack() {
-  return { leads, appointments, tickets, tasks, history, followers };
+  return { leads, appointments, tickets, tasks, history, followers, tagPool, flowPool };
 }
 function emit() {
   cached = pack();
@@ -240,6 +242,20 @@ export function addWorkflow(id: string, name: string) {
 export function stopWorkflow(id: string, name: string) {
   leads = leads.map((l) => (l.id === id ? { ...l, workflows: (l.workflows ?? []).filter((n) => n !== name) } : l));
   addHistory(id, ACTOR, `Workflow off: ${name}.`);
+}
+export function createTag(id: string, name: string) {
+  const tag = name.trim();
+  if (!tag) return;
+  if (!tagPool.includes(tag)) tagPool = [...tagPool, tag];
+  const lead = leads.find((l) => l.id === id);
+  if (!(lead?.tags ?? []).includes(tag)) toggleLeadTag(id, tag);
+  else emit();
+}
+export function createWorkflow(id: string, name: string) {
+  const flow = name.trim();
+  if (!flow) return;
+  if (!flowPool.includes(flow)) flowPool = [...flowPool, flow];
+  addWorkflow(id, flow);
 }
 export function createLead(draft: LeadDraft) {
   if (!draft.name.trim() || !draft.phone.trim()) return null;

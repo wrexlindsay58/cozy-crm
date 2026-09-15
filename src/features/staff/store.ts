@@ -39,11 +39,12 @@ let territories = [
   { id: "T-SCT", name: "Scottsdale", zips: "85258, 85259, 85260, 85254" },
   { id: "T-DAL", name: "Dallas core", zips: "75204, 75205, 75246" },
 ];
+let departments = ["Closers", "Setters", "Production", "Phoenix office", "Scottsdale office", "Dallas office"];
 
 const listeners = new Set<() => void>();
 let snap = pack();
 function pack() {
-  return { people, perms, viewAs, sources, dispositions, ticketCats, territories };
+  return { people, perms, viewAs, sources, dispositions, ticketCats, territories, departments };
 }
 function emit() {
   snap = pack();
@@ -97,6 +98,12 @@ export function addTerritory(name: string, zips: string) {
   const n = name.trim();
   if (!n) return;
   territories = [...territories, { id: `T-${territories.length + 1}`, name: n, zips }];
+  emit();
+}
+export function addDepartment(name: string) {
+  const n = name.trim();
+  if (!n || departments.includes(n)) return;
+  departments = [...departments, n];
   emit();
 }
 export const ROLES = ["Owner", "Closer", "Setter", "PM", "Crew"];

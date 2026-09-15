@@ -87,6 +87,7 @@ export function RecordShell(props: RecordShellProps) {
         acts={acts}
         onText={openThread}
         onStage={props.kind === "lead" && lead ? (status) => setLeadStatus(lead.id, status) : undefined}
+        lead={lead}
       />
       <PeopleRow
         personId={props.personId}

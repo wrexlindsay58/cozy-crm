@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { ActBar, type ActItem } from "@/components/act-bar";
 import { addFollower, dropLead, mergeLead, removeFollower, transferOwner, useOps } from "@/features/ops/store";
-import { useStaff } from "@/features/staff/store";
+import { addDepartment, useStaff } from "@/features/staff/store";
 import type { PersonRef } from "@/lib/file-data";
 
 function Initials({ name }: { name: string }) {
@@ -26,11 +26,12 @@ export function PeopleRow({
   canDrop?: boolean;
 }) {
   const { followers, leads } = useOps();
-  const { people } = useStaff();
+  const { people, departments } = useStaff();
   const list = followers[personId] ?? seedFollowers;
   const [mode, setMode] = useState<"idle" | "follow" | "transfer" | "drop" | "merge">("idle");
-  const [pick, setPick] = useState(people[0]?.name ?? "");
+  const [pick, setPick] = useState(`p:${people[0]?.name ?? ""}`);
   const [reason, setReason] = useState("");
+  const [newFollow, setNewFollow] = useState("");
   const others = leads.filter((l) => l.id !== personId && l.status !== "Merged" && l.status !== "Dropped");
   const [into, setInto] = useState(others[0]?.id ?? "");
 
@@ -84,21 +85,58 @@ export function PeopleRow({
       </div>
       {mode === "follow" ? (
         <div className="mt-2 flex flex-wrap gap-2">
-          <select value={pick} onChange={(e) => setPick(e.target.value)} className="h-11 rounded-md border border-line bg-card px-3 text-sm">
-            {people.map((p) => (
-              <option key={p.name}>{p.name}</option>
-            ))}
+          <select value={pick} onChange={(e) => setPick(e.target.value)} className="h-11 min-w-40 rounded-md border border-line bg-card px-3 text-sm">
+            <optgroup label="People">
+              {people.map((p) => (
+                <option key={p.name} value={`p:${p.name}`}>
+                  {p.name}
+                </option>
+              ))}
+            </optgroup>
+            <optgroup label="Departments">
+              {departments.map((d) => (
+                <option key={d} value={`d:${d}`}>
+                  {d}
+                </option>
+              ))}
+            </optgroup>
           </select>
           <button
             type="button"
             className="h-11 rounded-md bg-navy px-3 text-sm font-semibold text-card"
             onClick={() => {
-              const p = people.find((x) => x.name === pick);
-              if (p) addFollower(personId, { name: p.name, role: p.role });
+              if (pick.startsWith("d:")) {
+                const name = pick.slice(2);
+                addFollower(personId, { name, role: "Dept" });
+              } else {
+                const name = pick.startsWith("p:") ? pick.slice(2) : pick;
+                const p = people.find((x) => x.name === name);
+                if (p) addFollower(personId, { name: p.name, role: p.role });
+              }
               setMode("idle");
             }}
           >
             Add
+          </button>
+          <input
+            value={newFollow}
+            onChange={(e) => setNewFollow(e.target.value)}
+            placeholder="New follower or department"
+            className="h-11 min-w-40 flex-1 rounded-md border border-line px-3 text-sm"
+          />
+          <button
+            type="button"
+            className="h-11 rounded-md border border-line px-3 text-sm font-semibold"
+            onClick={() => {
+              const name = newFollow.trim();
+              if (!name) return;
+              addDepartment(name);
+              addFollower(personId, { name, role: "Dept" });
+              setNewFollow("");
+              setMode("idle");
+            }}
+          >
+            Add new
           </button>
         </div>
       ) : null}

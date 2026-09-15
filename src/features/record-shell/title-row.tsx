@@ -2,8 +2,9 @@ import { useState } from "react";
 import { ChevronDown } from "lucide-react";
 import { ActBar } from "@/components/act-bar";
 import { Float } from "@/components/float";
+import { DndPick } from "@/features/lead/dnd-pick";
 import { cn } from "@/lib/cn";
-import type { Tone } from "@/lib/crm-data";
+import type { Lead, Tone } from "@/lib/crm-data";
 import { LEAD_STATUSES, stageWash } from "@/lib/lead-status";
 import type { RecordAct, RecordKind, RecordLink } from "./types";
 
@@ -82,6 +83,7 @@ export function TitleRow({
   acts,
   onText,
   onStage,
+  lead,
 }: {
   kind: RecordKind;
   title: string;
@@ -94,6 +96,7 @@ export function TitleRow({
   acts: RecordAct[];
   onText: () => void;
   onStage?: (status: string) => void;
+  lead?: Lead;
 }) {
   return (
     <header className="border-b border-line bg-card px-4 py-2.5 md:px-5">
@@ -110,7 +113,7 @@ export function TitleRow({
           <div className="flex flex-wrap items-center gap-2">
             <h1 className="text-xl font-extrabold tracking-tight md:text-2xl">{title}</h1>
             <StageChip label={stage} tone={stageTone} onStage={onStage} />
-            {dndLabel ? <StageChip label={dndLabel} tone="alert" /> : null}
+            {lead ? <DndPick lead={lead} compact /> : dndLabel ? <StageChip label={dndLabel} tone="alert" /> : null}
           </div>
           <p className="mt-0.5 text-sm text-muted">{subtitle}</p>
         </div>
