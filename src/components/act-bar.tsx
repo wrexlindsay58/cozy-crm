@@ -1,4 +1,5 @@
 import { useState, type ReactNode } from "react";
+import { ChevronDown } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { ACT_ICONS } from "@/lib/chrome";
@@ -55,7 +56,43 @@ export function ActBtn({
     </>
   );
   let control: ReactNode;
-  if (item.menu) {
+  if (item.menu && item.onClick) {
+    control = (
+      <div className="relative flex">
+        <button type="button" aria-label={item.label} className={cn(cls, "rounded-r-none pr-2")} onClick={item.onClick}>
+          {inner}
+        </button>
+        <button
+          type="button"
+          aria-label={`${item.label} from`}
+          className={cn(cls, "w-8 rounded-l-none px-0")}
+          onClick={() => setOpen((v) => !v)}
+        >
+          <ChevronDown className="size-3.5" />
+        </button>
+        {open ? (
+          <>
+            <Scrim onClose={() => setOpen(false)} />
+            <div className="absolute top-11 right-0 z-30 min-w-48 rounded-md border border-line bg-card py-1 shadow-sm">
+              {item.menu.map((m) => (
+                <button
+                  key={m.label}
+                  type="button"
+                  className="block w-full px-3 py-2 text-left text-sm hover:bg-page"
+                  onClick={() => {
+                    m.onClick?.();
+                    setOpen(false);
+                  }}
+                >
+                  {m.label}
+                </button>
+              ))}
+            </div>
+          </>
+        ) : null}
+      </div>
+    );
+  } else if (item.menu) {
     control = (
       <div className="relative">
         <button type="button" aria-label={item.label} className={cls} onClick={() => setOpen((v) => !v)}>

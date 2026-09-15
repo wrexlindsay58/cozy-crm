@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Braces, DollarSign, FileText, Link, Paperclip, Phone, Plus, Smile } from "lucide-react";
+import { ChevronDown, Braces, DollarSign, FileText, Link, Paperclip, Phone, Plus, Smile } from "lucide-react";
 import { addHistory, dndOn } from "@/features/ops/store";
 import { sendMessage, useThread } from "@/features/thread/store";
 import { kindFromFile } from "@/features/photos/store";
@@ -8,6 +8,8 @@ import type { DndChannel } from "@/lib/crm-data";
 import { cannedFor, COMPOSE_EMOJI, CUSTOM_VALUES, PAY_ASKS, TRIGGER_LINKS } from "@/lib/canned";
 import { Scrim } from "@/components/scrim";
 import { Tip } from "@/components/tip";
+import { setCallFrom, setEmailFrom, setSmsFrom, useFrom } from "@/features/from/store";
+import { useMoneySettings } from "@/features/money-settings/store";
 import { TalkLine } from "./talk-line";
 import { CommentBox } from "./comment-box";
 import { CallCard } from "./call-card";
@@ -31,6 +33,8 @@ export function ThreadPane({
   const [subject, setSubject] = useState("");
   const [channel, setChannel] = useState<"sms" | "email">("sms");
   const [files, setFiles] = useState<{ name: string; kind: FileKind; src?: string }[]>([]);
+  const from = useFrom();
+  const { numbers, emails } = useMoneySettings();
   const blockText = dndOn({ dnd }, "text");
   const blockEmail = dndOn({ dnd }, "email");
   const blockCall = dndOn({ dnd }, "call");
@@ -118,27 +122,36 @@ export function ThreadPane({
         }}
       >
         {mode === "customer" ? (
-          <div className="mb-2 flex gap-1">
-            {(["sms", "email"] as const).map((ch) => (
-              <button
-                key={ch}
-                type="button"
-                onClick={() => setChannel(ch)}
-                className={cn("h-10 rounded-md px-3 text-sm font-semibold", channel === ch ? "bg-navy text-card" : "text-muted")}
-              >
-                {ch === "sms" ? "SMS" : "Email"}
-              </button>
-            ))}
+          <div className="mb-2 flex items-center gap-1">
+            <FromSplit
+              label="SMS"
+              active={channel === "sms"}
+              onPick={() => setChannel("sms")}
+              current={from.smsFrom}
+              options={numbers.map((n) => ({ label: `${n.office} · ${n.number}`, value: n.number }))}
+              onFrom={setSmsFrom}
+            />
+            <FromSplit
+              label="Email"
+              active={channel === "email"}
+              onPick={() => setChannel("email")}
+              current={from.emailFrom}
+              options={emails.map((n) => ({ label: `${n.office} · ${n.email}`, value: n.email }))}
+              onFrom={setEmailFrom}
+            />
             {onCall ? (
-              <button
-                type="button"
-                aria-label="Call"
-                onClick={onCall}
-                disabled={blockCall}
-                className="ml-auto grid size-10 place-items-center rounded-md text-navy disabled:opacity-40"
-              >
-                <Phone className="size-4" />
-              </button>
+              <div className="ml-auto">
+                <FromSplit
+                  label=""
+                  aria="Call"
+                  icon
+                  onPick={onCall}
+                  current={from.callFrom}
+                  options={numbers.map((n) => ({ label: `${n.office} · ${n.number}`, value: n.number }))}
+                  onFrom={setCallFrom}
+                  disabled={blockCall}
+                />
+              </div>
             ) : null}
           </div>
         ) : null}
@@ -417,6 +430,98 @@ function ComposeExtras({
                 </div>
               )}
             </div>
+            </>,
+            document.body,
+          )
+        : null}
+    </div>
+  );
+}
+
+function FromSplit({
+  label,
+  aria,
+  active,
+  onPick,
+  current,
+  options,
+  onFrom,
+  icon,
+  disabled,
+}: {
+  label: string;
+  aria?: string;
+  active?: boolean;
+  onPick: () => void;
+  current: string;
+  options: { label: string; value: string }[];
+  onFrom: (v: string) => void;
+  icon?: boolean;
+  disabled?: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const chevRef = useRef<HTMLButtonElement>(null);
+  const [box, setBox] = useState<DOMRect | null>(null);
+
+  function toggle() {
+    if (open) {
+      setOpen(false);
+      setBox(null);
+      return;
+    }
+    if (chevRef.current) setBox(chevRef.current.getBoundingClientRect());
+    setOpen(true);
+  }
+
+  return (
+    <div className="relative flex">
+      <button
+        type="button"
+        aria-label={aria ?? label}
+        disabled={disabled}
+        onClick={onPick}
+        className={cn(
+          "inline-flex h-10 items-center justify-center rounded-l-md px-3 text-sm font-semibold disabled:opacity-40",
+          icon && "w-10 px-0",
+          active ? "bg-navy text-card" : "text-muted",
+        )}
+      >
+        {icon ? <Phone className="size-4" /> : label}
+      </button>
+      <Tip label={current || "From"} on={!open} side="top">
+        <button
+          ref={chevRef}
+          type="button"
+          aria-label={`${aria ?? label} from`}
+          disabled={disabled}
+          onClick={toggle}
+          className={cn("grid h-10 w-7 place-items-center rounded-r-md disabled:opacity-40", active ? "bg-navy text-card" : "text-muted")}
+        >
+          <ChevronDown className="size-3.5" />
+        </button>
+      </Tip>
+      {open && box
+        ? createPortal(
+            <>
+              <button type="button" aria-label="Close" className="fixed inset-0 z-40 cursor-default bg-transparent" onClick={() => setOpen(false)} />
+              <div
+                className="fixed z-50 min-w-52 rounded-md border border-line bg-card py-1 shadow-sm"
+                style={{ left: box.left, top: box.top - 8, transform: "translateY(-100%)" }}
+              >
+                {options.map((o) => (
+                  <button
+                    key={o.value}
+                    type="button"
+                    className={cn("block w-full px-3 py-2 text-left text-sm hover:bg-page", o.value === current && "font-semibold")}
+                    onClick={() => {
+                      onFrom(o.value);
+                      setOpen(false);
+                    }}
+                  >
+                    {o.label}
+                  </button>
+                ))}
+              </div>
             </>,
             document.body,
           )

@@ -5,7 +5,9 @@ import { Tip } from "@/components/tip";
 import { useFit } from "@/components/use-fit";
 import { ClickToCall } from "@/features/lead/click-to-call";
 import { LeadTools } from "@/features/lead/lead-tools";
-import { dndOn, useOps } from "@/features/ops/store";
+import { dndOn, setLeadStatus, useOps } from "@/features/ops/store";
+import { setCallFrom, setSmsFrom } from "@/features/from/store";
+import { useMoneySettings } from "@/features/money-settings/store";
 import { PhotoRail, HistoryList } from "./side-rails";
 import { FormAnswers } from "./form-answers";
 import { PeopleRow } from "./people-row";
@@ -28,6 +30,7 @@ export function RecordShell(props: RecordShellProps) {
   const [draft, setDraft] = useState<"ticket" | "task" | null>(null);
   const { leads } = useOps();
   const lead = leads.find((l) => l.id === props.personId);
+  const { numbers } = useMoneySettings();
 
   function openThread() {
     setLane("customer");
@@ -42,10 +45,19 @@ export function RecordShell(props: RecordShellProps) {
     setCallOpen(true);
   }
 
+  const numberMenu = numbers.map((n) => ({
+    label: `${n.office} · ${n.number}`,
+    onClick: () => {
+      setSmsFrom(n.number);
+      setCallFrom(n.number);
+    },
+  }));
+
   const acts = props.acts
     .filter((a) => a.label !== "Drop")
     .map((a) => {
-      if (a.label === "Call" && !a.onClick) return { ...a, onClick: startCall };
+      if (a.label === "Call") return { ...a, onClick: startCall, menu: numberMenu };
+      if (a.label === "Text") return { ...a, onClick: openThread, menu: numberMenu };
       if (a.label === "Create" && a.menu) {
         return {
           ...a,
@@ -67,13 +79,14 @@ export function RecordShell(props: RecordShellProps) {
         kind={props.kind}
         title={props.title}
         subtitle={props.subtitle}
-        stage={props.stage}
-        stageTone={props.stageTone}
+        stage={lead?.status ?? props.stage}
+        stageTone={lead?.tone ?? props.stageTone}
         dndLabel={dndChip(lead?.dnd)}
         moneyLabel={props.moneyLabel}
         related={props.related}
         acts={acts}
         onText={openThread}
+        onStage={props.kind === "lead" && lead ? (status) => setLeadStatus(lead.id, status) : undefined}
       />
       <PeopleRow
         personId={props.personId}

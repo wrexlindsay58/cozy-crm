@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { logCall } from "@/features/ops/store";
+import { useFrom } from "@/features/from/store";
 
 export function ClickToCall({
   personId,
@@ -17,6 +18,7 @@ export function ClickToCall({
   const [status, setStatus] = useState<"dialing" | "live">("dialing");
   const [sec, setSec] = useState(0);
   const [muted, setMuted] = useState(false);
+  const { callFrom } = useFrom();
 
   useEffect(() => {
     if (!open) return;
@@ -55,7 +57,7 @@ export function ClickToCall({
       <p className="mt-1 text-sm font-semibold">
         {status === "dialing" ? `Calling ${name}` : name} · {phone}
       </p>
-      <p className="text-[12px] text-card/80">{status === "dialing" ? "Connecting" : clock}</p>
+      <p className="text-[12px] text-card/80">From {callFrom} · {status === "dialing" ? "Connecting" : clock}</p>
       <div className="mt-3 flex gap-2">
         <button type="button" className="h-11 flex-1 rounded-md bg-card/15 text-sm font-semibold" onClick={() => setMuted((v) => !v)}>
           {muted ? "Unmute" : "Mute"}

@@ -4,6 +4,7 @@ import { interestsLabel } from "@/features/lead/interests";
 import { followersByPerson, type PersonRef } from "@/lib/file-data";
 import { logCallMessage, sendMessage } from "@/features/thread/store";
 import { type WorkStatus } from "@/lib/chrome";
+import { toneForStatus } from "@/lib/lead-status";
 
 export type Disposition = string;
 export const DISPOSITIONS = ["Unmarked", "Confirmed", "No sit", "Missed", "One legger", "Ran"] as const;
@@ -290,6 +291,11 @@ export function dropLead(id: string, reason: string) {
   if (!why) return;
   leads = leads.map((l) => (l.id === id ? { ...l, status: "Dropped", tone: "muted", next: "Dropped", dropReason: why } : l));
   addHistory(id, ACTOR, `Dropped. ${why}.`);
+}
+export function setLeadStatus(id: string, status: string) {
+  const tone = toneForStatus(status);
+  leads = leads.map((l) => (l.id === id ? { ...l, status, tone } : l));
+  addHistory(id, ACTOR, `Disposition ${status}.`);
 }
 export function mergeLead(fromId: string, intoId: string) {
   if (fromId === intoId) return;

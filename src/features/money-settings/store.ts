@@ -3,6 +3,7 @@ import { useSyncExternalStore } from "react";
 export type Financer = { id: string; name: string; feePct: number; active: boolean };
 export type Term = { id: string; name: string; schedule: string };
 export type FromNumber = { office: string; number: string };
+export type FromEmail = { office: string; email: string };
 
 let dealerFeePct = 5;
 let commissionPct = 10;
@@ -27,12 +28,19 @@ let reminderMin = 20;
 let numbers: FromNumber[] = [
   { office: "Phoenix", number: "(623) 555-0100" },
   { office: "Scottsdale", number: "(480) 555-0100" },
+  { office: "Dallas", number: "(214) 555-0100" },
+  { office: "Fort Worth", number: "(817) 555-0100" },
+];
+let emails: FromEmail[] = [
+  { office: "Phoenix", email: "phoenix@cozyhome.com" },
+  { office: "Scottsdale", email: "scottsdale@cozyhome.com" },
+  { office: "Dallas", email: "dallas@cozyhome.com" },
 ];
 
 let snap = pack();
 const listeners = new Set<() => void>();
 function pack() {
-  return { dealerFeePct, commissionPct, financers, terms, templates, notify, reminderMin, numbers };
+  return { dealerFeePct, commissionPct, financers, terms, templates, notify, reminderMin, numbers, emails };
 }
 function emit() {
   snap = pack();
@@ -90,4 +98,12 @@ export function setReminderMin(n: number) {
 export function setOfficeNumber(office: string, number: string) {
   numbers = numbers.map((n) => (n.office === office ? { ...n, number } : n));
   emit();
+}
+
+export function getFromNumbers() {
+  return numbers;
+}
+
+export function getFromEmails() {
+  return emails;
 }

@@ -1,6 +1,10 @@
+import { useState } from "react";
+import { ChevronDown } from "lucide-react";
 import { ActBar } from "@/components/act-bar";
+import { Scrim } from "@/components/scrim";
 import { cn } from "@/lib/cn";
 import type { Tone } from "@/lib/crm-data";
+import { LEAD_STATUSES, stageWash } from "@/lib/lead-status";
 import type { RecordAct, RecordKind, RecordLink } from "./types";
 
 const KIND_LABEL: Record<RecordKind, string> = {
@@ -11,13 +15,57 @@ const KIND_LABEL: Record<RecordKind, string> = {
   account: "Account",
 };
 
-function StageChip({ label, tone }: { label: string; tone: Tone }) {
-  const wash =
-    tone === "alert" ? "bg-alert-bg text-alert" : tone === "up" ? "bg-up-bg text-up" : tone === "muted" ? "bg-page text-muted" : "bg-info-bg text-navy";
+function StageChip({
+  label,
+  tone,
+  onStage,
+}: {
+  label: string;
+  tone: Tone;
+  onStage?: (status: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const wash = stageWash(tone);
+  if (!onStage) {
+    return (
+      <span className={cn("inline-flex h-7 shrink-0 items-center rounded-md px-2 text-[11px] font-bold tracking-wide uppercase", wash)}>
+        {label}
+      </span>
+    );
+  }
   return (
-    <span className={cn("inline-flex h-7 shrink-0 items-center rounded-md px-2 text-[11px] font-bold tracking-wide uppercase", wash)}>
-      {label}
-    </span>
+    <div className="relative">
+      <button
+        type="button"
+        aria-label="Disposition"
+        onClick={() => setOpen((v) => !v)}
+        className={cn("inline-flex h-7 shrink-0 items-center gap-1 rounded-md px-2 text-[11px] font-bold tracking-wide uppercase", wash)}
+      >
+        {label}
+        <ChevronDown className="size-3" />
+      </button>
+      {open ? (
+        <>
+          <Scrim onClose={() => setOpen(false)} />
+          <div className="absolute top-8 left-0 z-30 min-w-44 rounded-md border border-line bg-card py-1 shadow-sm">
+            {LEAD_STATUSES.map((s) => (
+              <button
+                key={s.label}
+                type="button"
+                className={cn("block w-full px-3 py-2 text-left text-sm hover:bg-page", s.label === label && "font-semibold")}
+                onClick={() => {
+                  onStage(s.label);
+                  setOpen(false);
+                }}
+              >
+                <span className={cn("mr-2 inline-block size-2 rounded-full", stageWash(s.tone))} />
+                {s.label}
+              </button>
+            ))}
+          </div>
+        </>
+      ) : null}
+    </div>
   );
 }
 
@@ -32,6 +80,7 @@ export function TitleRow({
   related,
   acts,
   onText,
+  onStage,
 }: {
   kind: RecordKind;
   title: string;
@@ -43,6 +92,7 @@ export function TitleRow({
   related?: RecordLink[];
   acts: RecordAct[];
   onText: () => void;
+  onStage?: (status: string) => void;
 }) {
   return (
     <header className="border-b border-line bg-card px-4 py-2.5 md:px-5">
@@ -58,7 +108,7 @@ export function TitleRow({
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <h1 className="text-xl font-extrabold tracking-tight md:text-2xl">{title}</h1>
-            <StageChip label={stage} tone={stageTone} />
+            <StageChip label={stage} tone={stageTone} onStage={onStage} />
             {dndLabel ? <StageChip label={dndLabel} tone="alert" /> : null}
           </div>
           <p className="mt-0.5 text-sm text-muted">{subtitle}</p>
@@ -69,7 +119,7 @@ export function TitleRow({
             items={acts.map((act) => ({
               label: act.label,
               variant: act.opens === "thread" ? "navy" : "line",
-              onClick: act.opens === "thread" ? onText : act.onClick,
+              onClick: act.onClick ?? (act.opens === "thread" ? onText : undefined),
               menu: act.menu,
             }))}
           />
