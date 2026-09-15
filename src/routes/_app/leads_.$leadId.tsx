@@ -1,124 +1,41 @@
-import { Link, createFileRoute } from "@tanstack/react-router";
-import { Page, StatusPill } from "@/components/ui-bits";
-import { activities, appointments, byId, conversations, leads, money, opportunities } from "@/lib/crm-data";
+import { useState } from "react";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { assessmentForLead, startAssessment } from "@/features/assessment/store";
+import { BookWidget } from "@/features/lead/book-widget";
+import { CreateChore } from "@/features/lead/create-chore";
+import { DetailsForm } from "@/features/lead/details-form";
+import { DispositionControl } from "@/features/lead/disposition";
+import { RecordShell } from "@/features/record-shell/record-shell";
+import { updateLead, useOps } from "@/features/ops/store";
+import { money, opportunities } from "@/lib/crm-data";
+import { followersByPerson, photosByPerson } from "@/lib/file-data";
 
-export const Route = createFileRoute("/_app/leads_/$leadId")({
-  component: LeadDetail,
-});
+export const Route = createFileRoute("/_app/leads_/$leadId")({ component: LeadFile });
 
-function LeadDetail() {
+function LeadFile() {
   const { leadId } = Route.useParams();
-  const lead = byId(leads, leadId);
-  if (!lead) {
-    return (
-      <Page>
-        <p className="text-[13px] text-muted">Lead not found.</p>
-        <Link to="/leads" className="text-[13px] font-semibold text-navy">
-          Leads
-        </Link>
-      </Page>
-    );
-  }
-  const timeline = activities[lead.id] ?? [{ at: lead.created, who: lead.setter, what: `Lead created from ${lead.source}.` }];
+  const { leads, appointments, tickets, history } = useOps();
+  const lead = leads.find((l) => l.id === leadId);
+  const [bookOpen, setBookOpen] = useState(false);
+  const [editDetails, setEditDetails] = useState(true);
+  const [chore, setChore] = useState<"ticket" | "task" | null>(null);
+  const navigate = useNavigate();
+  const assessment = assessmentForLead(leadId);
+  if (!lead) return <main className="p-6 text-sm text-muted">Lead not found.</main>;
   const opp = opportunities.find((o) => o.leadId === lead.id);
-  const sits = appointments.filter((a) => a.leadId === lead.id);
-  const thread = conversations.find((c) => c.leadId === lead.id);
-
+  const appt = appointments.find((a) => a.leadId === lead.id);
   return (
-    <Page className="space-y-4">
-      <Link to="/leads" className="text-[13px] font-semibold text-muted hover:text-ink">
-        Leads
-      </Link>
-      <header className="flex flex-wrap items-start justify-between gap-4 rounded-sm bg-card p-4">
-        <div>
-          <p className="text-[11px] font-bold tracking-wide text-muted uppercase">{lead.id}</p>
-          <h1 className="text-[28px] font-bold tracking-tight">{lead.name}</h1>
-          <p className="mt-1 text-[13px] text-muted">
-            {lead.address} · {lead.city}
-          </p>
-        </div>
-        <div className="text-right">
-          <StatusPill label={lead.status} tone={lead.tone} />
-          <p className="mt-2 text-[20px] font-bold tabular-nums">{money(lead.value)}</p>
-        </div>
-      </header>
-
-      <section className="grid gap-4 lg:grid-cols-3">
-        <article className="rounded-sm bg-card p-4 lg:col-span-2">
-          <h2 className="mb-3 text-[13px] font-bold">File</h2>
-          <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-[13px]">
-            <Field k="Phone" v={lead.phone} />
-            <Field k="Email" v={lead.email} />
-            <Field k="Source" v={lead.source} />
-            <Field k="Office" v={lead.office} />
-            <Field k="Setter" v={lead.setter} />
-            <Field k="Closer" v={lead.closer} />
-            <Field k="Product" v={lead.product} />
-            <Field k="Created" v={lead.created} />
-          </dl>
-          <p className="mt-4 rounded-sm bg-page px-3 py-2 text-[13px]">{lead.notes}</p>
-        </article>
-        <article className="rounded-sm bg-card p-4">
-          <h2 className="mb-3 text-[13px] font-bold">Next</h2>
-          <p className="text-[16px] font-bold">{lead.next}</p>
-          {opp ? (
-            <Link to="/opportunities/$oppId" params={{ oppId: opp.id }} className="mt-3 block text-[13px] font-semibold text-navy">
-              Opportunity {opp.id}
-            </Link>
-          ) : null}
-          <div className="mt-4 grid gap-2">
-            <a href={`tel:${lead.phone}`} className="grid h-10 place-items-center rounded-md bg-navy text-[13px] font-semibold text-card">
-              Call
-            </a>
-            <Link to="/calendar" className="grid h-10 place-items-center rounded-md bg-page text-[13px] font-semibold">
-              Book
-            </Link>
-            {thread ? (
-              <Link to="/conversations" className="grid h-10 place-items-center rounded-md bg-page text-[13px] font-semibold">
-                Inbox{thread.unread ? ` ${thread.unread}` : ""}
-              </Link>
-            ) : null}
-          </div>
-        </article>
-      </section>
-
-      <article className="rounded-sm bg-card p-4">
-        <h2 className="mb-3 text-[13px] font-bold">Appointments</h2>
-        {sits.length === 0 ? <p className="text-[13px] text-muted">None on the book.</p> : null}
-        <ul className="divide-y divide-line text-[13px]">
-          {sits.map((a) => (
-            <li key={a.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
-              <span>
-                Sep {a.day} {a.time} · {a.product}
-              </span>
-              <StatusPill label={a.status} tone={a.tone} />
-            </li>
-          ))}
-        </ul>
-      </article>
-
-      <article className="rounded-sm bg-card p-4">
-        <h2 className="mb-3 text-[13px] font-bold">Activity</h2>
-        <ol className="space-y-3">
-          {timeline.map((a) => (
-            <li key={a.at} className="border-l-4 border-line pl-3">
-              <p className="text-[11px] font-semibold text-muted">
-                {a.at} · {a.who}
-              </p>
-              <p className="text-[13px]">{a.what}</p>
-            </li>
-          ))}
-        </ol>
-      </article>
-    </Page>
-  );
-}
-
-function Field({ k, v }: { k: string; v: string }) {
-  return (
-    <div>
-      <dt className="text-[11px] font-bold tracking-wide text-muted uppercase">{k}</dt>
-      <dd className="font-medium">{v}</dd>
-    </div>
+    <RecordShell kind="lead" personId={lead.id} title={lead.name} subtitle={`${lead.address} · ${lead.city}`} stage={lead.status} moneyLabel={money(lead.value)} owner={{ name: lead.closer, role: "Closer" }} followers={followersByPerson[lead.id] ?? [{ name: lead.setter, role: "Setter" }]} related={[assessment ? { label: `Assessment ${assessment.id}`, href: `/assessments/${assessment.id}` } : null, opp ? { label: `Opp ${opp.id}`, href: `/opportunities/${opp.id}` } : null].filter(Boolean) as { label: string; href: string }[]} acts={[{ label: "Call" }, { label: "Text", opens: "thread" }, { label: "Book", onClick: () => setBookOpen((v) => !v) }, { label: "Create", menu: [{ label: "Ticket", onClick: () => setChore("ticket") }, { label: "Task", onClick: () => setChore("task") }] }]} history={history?.[lead.id] ?? []} tickets={(tickets ?? []).filter((t) => t.related === lead.id)} photos={photosByPerson[lead.id] ?? []}>
+      <div className="space-y-3">
+        <section className="rounded-md border border-line bg-card p-4 md:hidden">
+          <button type="button" className="h-10 rounded-md bg-navy px-3 text-sm font-semibold text-card" onClick={() => setEditDetails((v) => !v)}>{editDetails ? "Close" : "Edit details"}</button>
+          {editDetails ? <div className="mt-3"><DetailsForm initial={lead} submitLabel="Save details" onSubmit={(d) => updateLead(lead.id, d)} /></div> : null}
+        </section>
+        <div className="hidden md:block"><DetailsForm initial={lead} submitLabel="Save details" onSubmit={(d) => updateLead(lead.id, d)} /></div>
+        <BookWidget leadId={lead.id} defaultCloser={lead.closer} open={bookOpen} />
+        <DispositionControl appointment={appt} onRan={() => { const next = startAssessment({ leadId: lead.id, name: lead.name, address: lead.address, closer: lead.closer }); navigate({ to: "/assessments/$assessmentId", params: { assessmentId: next.id } }); }} />
+        <CreateChore personId={lead.id} owner={lead.closer} kind={chore} onDone={() => setChore(null)} />
+      </div>
+    </RecordShell>
   );
 }

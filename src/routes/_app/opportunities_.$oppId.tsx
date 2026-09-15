@@ -1,81 +1,27 @@
-import { Link, createFileRoute } from "@tanstack/react-router";
-import { Page, StatusPill } from "@/components/ui-bits";
+import { createFileRoute } from "@tanstack/react-router";
+import { OppWorkspace } from "@/features/opportunity/workspace";
+import { applyGoodLeap, optionTotal, sendProposal, useProposal } from "@/features/opportunity/store";
+import { RecordShell } from "@/features/record-shell/record-shell";
+import { useOps } from "@/features/ops/store";
 import { byId, leads, money, opportunities, projects } from "@/lib/crm-data";
+import { followersByPerson, photosByPerson } from "@/lib/file-data";
 
-export const Route = createFileRoute("/_app/opportunities_/$oppId")({
-  component: OppDetail,
-});
+export const Route = createFileRoute("/_app/opportunities_/$oppId")({ component: OppFile });
 
-function OppDetail() {
+function OppFile() {
   const { oppId } = Route.useParams();
+  const { tickets, history } = useOps();
   const opp = byId(opportunities, oppId);
-  if (!opp) {
-    return (
-      <Page>
-        <p className="text-[13px] text-muted">Opportunity not found.</p>
-        <Link to="/opportunities" className="text-[13px] font-semibold text-navy">
-          Opportunities
-        </Link>
-      </Page>
-    );
-  }
+  const proposal = useProposal(oppId);
+  if (!opp) return <main className="p-6 text-sm text-muted">Opportunity not found.</main>;
   const lead = byId(leads, opp.leadId);
   const job = projects.find((p) => p.name.includes(opp.name.split(" ")[0]));
-
+  const accepted = proposal?.options.find((o) => o.id === proposal.accepted);
+  const shown = accepted ? optionTotal(accepted) : opp.amount;
+  const stage = proposal?.signStatus === "Sent" ? "Agreement sent" : proposal?.proposalStatus === "Sent" ? "Proposal sent" : opp.stage;
   return (
-    <Page className="space-y-4">
-      <Link to="/opportunities" className="text-[13px] font-semibold text-muted hover:text-ink">
-        Opportunities
-      </Link>
-      <header className="flex flex-wrap items-start justify-between gap-4 rounded-sm bg-card p-4">
-        <div>
-          <p className="text-[11px] font-bold tracking-wide text-muted uppercase">{opp.id}</p>
-          <h1 className="text-[28px] font-bold tracking-tight">{opp.name}</h1>
-          <p className="mt-1 text-[13px] text-muted">{opp.product}</p>
-        </div>
-        <div className="text-right">
-          <StatusPill label={opp.stage} tone={opp.tone} />
-          <p className="mt-2 text-[20px] font-bold tabular-nums">{money(opp.amount)}</p>
-        </div>
-      </header>
-      <section className="grid gap-4 md:grid-cols-2">
-        <article className="rounded-sm bg-card p-4">
-          <h2 className="mb-3 text-[13px] font-bold">Deal</h2>
-          <p className="text-[13px] text-muted">
-            Closer {opp.closer} · {opp.office}
-          </p>
-          <p className="mt-1 text-[13px] text-muted">
-            Updated {opp.updated} · Close by {opp.closeBy}
-          </p>
-          {lead ? (
-            <Link to="/leads/$leadId" params={{ leadId: lead.id }} className="mt-3 block text-[13px] font-semibold text-navy">
-              Open lead
-            </Link>
-          ) : null}
-          {job ? (
-            <Link to="/projects/$projectId" params={{ projectId: job.id }} className="mt-1 block text-[13px] font-semibold text-navy">
-              Open job
-            </Link>
-          ) : null}
-        </article>
-        <article className="rounded-sm bg-card p-4">
-          <h2 className="mb-3 text-[13px] font-bold">Proposal</h2>
-          <ul className="space-y-2 text-[13px]">
-            <li className="flex justify-between">
-              <span>Package</span>
-              <b>{opp.product}</b>
-            </li>
-            <li className="flex justify-between">
-              <span>Price</span>
-              <b className="tabular-nums">{money(opp.amount)}</b>
-            </li>
-            <li className="flex justify-between">
-              <span>Financing</span>
-              <b>Cash or 12-mo</b>
-            </li>
-          </ul>
-        </article>
-      </section>
-    </Page>
+    <RecordShell kind="opportunity" personId={opp.leadId} title={opp.name} subtitle={opp.product} stage={stage} moneyLabel={money(shown)} owner={{ name: opp.closer, role: "Closer" }} followers={followersByPerson[opp.leadId] ?? []} related={[lead ? { label: `Lead ${lead.id}`, href: `/leads/${lead.id}` } : null, job ? { label: `Job ${job.id}`, href: `/projects/${job.id}` } : null].filter(Boolean) as { label: string; href: string }[]} acts={[{ label: "Call" }, { label: "Text", opens: "thread" }, { label: "Send proposal", onClick: () => sendProposal(opp.id) }, { label: "Take card", onClick: () => applyGoodLeap(opp.id) }]} history={history?.[opp.leadId] ?? []} tickets={(tickets ?? []).filter((t) => t.related === opp.leadId)} photos={photosByPerson[opp.leadId] ?? []}>
+      {proposal ? <OppWorkspace proposal={proposal} /> : <p className="text-sm text-muted">No proposal on file.</p>}
+    </RecordShell>
   );
 }

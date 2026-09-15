@@ -13,23 +13,70 @@ import { Route as AppRouteImport } from './routes/_app'
 import { Route as AppIndexRouteImport } from './routes/_app/index'
 import { Route as AppAccountsRouteImport } from './routes/_app/accounts'
 import { Route as AppAppointmentsRouteImport } from './routes/_app/appointments'
+import { Route as AppAssessmentsRouteImport } from './routes/_app/assessments'
 import { Route as AppCalendarRouteImport } from './routes/_app/calendar'
 import { Route as AppConversationsRouteImport } from './routes/_app/conversations'
 import { Route as AppCrewsRouteImport } from './routes/_app/crews'
 import { Route as AppDispatchRouteImport } from './routes/_app/dispatch'
+import { Route as AppInvoicesRouteImport } from './routes/_app/invoices'
 import { Route as AppLeaderboardRouteImport } from './routes/_app/leaderboard'
 import { Route as AppLeadsRouteImport } from './routes/_app/leads'
 import { Route as AppOpportunitiesRouteImport } from './routes/_app/opportunities'
 import { Route as AppProjectsRouteImport } from './routes/_app/projects'
+import { Route as AppPurchasingRouteImport } from './routes/_app/purchasing'
 import { Route as AppReportsRouteImport } from './routes/_app/reports'
 import { Route as AppScoreboardRouteImport } from './routes/_app/scoreboard'
 import { Route as AppSettingsRouteImport } from './routes/_app/settings'
 import { Route as AppTeamRouteImport } from './routes/_app/team'
 import { Route as AppTicketsRouteImport } from './routes/_app/tickets'
 import { Route as AppAccountsAccountIdRouteImport } from './routes/_app/accounts_.$accountId'
+import { Route as AppAssessmentsAssessmentIdRouteImport } from './routes/_app/assessments_.$assessmentId'
 import { Route as AppLeadsLeadIdRouteImport } from './routes/_app/leads_.$leadId'
 import { Route as AppOpportunitiesOppIdRouteImport } from './routes/_app/opportunities_.$oppId'
 import { Route as AppProjectsProjectIdRouteImport } from './routes/_app/projects_.$projectId'
+import { Route as AppReportsReportIdRouteImport } from './routes/_app/reports_.$reportId'
+import { Route as AppReportsNewRouteImport } from './routes/_app/reports_.new'
+import { Route as AppSettingsBucketsRouteImport } from './routes/_app/settings_.buckets'
+import { Route as AppSettingsCalendarFiltersRouteImport } from './routes/_app/settings_.calendar-filters'
+import { Route as AppSettingsCatalogExtrasRouteImport } from './routes/_app/settings_.catalog-extras'
+import { Route as AppSettingsCommissionRouteImport } from './routes/_app/settings_.commission'
+import { Route as AppSettingsCompanyRouteImport } from './routes/_app/settings_.company'
+import { Route as AppSettingsCrewRosterRouteImport } from './routes/_app/settings_.crew-roster'
+import { Route as AppSettingsDealersRouteImport } from './routes/_app/settings_.dealers'
+import { Route as AppSettingsDealershipRouteImport } from './routes/_app/settings_.dealership'
+import { Route as AppSettingsDepartmentsRouteImport } from './routes/_app/settings_.departments'
+import { Route as AppSettingsDiscountsRouteImport } from './routes/_app/settings_.discounts'
+import { Route as AppSettingsDispositionsRouteImport } from './routes/_app/settings_.dispositions'
+import { Route as AppSettingsExtraCostsRouteImport } from './routes/_app/settings_.extra-costs'
+import { Route as AppSettingsFinancersRouteImport } from './routes/_app/settings_.financers'
+import { Route as AppSettingsGeneralRouteImport } from './routes/_app/settings_.general'
+import { Route as AppSettingsGoalsRouteImport } from './routes/_app/settings_.goals'
+import { Route as AppSettingsInstallersRouteImport } from './routes/_app/settings_.installers'
+import { Route as AppSettingsLeaderboardPointsRouteImport } from './routes/_app/settings_.leaderboard-points'
+import { Route as AppSettingsMyTeamRouteImport } from './routes/_app/settings_.my-team'
+import { Route as AppSettingsNotificationStagesRouteImport } from './routes/_app/settings_.notification-stages'
+import { Route as AppSettingsNotificationTemplatesRouteImport } from './routes/_app/settings_.notification-templates'
+import { Route as AppSettingsNotificationsRouteImport } from './routes/_app/settings_.notifications'
+import { Route as AppSettingsNumbersRouteImport } from './routes/_app/settings_.numbers'
+import { Route as AppSettingsOfficesRouteImport } from './routes/_app/settings_.offices'
+import { Route as AppSettingsPeopleRouteImport } from './routes/_app/settings_.people'
+import { Route as AppSettingsPermissionsRouteImport } from './routes/_app/settings_.permissions'
+import { Route as AppSettingsPinsRouteImport } from './routes/_app/settings_.pins'
+import { Route as AppSettingsPositionsRouteImport } from './routes/_app/settings_.positions'
+import { Route as AppSettingsPricebookRouteImport } from './routes/_app/settings_.pricebook'
+import { Route as AppSettingsRatePlansRouteImport } from './routes/_app/settings_.rate-plans'
+import { Route as AppSettingsReductionInstallsRouteImport } from './routes/_app/settings_.reduction-installs'
+import { Route as AppSettingsRemindersRouteImport } from './routes/_app/settings_.reminders'
+import { Route as AppSettingsRolesRouteImport } from './routes/_app/settings_.roles'
+import { Route as AppSettingsSectionsRouteImport } from './routes/_app/settings_.sections'
+import { Route as AppSettingsSourcesRouteImport } from './routes/_app/settings_.sources'
+import { Route as AppSettingsTaskCategoriesRouteImport } from './routes/_app/settings_.task-categories'
+import { Route as AppSettingsTemplatesRouteImport } from './routes/_app/settings_.templates'
+import { Route as AppSettingsTermsRouteImport } from './routes/_app/settings_.terms'
+import { Route as AppSettingsTerritoriesRouteImport } from './routes/_app/settings_.territories'
+import { Route as AppSettingsTicketTypesRouteImport } from './routes/_app/settings_.ticket-types'
+import { Route as AppSettingsVisitsRouteImport } from './routes/_app/settings_.visits'
+import { Route as AppSettingsWorkflowsRouteImport } from './routes/_app/settings_.workflows'
 
 const AppRoute = AppRouteImport.update({
   id: '/_app',
@@ -48,6 +95,11 @@ const AppAccountsRoute = AppAccountsRouteImport.update({
 const AppAppointmentsRoute = AppAppointmentsRouteImport.update({
   id: '/appointments',
   path: '/appointments',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAssessmentsRoute = AppAssessmentsRouteImport.update({
+  id: '/assessments',
+  path: '/assessments',
   getParentRoute: () => AppRoute,
 } as any)
 const AppCalendarRoute = AppCalendarRouteImport.update({
@@ -70,6 +122,11 @@ const AppDispatchRoute = AppDispatchRouteImport.update({
   path: '/dispatch',
   getParentRoute: () => AppRoute,
 } as any)
+const AppInvoicesRoute = AppInvoicesRouteImport.update({
+  id: '/invoices',
+  path: '/invoices',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppLeaderboardRoute = AppLeaderboardRouteImport.update({
   id: '/leaderboard',
   path: '/leaderboard',
@@ -88,6 +145,11 @@ const AppOpportunitiesRoute = AppOpportunitiesRouteImport.update({
 const AppProjectsRoute = AppProjectsRouteImport.update({
   id: '/projects',
   path: '/projects',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppPurchasingRoute = AppPurchasingRouteImport.update({
+  id: '/purchasing',
+  path: '/purchasing',
   getParentRoute: () => AppRoute,
 } as any)
 const AppReportsRoute = AppReportsRouteImport.update({
@@ -120,6 +182,12 @@ const AppAccountsAccountIdRoute = AppAccountsAccountIdRouteImport.update({
   path: '/accounts/$accountId',
   getParentRoute: () => AppRoute,
 } as any)
+const AppAssessmentsAssessmentIdRoute =
+  AppAssessmentsAssessmentIdRouteImport.update({
+    id: '/assessments_/$assessmentId',
+    path: '/assessments/$assessmentId',
+    getParentRoute: () => AppRoute,
+  } as any)
 const AppLeadsLeadIdRoute = AppLeadsLeadIdRouteImport.update({
   id: '/leads_/$leadId',
   path: '/leads/$leadId',
@@ -135,40 +203,313 @@ const AppProjectsProjectIdRoute = AppProjectsProjectIdRouteImport.update({
   path: '/projects/$projectId',
   getParentRoute: () => AppRoute,
 } as any)
+const AppReportsReportIdRoute = AppReportsReportIdRouteImport.update({
+  id: '/reports_/$reportId',
+  path: '/reports/$reportId',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppReportsNewRoute = AppReportsNewRouteImport.update({
+  id: '/reports_/new',
+  path: '/reports/new',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppSettingsBucketsRoute = AppSettingsBucketsRouteImport.update({
+  id: '/settings_/buckets',
+  path: '/settings/buckets',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppSettingsCalendarFiltersRoute =
+  AppSettingsCalendarFiltersRouteImport.update({
+    id: '/settings_/calendar-filters',
+    path: '/settings/calendar-filters',
+    getParentRoute: () => AppRoute,
+  } as any)
+const AppSettingsCatalogExtrasRoute =
+  AppSettingsCatalogExtrasRouteImport.update({
+    id: '/settings_/catalog-extras',
+    path: '/settings/catalog-extras',
+    getParentRoute: () => AppRoute,
+  } as any)
+const AppSettingsCommissionRoute = AppSettingsCommissionRouteImport.update({
+  id: '/settings_/commission',
+  path: '/settings/commission',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppSettingsCompanyRoute = AppSettingsCompanyRouteImport.update({
+  id: '/settings_/company',
+  path: '/settings/company',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppSettingsCrewRosterRoute = AppSettingsCrewRosterRouteImport.update({
+  id: '/settings_/crew-roster',
+  path: '/settings/crew-roster',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppSettingsDealersRoute = AppSettingsDealersRouteImport.update({
+  id: '/settings_/dealers',
+  path: '/settings/dealers',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppSettingsDealershipRoute = AppSettingsDealershipRouteImport.update({
+  id: '/settings_/dealership',
+  path: '/settings/dealership',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppSettingsDepartmentsRoute = AppSettingsDepartmentsRouteImport.update({
+  id: '/settings_/departments',
+  path: '/settings/departments',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppSettingsDiscountsRoute = AppSettingsDiscountsRouteImport.update({
+  id: '/settings_/discounts',
+  path: '/settings/discounts',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppSettingsDispositionsRoute = AppSettingsDispositionsRouteImport.update({
+  id: '/settings_/dispositions',
+  path: '/settings/dispositions',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppSettingsExtraCostsRoute = AppSettingsExtraCostsRouteImport.update({
+  id: '/settings_/extra-costs',
+  path: '/settings/extra-costs',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppSettingsFinancersRoute = AppSettingsFinancersRouteImport.update({
+  id: '/settings_/financers',
+  path: '/settings/financers',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppSettingsGeneralRoute = AppSettingsGeneralRouteImport.update({
+  id: '/settings_/general',
+  path: '/settings/general',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppSettingsGoalsRoute = AppSettingsGoalsRouteImport.update({
+  id: '/settings_/goals',
+  path: '/settings/goals',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppSettingsInstallersRoute = AppSettingsInstallersRouteImport.update({
+  id: '/settings_/installers',
+  path: '/settings/installers',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppSettingsLeaderboardPointsRoute =
+  AppSettingsLeaderboardPointsRouteImport.update({
+    id: '/settings_/leaderboard-points',
+    path: '/settings/leaderboard-points',
+    getParentRoute: () => AppRoute,
+  } as any)
+const AppSettingsMyTeamRoute = AppSettingsMyTeamRouteImport.update({
+  id: '/settings_/my-team',
+  path: '/settings/my-team',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppSettingsNotificationStagesRoute =
+  AppSettingsNotificationStagesRouteImport.update({
+    id: '/settings_/notification-stages',
+    path: '/settings/notification-stages',
+    getParentRoute: () => AppRoute,
+  } as any)
+const AppSettingsNotificationTemplatesRoute =
+  AppSettingsNotificationTemplatesRouteImport.update({
+    id: '/settings_/notification-templates',
+    path: '/settings/notification-templates',
+    getParentRoute: () => AppRoute,
+  } as any)
+const AppSettingsNotificationsRoute =
+  AppSettingsNotificationsRouteImport.update({
+    id: '/settings_/notifications',
+    path: '/settings/notifications',
+    getParentRoute: () => AppRoute,
+  } as any)
+const AppSettingsNumbersRoute = AppSettingsNumbersRouteImport.update({
+  id: '/settings_/numbers',
+  path: '/settings/numbers',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppSettingsOfficesRoute = AppSettingsOfficesRouteImport.update({
+  id: '/settings_/offices',
+  path: '/settings/offices',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppSettingsPeopleRoute = AppSettingsPeopleRouteImport.update({
+  id: '/settings_/people',
+  path: '/settings/people',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppSettingsPermissionsRoute = AppSettingsPermissionsRouteImport.update({
+  id: '/settings_/permissions',
+  path: '/settings/permissions',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppSettingsPinsRoute = AppSettingsPinsRouteImport.update({
+  id: '/settings_/pins',
+  path: '/settings/pins',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppSettingsPositionsRoute = AppSettingsPositionsRouteImport.update({
+  id: '/settings_/positions',
+  path: '/settings/positions',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppSettingsPricebookRoute = AppSettingsPricebookRouteImport.update({
+  id: '/settings_/pricebook',
+  path: '/settings/pricebook',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppSettingsRatePlansRoute = AppSettingsRatePlansRouteImport.update({
+  id: '/settings_/rate-plans',
+  path: '/settings/rate-plans',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppSettingsReductionInstallsRoute =
+  AppSettingsReductionInstallsRouteImport.update({
+    id: '/settings_/reduction-installs',
+    path: '/settings/reduction-installs',
+    getParentRoute: () => AppRoute,
+  } as any)
+const AppSettingsRemindersRoute = AppSettingsRemindersRouteImport.update({
+  id: '/settings_/reminders',
+  path: '/settings/reminders',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppSettingsRolesRoute = AppSettingsRolesRouteImport.update({
+  id: '/settings_/roles',
+  path: '/settings/roles',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppSettingsSectionsRoute = AppSettingsSectionsRouteImport.update({
+  id: '/settings_/sections',
+  path: '/settings/sections',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppSettingsSourcesRoute = AppSettingsSourcesRouteImport.update({
+  id: '/settings_/sources',
+  path: '/settings/sources',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppSettingsTaskCategoriesRoute =
+  AppSettingsTaskCategoriesRouteImport.update({
+    id: '/settings_/task-categories',
+    path: '/settings/task-categories',
+    getParentRoute: () => AppRoute,
+  } as any)
+const AppSettingsTemplatesRoute = AppSettingsTemplatesRouteImport.update({
+  id: '/settings_/templates',
+  path: '/settings/templates',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppSettingsTermsRoute = AppSettingsTermsRouteImport.update({
+  id: '/settings_/terms',
+  path: '/settings/terms',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppSettingsTerritoriesRoute = AppSettingsTerritoriesRouteImport.update({
+  id: '/settings_/territories',
+  path: '/settings/territories',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppSettingsTicketTypesRoute = AppSettingsTicketTypesRouteImport.update({
+  id: '/settings_/ticket-types',
+  path: '/settings/ticket-types',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppSettingsVisitsRoute = AppSettingsVisitsRouteImport.update({
+  id: '/settings_/visits',
+  path: '/settings/visits',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppSettingsWorkflowsRoute = AppSettingsWorkflowsRouteImport.update({
+  id: '/settings_/workflows',
+  path: '/settings/workflows',
+  getParentRoute: () => AppRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
   '/accounts': typeof AppAccountsRoute
   '/appointments': typeof AppAppointmentsRoute
+  '/assessments': typeof AppAssessmentsRoute
   '/calendar': typeof AppCalendarRoute
   '/conversations': typeof AppConversationsRoute
   '/crews': typeof AppCrewsRoute
   '/dispatch': typeof AppDispatchRoute
+  '/invoices': typeof AppInvoicesRoute
   '/leaderboard': typeof AppLeaderboardRoute
   '/leads': typeof AppLeadsRoute
   '/opportunities': typeof AppOpportunitiesRoute
   '/projects': typeof AppProjectsRoute
+  '/purchasing': typeof AppPurchasingRoute
   '/reports': typeof AppReportsRoute
   '/scoreboard': typeof AppScoreboardRoute
   '/settings': typeof AppSettingsRoute
   '/team': typeof AppTeamRoute
   '/tickets': typeof AppTicketsRoute
   '/accounts/$accountId': typeof AppAccountsAccountIdRoute
+  '/assessments/$assessmentId': typeof AppAssessmentsAssessmentIdRoute
   '/leads/$leadId': typeof AppLeadsLeadIdRoute
   '/opportunities/$oppId': typeof AppOpportunitiesOppIdRoute
   '/projects/$projectId': typeof AppProjectsProjectIdRoute
+  '/reports/$reportId': typeof AppReportsReportIdRoute
+  '/reports/new': typeof AppReportsNewRoute
+  '/settings/buckets': typeof AppSettingsBucketsRoute
+  '/settings/calendar-filters': typeof AppSettingsCalendarFiltersRoute
+  '/settings/catalog-extras': typeof AppSettingsCatalogExtrasRoute
+  '/settings/commission': typeof AppSettingsCommissionRoute
+  '/settings/company': typeof AppSettingsCompanyRoute
+  '/settings/crew-roster': typeof AppSettingsCrewRosterRoute
+  '/settings/dealers': typeof AppSettingsDealersRoute
+  '/settings/dealership': typeof AppSettingsDealershipRoute
+  '/settings/departments': typeof AppSettingsDepartmentsRoute
+  '/settings/discounts': typeof AppSettingsDiscountsRoute
+  '/settings/dispositions': typeof AppSettingsDispositionsRoute
+  '/settings/extra-costs': typeof AppSettingsExtraCostsRoute
+  '/settings/financers': typeof AppSettingsFinancersRoute
+  '/settings/general': typeof AppSettingsGeneralRoute
+  '/settings/goals': typeof AppSettingsGoalsRoute
+  '/settings/installers': typeof AppSettingsInstallersRoute
+  '/settings/leaderboard-points': typeof AppSettingsLeaderboardPointsRoute
+  '/settings/my-team': typeof AppSettingsMyTeamRoute
+  '/settings/notification-stages': typeof AppSettingsNotificationStagesRoute
+  '/settings/notification-templates': typeof AppSettingsNotificationTemplatesRoute
+  '/settings/notifications': typeof AppSettingsNotificationsRoute
+  '/settings/numbers': typeof AppSettingsNumbersRoute
+  '/settings/offices': typeof AppSettingsOfficesRoute
+  '/settings/people': typeof AppSettingsPeopleRoute
+  '/settings/permissions': typeof AppSettingsPermissionsRoute
+  '/settings/pins': typeof AppSettingsPinsRoute
+  '/settings/positions': typeof AppSettingsPositionsRoute
+  '/settings/pricebook': typeof AppSettingsPricebookRoute
+  '/settings/rate-plans': typeof AppSettingsRatePlansRoute
+  '/settings/reduction-installs': typeof AppSettingsReductionInstallsRoute
+  '/settings/reminders': typeof AppSettingsRemindersRoute
+  '/settings/roles': typeof AppSettingsRolesRoute
+  '/settings/sections': typeof AppSettingsSectionsRoute
+  '/settings/sources': typeof AppSettingsSourcesRoute
+  '/settings/task-categories': typeof AppSettingsTaskCategoriesRoute
+  '/settings/templates': typeof AppSettingsTemplatesRoute
+  '/settings/terms': typeof AppSettingsTermsRoute
+  '/settings/territories': typeof AppSettingsTerritoriesRoute
+  '/settings/ticket-types': typeof AppSettingsTicketTypesRoute
+  '/settings/visits': typeof AppSettingsVisitsRoute
+  '/settings/workflows': typeof AppSettingsWorkflowsRoute
 }
 export interface FileRoutesByTo {
   '/accounts': typeof AppAccountsRoute
   '/appointments': typeof AppAppointmentsRoute
+  '/assessments': typeof AppAssessmentsRoute
   '/calendar': typeof AppCalendarRoute
   '/conversations': typeof AppConversationsRoute
   '/crews': typeof AppCrewsRoute
   '/dispatch': typeof AppDispatchRoute
+  '/invoices': typeof AppInvoicesRoute
   '/leaderboard': typeof AppLeaderboardRoute
   '/leads': typeof AppLeadsRoute
   '/opportunities': typeof AppOpportunitiesRoute
   '/projects': typeof AppProjectsRoute
+  '/purchasing': typeof AppPurchasingRoute
   '/reports': typeof AppReportsRoute
   '/scoreboard': typeof AppScoreboardRoute
   '/settings': typeof AppSettingsRoute
@@ -176,23 +517,70 @@ export interface FileRoutesByTo {
   '/tickets': typeof AppTicketsRoute
   '/': typeof AppIndexRoute
   '/accounts/$accountId': typeof AppAccountsAccountIdRoute
+  '/assessments/$assessmentId': typeof AppAssessmentsAssessmentIdRoute
   '/leads/$leadId': typeof AppLeadsLeadIdRoute
   '/opportunities/$oppId': typeof AppOpportunitiesOppIdRoute
   '/projects/$projectId': typeof AppProjectsProjectIdRoute
+  '/reports/$reportId': typeof AppReportsReportIdRoute
+  '/reports/new': typeof AppReportsNewRoute
+  '/settings/buckets': typeof AppSettingsBucketsRoute
+  '/settings/calendar-filters': typeof AppSettingsCalendarFiltersRoute
+  '/settings/catalog-extras': typeof AppSettingsCatalogExtrasRoute
+  '/settings/commission': typeof AppSettingsCommissionRoute
+  '/settings/company': typeof AppSettingsCompanyRoute
+  '/settings/crew-roster': typeof AppSettingsCrewRosterRoute
+  '/settings/dealers': typeof AppSettingsDealersRoute
+  '/settings/dealership': typeof AppSettingsDealershipRoute
+  '/settings/departments': typeof AppSettingsDepartmentsRoute
+  '/settings/discounts': typeof AppSettingsDiscountsRoute
+  '/settings/dispositions': typeof AppSettingsDispositionsRoute
+  '/settings/extra-costs': typeof AppSettingsExtraCostsRoute
+  '/settings/financers': typeof AppSettingsFinancersRoute
+  '/settings/general': typeof AppSettingsGeneralRoute
+  '/settings/goals': typeof AppSettingsGoalsRoute
+  '/settings/installers': typeof AppSettingsInstallersRoute
+  '/settings/leaderboard-points': typeof AppSettingsLeaderboardPointsRoute
+  '/settings/my-team': typeof AppSettingsMyTeamRoute
+  '/settings/notification-stages': typeof AppSettingsNotificationStagesRoute
+  '/settings/notification-templates': typeof AppSettingsNotificationTemplatesRoute
+  '/settings/notifications': typeof AppSettingsNotificationsRoute
+  '/settings/numbers': typeof AppSettingsNumbersRoute
+  '/settings/offices': typeof AppSettingsOfficesRoute
+  '/settings/people': typeof AppSettingsPeopleRoute
+  '/settings/permissions': typeof AppSettingsPermissionsRoute
+  '/settings/pins': typeof AppSettingsPinsRoute
+  '/settings/positions': typeof AppSettingsPositionsRoute
+  '/settings/pricebook': typeof AppSettingsPricebookRoute
+  '/settings/rate-plans': typeof AppSettingsRatePlansRoute
+  '/settings/reduction-installs': typeof AppSettingsReductionInstallsRoute
+  '/settings/reminders': typeof AppSettingsRemindersRoute
+  '/settings/roles': typeof AppSettingsRolesRoute
+  '/settings/sections': typeof AppSettingsSectionsRoute
+  '/settings/sources': typeof AppSettingsSourcesRoute
+  '/settings/task-categories': typeof AppSettingsTaskCategoriesRoute
+  '/settings/templates': typeof AppSettingsTemplatesRoute
+  '/settings/terms': typeof AppSettingsTermsRoute
+  '/settings/territories': typeof AppSettingsTerritoriesRoute
+  '/settings/ticket-types': typeof AppSettingsTicketTypesRoute
+  '/settings/visits': typeof AppSettingsVisitsRoute
+  '/settings/workflows': typeof AppSettingsWorkflowsRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_app': typeof AppRouteWithChildren
   '/_app/accounts': typeof AppAccountsRoute
   '/_app/appointments': typeof AppAppointmentsRoute
+  '/_app/assessments': typeof AppAssessmentsRoute
   '/_app/calendar': typeof AppCalendarRoute
   '/_app/conversations': typeof AppConversationsRoute
   '/_app/crews': typeof AppCrewsRoute
   '/_app/dispatch': typeof AppDispatchRoute
+  '/_app/invoices': typeof AppInvoicesRoute
   '/_app/leaderboard': typeof AppLeaderboardRoute
   '/_app/leads': typeof AppLeadsRoute
   '/_app/opportunities': typeof AppOpportunitiesRoute
   '/_app/projects': typeof AppProjectsRoute
+  '/_app/purchasing': typeof AppPurchasingRoute
   '/_app/reports': typeof AppReportsRoute
   '/_app/scoreboard': typeof AppScoreboardRoute
   '/_app/settings': typeof AppSettingsRoute
@@ -200,9 +588,53 @@ export interface FileRoutesById {
   '/_app/tickets': typeof AppTicketsRoute
   '/_app/': typeof AppIndexRoute
   '/_app/accounts_/$accountId': typeof AppAccountsAccountIdRoute
+  '/_app/assessments_/$assessmentId': typeof AppAssessmentsAssessmentIdRoute
   '/_app/leads_/$leadId': typeof AppLeadsLeadIdRoute
   '/_app/opportunities_/$oppId': typeof AppOpportunitiesOppIdRoute
   '/_app/projects_/$projectId': typeof AppProjectsProjectIdRoute
+  '/_app/reports_/$reportId': typeof AppReportsReportIdRoute
+  '/_app/reports_/new': typeof AppReportsNewRoute
+  '/_app/settings_/buckets': typeof AppSettingsBucketsRoute
+  '/_app/settings_/calendar-filters': typeof AppSettingsCalendarFiltersRoute
+  '/_app/settings_/catalog-extras': typeof AppSettingsCatalogExtrasRoute
+  '/_app/settings_/commission': typeof AppSettingsCommissionRoute
+  '/_app/settings_/company': typeof AppSettingsCompanyRoute
+  '/_app/settings_/crew-roster': typeof AppSettingsCrewRosterRoute
+  '/_app/settings_/dealers': typeof AppSettingsDealersRoute
+  '/_app/settings_/dealership': typeof AppSettingsDealershipRoute
+  '/_app/settings_/departments': typeof AppSettingsDepartmentsRoute
+  '/_app/settings_/discounts': typeof AppSettingsDiscountsRoute
+  '/_app/settings_/dispositions': typeof AppSettingsDispositionsRoute
+  '/_app/settings_/extra-costs': typeof AppSettingsExtraCostsRoute
+  '/_app/settings_/financers': typeof AppSettingsFinancersRoute
+  '/_app/settings_/general': typeof AppSettingsGeneralRoute
+  '/_app/settings_/goals': typeof AppSettingsGoalsRoute
+  '/_app/settings_/installers': typeof AppSettingsInstallersRoute
+  '/_app/settings_/leaderboard-points': typeof AppSettingsLeaderboardPointsRoute
+  '/_app/settings_/my-team': typeof AppSettingsMyTeamRoute
+  '/_app/settings_/notification-stages': typeof AppSettingsNotificationStagesRoute
+  '/_app/settings_/notification-templates': typeof AppSettingsNotificationTemplatesRoute
+  '/_app/settings_/notifications': typeof AppSettingsNotificationsRoute
+  '/_app/settings_/numbers': typeof AppSettingsNumbersRoute
+  '/_app/settings_/offices': typeof AppSettingsOfficesRoute
+  '/_app/settings_/people': typeof AppSettingsPeopleRoute
+  '/_app/settings_/permissions': typeof AppSettingsPermissionsRoute
+  '/_app/settings_/pins': typeof AppSettingsPinsRoute
+  '/_app/settings_/positions': typeof AppSettingsPositionsRoute
+  '/_app/settings_/pricebook': typeof AppSettingsPricebookRoute
+  '/_app/settings_/rate-plans': typeof AppSettingsRatePlansRoute
+  '/_app/settings_/reduction-installs': typeof AppSettingsReductionInstallsRoute
+  '/_app/settings_/reminders': typeof AppSettingsRemindersRoute
+  '/_app/settings_/roles': typeof AppSettingsRolesRoute
+  '/_app/settings_/sections': typeof AppSettingsSectionsRoute
+  '/_app/settings_/sources': typeof AppSettingsSourcesRoute
+  '/_app/settings_/task-categories': typeof AppSettingsTaskCategoriesRoute
+  '/_app/settings_/templates': typeof AppSettingsTemplatesRoute
+  '/_app/settings_/terms': typeof AppSettingsTermsRoute
+  '/_app/settings_/territories': typeof AppSettingsTerritoriesRoute
+  '/_app/settings_/ticket-types': typeof AppSettingsTicketTypesRoute
+  '/_app/settings_/visits': typeof AppSettingsVisitsRoute
+  '/_app/settings_/workflows': typeof AppSettingsWorkflowsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -210,35 +642,85 @@ export interface FileRouteTypes {
     | '/'
     | '/accounts'
     | '/appointments'
+    | '/assessments'
     | '/calendar'
     | '/conversations'
     | '/crews'
     | '/dispatch'
+    | '/invoices'
     | '/leaderboard'
     | '/leads'
     | '/opportunities'
     | '/projects'
+    | '/purchasing'
     | '/reports'
     | '/scoreboard'
     | '/settings'
     | '/team'
     | '/tickets'
     | '/accounts/$accountId'
+    | '/assessments/$assessmentId'
     | '/leads/$leadId'
     | '/opportunities/$oppId'
     | '/projects/$projectId'
+    | '/reports/$reportId'
+    | '/reports/new'
+    | '/settings/buckets'
+    | '/settings/calendar-filters'
+    | '/settings/catalog-extras'
+    | '/settings/commission'
+    | '/settings/company'
+    | '/settings/crew-roster'
+    | '/settings/dealers'
+    | '/settings/dealership'
+    | '/settings/departments'
+    | '/settings/discounts'
+    | '/settings/dispositions'
+    | '/settings/extra-costs'
+    | '/settings/financers'
+    | '/settings/general'
+    | '/settings/goals'
+    | '/settings/installers'
+    | '/settings/leaderboard-points'
+    | '/settings/my-team'
+    | '/settings/notification-stages'
+    | '/settings/notification-templates'
+    | '/settings/notifications'
+    | '/settings/numbers'
+    | '/settings/offices'
+    | '/settings/people'
+    | '/settings/permissions'
+    | '/settings/pins'
+    | '/settings/positions'
+    | '/settings/pricebook'
+    | '/settings/rate-plans'
+    | '/settings/reduction-installs'
+    | '/settings/reminders'
+    | '/settings/roles'
+    | '/settings/sections'
+    | '/settings/sources'
+    | '/settings/task-categories'
+    | '/settings/templates'
+    | '/settings/terms'
+    | '/settings/territories'
+    | '/settings/ticket-types'
+    | '/settings/visits'
+    | '/settings/workflows'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/accounts'
     | '/appointments'
+    | '/assessments'
     | '/calendar'
     | '/conversations'
     | '/crews'
     | '/dispatch'
+    | '/invoices'
     | '/leaderboard'
     | '/leads'
     | '/opportunities'
     | '/projects'
+    | '/purchasing'
     | '/reports'
     | '/scoreboard'
     | '/settings'
@@ -246,22 +728,69 @@ export interface FileRouteTypes {
     | '/tickets'
     | '/'
     | '/accounts/$accountId'
+    | '/assessments/$assessmentId'
     | '/leads/$leadId'
     | '/opportunities/$oppId'
     | '/projects/$projectId'
+    | '/reports/$reportId'
+    | '/reports/new'
+    | '/settings/buckets'
+    | '/settings/calendar-filters'
+    | '/settings/catalog-extras'
+    | '/settings/commission'
+    | '/settings/company'
+    | '/settings/crew-roster'
+    | '/settings/dealers'
+    | '/settings/dealership'
+    | '/settings/departments'
+    | '/settings/discounts'
+    | '/settings/dispositions'
+    | '/settings/extra-costs'
+    | '/settings/financers'
+    | '/settings/general'
+    | '/settings/goals'
+    | '/settings/installers'
+    | '/settings/leaderboard-points'
+    | '/settings/my-team'
+    | '/settings/notification-stages'
+    | '/settings/notification-templates'
+    | '/settings/notifications'
+    | '/settings/numbers'
+    | '/settings/offices'
+    | '/settings/people'
+    | '/settings/permissions'
+    | '/settings/pins'
+    | '/settings/positions'
+    | '/settings/pricebook'
+    | '/settings/rate-plans'
+    | '/settings/reduction-installs'
+    | '/settings/reminders'
+    | '/settings/roles'
+    | '/settings/sections'
+    | '/settings/sources'
+    | '/settings/task-categories'
+    | '/settings/templates'
+    | '/settings/terms'
+    | '/settings/territories'
+    | '/settings/ticket-types'
+    | '/settings/visits'
+    | '/settings/workflows'
   id:
     | '__root__'
     | '/_app'
     | '/_app/accounts'
     | '/_app/appointments'
+    | '/_app/assessments'
     | '/_app/calendar'
     | '/_app/conversations'
     | '/_app/crews'
     | '/_app/dispatch'
+    | '/_app/invoices'
     | '/_app/leaderboard'
     | '/_app/leads'
     | '/_app/opportunities'
     | '/_app/projects'
+    | '/_app/purchasing'
     | '/_app/reports'
     | '/_app/scoreboard'
     | '/_app/settings'
@@ -269,9 +798,53 @@ export interface FileRouteTypes {
     | '/_app/tickets'
     | '/_app/'
     | '/_app/accounts_/$accountId'
+    | '/_app/assessments_/$assessmentId'
     | '/_app/leads_/$leadId'
     | '/_app/opportunities_/$oppId'
     | '/_app/projects_/$projectId'
+    | '/_app/reports_/$reportId'
+    | '/_app/reports_/new'
+    | '/_app/settings_/buckets'
+    | '/_app/settings_/calendar-filters'
+    | '/_app/settings_/catalog-extras'
+    | '/_app/settings_/commission'
+    | '/_app/settings_/company'
+    | '/_app/settings_/crew-roster'
+    | '/_app/settings_/dealers'
+    | '/_app/settings_/dealership'
+    | '/_app/settings_/departments'
+    | '/_app/settings_/discounts'
+    | '/_app/settings_/dispositions'
+    | '/_app/settings_/extra-costs'
+    | '/_app/settings_/financers'
+    | '/_app/settings_/general'
+    | '/_app/settings_/goals'
+    | '/_app/settings_/installers'
+    | '/_app/settings_/leaderboard-points'
+    | '/_app/settings_/my-team'
+    | '/_app/settings_/notification-stages'
+    | '/_app/settings_/notification-templates'
+    | '/_app/settings_/notifications'
+    | '/_app/settings_/numbers'
+    | '/_app/settings_/offices'
+    | '/_app/settings_/people'
+    | '/_app/settings_/permissions'
+    | '/_app/settings_/pins'
+    | '/_app/settings_/positions'
+    | '/_app/settings_/pricebook'
+    | '/_app/settings_/rate-plans'
+    | '/_app/settings_/reduction-installs'
+    | '/_app/settings_/reminders'
+    | '/_app/settings_/roles'
+    | '/_app/settings_/sections'
+    | '/_app/settings_/sources'
+    | '/_app/settings_/task-categories'
+    | '/_app/settings_/templates'
+    | '/_app/settings_/terms'
+    | '/_app/settings_/territories'
+    | '/_app/settings_/ticket-types'
+    | '/_app/settings_/visits'
+    | '/_app/settings_/workflows'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -308,6 +881,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAppointmentsRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/assessments': {
+      id: '/_app/assessments'
+      path: '/assessments'
+      fullPath: '/assessments'
+      preLoaderRoute: typeof AppAssessmentsRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/calendar': {
       id: '/_app/calendar'
       path: '/calendar'
@@ -336,6 +916,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppDispatchRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/invoices': {
+      id: '/_app/invoices'
+      path: '/invoices'
+      fullPath: '/invoices'
+      preLoaderRoute: typeof AppInvoicesRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/leaderboard': {
       id: '/_app/leaderboard'
       path: '/leaderboard'
@@ -362,6 +949,13 @@ declare module '@tanstack/react-router' {
       path: '/projects'
       fullPath: '/projects'
       preLoaderRoute: typeof AppProjectsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/purchasing': {
+      id: '/_app/purchasing'
+      path: '/purchasing'
+      fullPath: '/purchasing'
+      preLoaderRoute: typeof AppPurchasingRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/reports': {
@@ -406,6 +1000,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAccountsAccountIdRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/assessments_/$assessmentId': {
+      id: '/_app/assessments_/$assessmentId'
+      path: '/assessments/$assessmentId'
+      fullPath: '/assessments/$assessmentId'
+      preLoaderRoute: typeof AppAssessmentsAssessmentIdRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/leads_/$leadId': {
       id: '/_app/leads_/$leadId'
       path: '/leads/$leadId'
@@ -427,20 +1028,324 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppProjectsProjectIdRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/reports_/$reportId': {
+      id: '/_app/reports_/$reportId'
+      path: '/reports/$reportId'
+      fullPath: '/reports/$reportId'
+      preLoaderRoute: typeof AppReportsReportIdRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/reports_/new': {
+      id: '/_app/reports_/new'
+      path: '/reports/new'
+      fullPath: '/reports/new'
+      preLoaderRoute: typeof AppReportsNewRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/settings_/buckets': {
+      id: '/_app/settings_/buckets'
+      path: '/settings/buckets'
+      fullPath: '/settings/buckets'
+      preLoaderRoute: typeof AppSettingsBucketsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/settings_/calendar-filters': {
+      id: '/_app/settings_/calendar-filters'
+      path: '/settings/calendar-filters'
+      fullPath: '/settings/calendar-filters'
+      preLoaderRoute: typeof AppSettingsCalendarFiltersRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/settings_/catalog-extras': {
+      id: '/_app/settings_/catalog-extras'
+      path: '/settings/catalog-extras'
+      fullPath: '/settings/catalog-extras'
+      preLoaderRoute: typeof AppSettingsCatalogExtrasRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/settings_/commission': {
+      id: '/_app/settings_/commission'
+      path: '/settings/commission'
+      fullPath: '/settings/commission'
+      preLoaderRoute: typeof AppSettingsCommissionRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/settings_/company': {
+      id: '/_app/settings_/company'
+      path: '/settings/company'
+      fullPath: '/settings/company'
+      preLoaderRoute: typeof AppSettingsCompanyRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/settings_/crew-roster': {
+      id: '/_app/settings_/crew-roster'
+      path: '/settings/crew-roster'
+      fullPath: '/settings/crew-roster'
+      preLoaderRoute: typeof AppSettingsCrewRosterRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/settings_/dealers': {
+      id: '/_app/settings_/dealers'
+      path: '/settings/dealers'
+      fullPath: '/settings/dealers'
+      preLoaderRoute: typeof AppSettingsDealersRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/settings_/dealership': {
+      id: '/_app/settings_/dealership'
+      path: '/settings/dealership'
+      fullPath: '/settings/dealership'
+      preLoaderRoute: typeof AppSettingsDealershipRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/settings_/departments': {
+      id: '/_app/settings_/departments'
+      path: '/settings/departments'
+      fullPath: '/settings/departments'
+      preLoaderRoute: typeof AppSettingsDepartmentsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/settings_/discounts': {
+      id: '/_app/settings_/discounts'
+      path: '/settings/discounts'
+      fullPath: '/settings/discounts'
+      preLoaderRoute: typeof AppSettingsDiscountsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/settings_/dispositions': {
+      id: '/_app/settings_/dispositions'
+      path: '/settings/dispositions'
+      fullPath: '/settings/dispositions'
+      preLoaderRoute: typeof AppSettingsDispositionsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/settings_/extra-costs': {
+      id: '/_app/settings_/extra-costs'
+      path: '/settings/extra-costs'
+      fullPath: '/settings/extra-costs'
+      preLoaderRoute: typeof AppSettingsExtraCostsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/settings_/financers': {
+      id: '/_app/settings_/financers'
+      path: '/settings/financers'
+      fullPath: '/settings/financers'
+      preLoaderRoute: typeof AppSettingsFinancersRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/settings_/general': {
+      id: '/_app/settings_/general'
+      path: '/settings/general'
+      fullPath: '/settings/general'
+      preLoaderRoute: typeof AppSettingsGeneralRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/settings_/goals': {
+      id: '/_app/settings_/goals'
+      path: '/settings/goals'
+      fullPath: '/settings/goals'
+      preLoaderRoute: typeof AppSettingsGoalsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/settings_/installers': {
+      id: '/_app/settings_/installers'
+      path: '/settings/installers'
+      fullPath: '/settings/installers'
+      preLoaderRoute: typeof AppSettingsInstallersRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/settings_/leaderboard-points': {
+      id: '/_app/settings_/leaderboard-points'
+      path: '/settings/leaderboard-points'
+      fullPath: '/settings/leaderboard-points'
+      preLoaderRoute: typeof AppSettingsLeaderboardPointsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/settings_/my-team': {
+      id: '/_app/settings_/my-team'
+      path: '/settings/my-team'
+      fullPath: '/settings/my-team'
+      preLoaderRoute: typeof AppSettingsMyTeamRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/settings_/notification-stages': {
+      id: '/_app/settings_/notification-stages'
+      path: '/settings/notification-stages'
+      fullPath: '/settings/notification-stages'
+      preLoaderRoute: typeof AppSettingsNotificationStagesRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/settings_/notification-templates': {
+      id: '/_app/settings_/notification-templates'
+      path: '/settings/notification-templates'
+      fullPath: '/settings/notification-templates'
+      preLoaderRoute: typeof AppSettingsNotificationTemplatesRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/settings_/notifications': {
+      id: '/_app/settings_/notifications'
+      path: '/settings/notifications'
+      fullPath: '/settings/notifications'
+      preLoaderRoute: typeof AppSettingsNotificationsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/settings_/numbers': {
+      id: '/_app/settings_/numbers'
+      path: '/settings/numbers'
+      fullPath: '/settings/numbers'
+      preLoaderRoute: typeof AppSettingsNumbersRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/settings_/offices': {
+      id: '/_app/settings_/offices'
+      path: '/settings/offices'
+      fullPath: '/settings/offices'
+      preLoaderRoute: typeof AppSettingsOfficesRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/settings_/people': {
+      id: '/_app/settings_/people'
+      path: '/settings/people'
+      fullPath: '/settings/people'
+      preLoaderRoute: typeof AppSettingsPeopleRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/settings_/permissions': {
+      id: '/_app/settings_/permissions'
+      path: '/settings/permissions'
+      fullPath: '/settings/permissions'
+      preLoaderRoute: typeof AppSettingsPermissionsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/settings_/pins': {
+      id: '/_app/settings_/pins'
+      path: '/settings/pins'
+      fullPath: '/settings/pins'
+      preLoaderRoute: typeof AppSettingsPinsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/settings_/positions': {
+      id: '/_app/settings_/positions'
+      path: '/settings/positions'
+      fullPath: '/settings/positions'
+      preLoaderRoute: typeof AppSettingsPositionsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/settings_/pricebook': {
+      id: '/_app/settings_/pricebook'
+      path: '/settings/pricebook'
+      fullPath: '/settings/pricebook'
+      preLoaderRoute: typeof AppSettingsPricebookRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/settings_/rate-plans': {
+      id: '/_app/settings_/rate-plans'
+      path: '/settings/rate-plans'
+      fullPath: '/settings/rate-plans'
+      preLoaderRoute: typeof AppSettingsRatePlansRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/settings_/reduction-installs': {
+      id: '/_app/settings_/reduction-installs'
+      path: '/settings/reduction-installs'
+      fullPath: '/settings/reduction-installs'
+      preLoaderRoute: typeof AppSettingsReductionInstallsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/settings_/reminders': {
+      id: '/_app/settings_/reminders'
+      path: '/settings/reminders'
+      fullPath: '/settings/reminders'
+      preLoaderRoute: typeof AppSettingsRemindersRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/settings_/roles': {
+      id: '/_app/settings_/roles'
+      path: '/settings/roles'
+      fullPath: '/settings/roles'
+      preLoaderRoute: typeof AppSettingsRolesRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/settings_/sections': {
+      id: '/_app/settings_/sections'
+      path: '/settings/sections'
+      fullPath: '/settings/sections'
+      preLoaderRoute: typeof AppSettingsSectionsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/settings_/sources': {
+      id: '/_app/settings_/sources'
+      path: '/settings/sources'
+      fullPath: '/settings/sources'
+      preLoaderRoute: typeof AppSettingsSourcesRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/settings_/task-categories': {
+      id: '/_app/settings_/task-categories'
+      path: '/settings/task-categories'
+      fullPath: '/settings/task-categories'
+      preLoaderRoute: typeof AppSettingsTaskCategoriesRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/settings_/templates': {
+      id: '/_app/settings_/templates'
+      path: '/settings/templates'
+      fullPath: '/settings/templates'
+      preLoaderRoute: typeof AppSettingsTemplatesRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/settings_/terms': {
+      id: '/_app/settings_/terms'
+      path: '/settings/terms'
+      fullPath: '/settings/terms'
+      preLoaderRoute: typeof AppSettingsTermsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/settings_/territories': {
+      id: '/_app/settings_/territories'
+      path: '/settings/territories'
+      fullPath: '/settings/territories'
+      preLoaderRoute: typeof AppSettingsTerritoriesRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/settings_/ticket-types': {
+      id: '/_app/settings_/ticket-types'
+      path: '/settings/ticket-types'
+      fullPath: '/settings/ticket-types'
+      preLoaderRoute: typeof AppSettingsTicketTypesRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/settings_/visits': {
+      id: '/_app/settings_/visits'
+      path: '/settings/visits'
+      fullPath: '/settings/visits'
+      preLoaderRoute: typeof AppSettingsVisitsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/settings_/workflows': {
+      id: '/_app/settings_/workflows'
+      path: '/settings/workflows'
+      fullPath: '/settings/workflows'
+      preLoaderRoute: typeof AppSettingsWorkflowsRouteImport
+      parentRoute: typeof AppRoute
+    }
   }
 }
 
 interface AppRouteChildren {
   AppAccountsRoute: typeof AppAccountsRoute
   AppAppointmentsRoute: typeof AppAppointmentsRoute
+  AppAssessmentsRoute: typeof AppAssessmentsRoute
   AppCalendarRoute: typeof AppCalendarRoute
   AppConversationsRoute: typeof AppConversationsRoute
   AppCrewsRoute: typeof AppCrewsRoute
   AppDispatchRoute: typeof AppDispatchRoute
+  AppInvoicesRoute: typeof AppInvoicesRoute
   AppLeaderboardRoute: typeof AppLeaderboardRoute
   AppLeadsRoute: typeof AppLeadsRoute
   AppOpportunitiesRoute: typeof AppOpportunitiesRoute
   AppProjectsRoute: typeof AppProjectsRoute
+  AppPurchasingRoute: typeof AppPurchasingRoute
   AppReportsRoute: typeof AppReportsRoute
   AppScoreboardRoute: typeof AppScoreboardRoute
   AppSettingsRoute: typeof AppSettingsRoute
@@ -448,22 +1353,69 @@ interface AppRouteChildren {
   AppTicketsRoute: typeof AppTicketsRoute
   AppIndexRoute: typeof AppIndexRoute
   AppAccountsAccountIdRoute: typeof AppAccountsAccountIdRoute
+  AppAssessmentsAssessmentIdRoute: typeof AppAssessmentsAssessmentIdRoute
   AppLeadsLeadIdRoute: typeof AppLeadsLeadIdRoute
   AppOpportunitiesOppIdRoute: typeof AppOpportunitiesOppIdRoute
   AppProjectsProjectIdRoute: typeof AppProjectsProjectIdRoute
+  AppReportsReportIdRoute: typeof AppReportsReportIdRoute
+  AppReportsNewRoute: typeof AppReportsNewRoute
+  AppSettingsBucketsRoute: typeof AppSettingsBucketsRoute
+  AppSettingsCalendarFiltersRoute: typeof AppSettingsCalendarFiltersRoute
+  AppSettingsCatalogExtrasRoute: typeof AppSettingsCatalogExtrasRoute
+  AppSettingsCommissionRoute: typeof AppSettingsCommissionRoute
+  AppSettingsCompanyRoute: typeof AppSettingsCompanyRoute
+  AppSettingsCrewRosterRoute: typeof AppSettingsCrewRosterRoute
+  AppSettingsDealersRoute: typeof AppSettingsDealersRoute
+  AppSettingsDealershipRoute: typeof AppSettingsDealershipRoute
+  AppSettingsDepartmentsRoute: typeof AppSettingsDepartmentsRoute
+  AppSettingsDiscountsRoute: typeof AppSettingsDiscountsRoute
+  AppSettingsDispositionsRoute: typeof AppSettingsDispositionsRoute
+  AppSettingsExtraCostsRoute: typeof AppSettingsExtraCostsRoute
+  AppSettingsFinancersRoute: typeof AppSettingsFinancersRoute
+  AppSettingsGeneralRoute: typeof AppSettingsGeneralRoute
+  AppSettingsGoalsRoute: typeof AppSettingsGoalsRoute
+  AppSettingsInstallersRoute: typeof AppSettingsInstallersRoute
+  AppSettingsLeaderboardPointsRoute: typeof AppSettingsLeaderboardPointsRoute
+  AppSettingsMyTeamRoute: typeof AppSettingsMyTeamRoute
+  AppSettingsNotificationStagesRoute: typeof AppSettingsNotificationStagesRoute
+  AppSettingsNotificationTemplatesRoute: typeof AppSettingsNotificationTemplatesRoute
+  AppSettingsNotificationsRoute: typeof AppSettingsNotificationsRoute
+  AppSettingsNumbersRoute: typeof AppSettingsNumbersRoute
+  AppSettingsOfficesRoute: typeof AppSettingsOfficesRoute
+  AppSettingsPeopleRoute: typeof AppSettingsPeopleRoute
+  AppSettingsPermissionsRoute: typeof AppSettingsPermissionsRoute
+  AppSettingsPinsRoute: typeof AppSettingsPinsRoute
+  AppSettingsPositionsRoute: typeof AppSettingsPositionsRoute
+  AppSettingsPricebookRoute: typeof AppSettingsPricebookRoute
+  AppSettingsRatePlansRoute: typeof AppSettingsRatePlansRoute
+  AppSettingsReductionInstallsRoute: typeof AppSettingsReductionInstallsRoute
+  AppSettingsRemindersRoute: typeof AppSettingsRemindersRoute
+  AppSettingsRolesRoute: typeof AppSettingsRolesRoute
+  AppSettingsSectionsRoute: typeof AppSettingsSectionsRoute
+  AppSettingsSourcesRoute: typeof AppSettingsSourcesRoute
+  AppSettingsTaskCategoriesRoute: typeof AppSettingsTaskCategoriesRoute
+  AppSettingsTemplatesRoute: typeof AppSettingsTemplatesRoute
+  AppSettingsTermsRoute: typeof AppSettingsTermsRoute
+  AppSettingsTerritoriesRoute: typeof AppSettingsTerritoriesRoute
+  AppSettingsTicketTypesRoute: typeof AppSettingsTicketTypesRoute
+  AppSettingsVisitsRoute: typeof AppSettingsVisitsRoute
+  AppSettingsWorkflowsRoute: typeof AppSettingsWorkflowsRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
   AppAccountsRoute: AppAccountsRoute,
   AppAppointmentsRoute: AppAppointmentsRoute,
+  AppAssessmentsRoute: AppAssessmentsRoute,
   AppCalendarRoute: AppCalendarRoute,
   AppConversationsRoute: AppConversationsRoute,
   AppCrewsRoute: AppCrewsRoute,
   AppDispatchRoute: AppDispatchRoute,
+  AppInvoicesRoute: AppInvoicesRoute,
   AppLeaderboardRoute: AppLeaderboardRoute,
   AppLeadsRoute: AppLeadsRoute,
   AppOpportunitiesRoute: AppOpportunitiesRoute,
   AppProjectsRoute: AppProjectsRoute,
+  AppPurchasingRoute: AppPurchasingRoute,
   AppReportsRoute: AppReportsRoute,
   AppScoreboardRoute: AppScoreboardRoute,
   AppSettingsRoute: AppSettingsRoute,
@@ -471,9 +1423,53 @@ const AppRouteChildren: AppRouteChildren = {
   AppTicketsRoute: AppTicketsRoute,
   AppIndexRoute: AppIndexRoute,
   AppAccountsAccountIdRoute: AppAccountsAccountIdRoute,
+  AppAssessmentsAssessmentIdRoute: AppAssessmentsAssessmentIdRoute,
   AppLeadsLeadIdRoute: AppLeadsLeadIdRoute,
   AppOpportunitiesOppIdRoute: AppOpportunitiesOppIdRoute,
   AppProjectsProjectIdRoute: AppProjectsProjectIdRoute,
+  AppReportsReportIdRoute: AppReportsReportIdRoute,
+  AppReportsNewRoute: AppReportsNewRoute,
+  AppSettingsBucketsRoute: AppSettingsBucketsRoute,
+  AppSettingsCalendarFiltersRoute: AppSettingsCalendarFiltersRoute,
+  AppSettingsCatalogExtrasRoute: AppSettingsCatalogExtrasRoute,
+  AppSettingsCommissionRoute: AppSettingsCommissionRoute,
+  AppSettingsCompanyRoute: AppSettingsCompanyRoute,
+  AppSettingsCrewRosterRoute: AppSettingsCrewRosterRoute,
+  AppSettingsDealersRoute: AppSettingsDealersRoute,
+  AppSettingsDealershipRoute: AppSettingsDealershipRoute,
+  AppSettingsDepartmentsRoute: AppSettingsDepartmentsRoute,
+  AppSettingsDiscountsRoute: AppSettingsDiscountsRoute,
+  AppSettingsDispositionsRoute: AppSettingsDispositionsRoute,
+  AppSettingsExtraCostsRoute: AppSettingsExtraCostsRoute,
+  AppSettingsFinancersRoute: AppSettingsFinancersRoute,
+  AppSettingsGeneralRoute: AppSettingsGeneralRoute,
+  AppSettingsGoalsRoute: AppSettingsGoalsRoute,
+  AppSettingsInstallersRoute: AppSettingsInstallersRoute,
+  AppSettingsLeaderboardPointsRoute: AppSettingsLeaderboardPointsRoute,
+  AppSettingsMyTeamRoute: AppSettingsMyTeamRoute,
+  AppSettingsNotificationStagesRoute: AppSettingsNotificationStagesRoute,
+  AppSettingsNotificationTemplatesRoute: AppSettingsNotificationTemplatesRoute,
+  AppSettingsNotificationsRoute: AppSettingsNotificationsRoute,
+  AppSettingsNumbersRoute: AppSettingsNumbersRoute,
+  AppSettingsOfficesRoute: AppSettingsOfficesRoute,
+  AppSettingsPeopleRoute: AppSettingsPeopleRoute,
+  AppSettingsPermissionsRoute: AppSettingsPermissionsRoute,
+  AppSettingsPinsRoute: AppSettingsPinsRoute,
+  AppSettingsPositionsRoute: AppSettingsPositionsRoute,
+  AppSettingsPricebookRoute: AppSettingsPricebookRoute,
+  AppSettingsRatePlansRoute: AppSettingsRatePlansRoute,
+  AppSettingsReductionInstallsRoute: AppSettingsReductionInstallsRoute,
+  AppSettingsRemindersRoute: AppSettingsRemindersRoute,
+  AppSettingsRolesRoute: AppSettingsRolesRoute,
+  AppSettingsSectionsRoute: AppSettingsSectionsRoute,
+  AppSettingsSourcesRoute: AppSettingsSourcesRoute,
+  AppSettingsTaskCategoriesRoute: AppSettingsTaskCategoriesRoute,
+  AppSettingsTemplatesRoute: AppSettingsTemplatesRoute,
+  AppSettingsTermsRoute: AppSettingsTermsRoute,
+  AppSettingsTerritoriesRoute: AppSettingsTerritoriesRoute,
+  AppSettingsTicketTypesRoute: AppSettingsTicketTypesRoute,
+  AppSettingsVisitsRoute: AppSettingsVisitsRoute,
+  AppSettingsWorkflowsRoute: AppSettingsWorkflowsRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)

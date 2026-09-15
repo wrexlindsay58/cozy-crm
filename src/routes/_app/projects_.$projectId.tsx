@@ -1,64 +1,26 @@
-import { Link, createFileRoute } from "@tanstack/react-router";
-import { Page, StatusPill } from "@/components/ui-bits";
-import { accounts, byId, money, projects } from "@/lib/crm-data";
+import { useState } from "react";
+import { createFileRoute } from "@tanstack/react-router";
+import { JobWorkspace } from "@/features/job/workspace";
+import { tally, useJob } from "@/features/job/store";
+import { RecordShell } from "@/features/record-shell/record-shell";
+import { useOps } from "@/features/ops/store";
+import { accounts, byId, money, opportunities } from "@/lib/crm-data";
+import { followersByPerson, photosByPerson } from "@/lib/file-data";
 
-export const Route = createFileRoute("/_app/projects_/$projectId")({
-  component: ProjectDetail,
-});
+export const Route = createFileRoute("/_app/projects_/$projectId")({ component: JobFilePage });
 
-function ProjectDetail() {
+function JobFilePage() {
   const { projectId } = Route.useParams();
-  const job = byId(projects, projectId);
-  if (!job) {
-    return (
-      <Page>
-        <p className="text-[13px] text-muted">Job not found.</p>
-        <Link to="/projects" className="text-[13px] font-semibold text-navy">
-          Jobs
-        </Link>
-      </Page>
-    );
-  }
-  const account = byId(accounts, job.accountId);
-
+  const job = useJob(projectId);
+  const { tickets, history } = useOps();
+  const [focus, setFocus] = useState<"co" | "invoice" | null>(null);
+  if (!job) return <main className="p-6 text-sm text-muted">Job not found.</main>;
+  const account = byId(accounts, job.personId);
+  const opp = opportunities.find((o) => job.name.includes(o.name.split(" ")[0]));
+  const t = tally(job);
   return (
-    <Page className="space-y-4">
-      <Link to="/projects" className="text-[13px] font-semibold text-muted hover:text-ink">
-        Jobs
-      </Link>
-      <header className="flex flex-wrap items-start justify-between gap-4 rounded-sm bg-card p-4">
-        <div>
-          <p className="text-[11px] font-bold tracking-wide text-muted uppercase">{job.id}</p>
-          <h1 className="text-[28px] font-bold tracking-tight">{job.name}</h1>
-          <p className="mt-1 text-[13px] text-muted">
-            {job.product} · {job.office}
-          </p>
-        </div>
-        <div className="text-right">
-          <StatusPill label={job.status} tone={job.tone} />
-          <p className="mt-2 text-[20px] font-bold tabular-nums">{money(job.amount)}</p>
-        </div>
-      </header>
-      <section className="grid gap-4 md:grid-cols-3">
-        <article className="rounded-sm bg-card p-4">
-          <p className="text-[11px] font-bold tracking-wide text-muted uppercase">Install</p>
-          <p className="mt-1 text-[16px] font-bold">{job.install}</p>
-        </article>
-        <article className="rounded-sm bg-card p-4">
-          <p className="text-[11px] font-bold tracking-wide text-muted uppercase">PM</p>
-          <p className="mt-1 text-[16px] font-bold">{job.pm}</p>
-        </article>
-        <article className="rounded-sm bg-card p-4">
-          <p className="text-[11px] font-bold tracking-wide text-muted uppercase">Account</p>
-          {account ? (
-            <Link to="/accounts/$accountId" params={{ accountId: account.id }} className="mt-1 block text-[16px] font-bold text-navy">
-              {account.name}
-            </Link>
-          ) : (
-            <p className="mt-1 text-[16px] font-bold">None</p>
-          )}
-        </article>
-      </section>
-    </Page>
+    <RecordShell kind="job" personId={job.personId} title={job.name} subtitle={`${job.product} · ${job.window}`} stage={job.holds.length ? `${job.stage} · hold ${job.holds.join(", ")}` : job.stage} moneyLabel={money(t.revenue)} owner={{ name: job.pm, role: "PM" }} followers={followersByPerson[job.personId] ?? [{ name: job.closer, role: "Closer" }]} related={[account ? { label: `Account ${account.id}`, href: `/accounts/${account.id}` } : null, opp ? { label: `Opportunity ${opp.id}`, href: `/opportunities/${opp.id}` } : null].filter(Boolean) as { label: string; href: string }[]} acts={[{ label: "Call" }, { label: "Text", opens: "thread" }, { label: "Change order", onClick: () => setFocus("co") }, { label: "Invoice", onClick: () => setFocus("invoice") }]} history={history?.[job.personId] ?? []} tickets={(tickets ?? []).filter((tix) => tix.related === job.jobId || tix.related === job.personId)} photos={photosByPerson[job.personId] ?? []}>
+      <JobWorkspace job={job} focus={focus} />
+    </RecordShell>
   );
 }

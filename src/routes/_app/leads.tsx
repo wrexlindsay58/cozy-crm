@@ -1,8 +1,10 @@
 import { useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { Empty, FilterChip, Page, PageTitle, StatusPill } from "@/components/ui-bits";
+import { Empty, FilterChip, PageHeader, StatusPill } from "@/components/ui-bits";
 import { RecordTable } from "@/components/record-table";
-import { leads, money } from "@/lib/crm-data";
+import { NewLeadSheet } from "@/features/lead/new-sheet";
+import { useOps } from "@/features/ops/store";
+import { money } from "@/lib/crm-data";
 
 export const Route = createFileRoute("/_app/leads")({
   validateSearch: (s: Record<string, unknown>): { q?: string } => {
@@ -12,38 +14,45 @@ export const Route = createFileRoute("/_app/leads")({
   component: LeadsPage,
 });
 
-const FILTERS = ["All", "Unmarked", "Pending", "Set no run", "Ran", "Sold"] as const;
+const FILTERS = ["All", "Unmarked", "Pending", "Set — no run", "Ran", "Sold"] as const;
 
 function LeadsPage() {
   const { q = "" } = Route.useSearch();
+  const { leads } = useOps();
   const [filter, setFilter] = useState<(typeof FILTERS)[number]>("All");
   const [query, setQuery] = useState(q);
+  const [open, setOpen] = useState(false);
 
   const rows = useMemo(() => {
     const needle = query.trim().toLowerCase();
     return leads.filter((l) => {
-      if (filter === "Set no run" && !l.status.startsWith("Set")) return false;
-      if (filter !== "All" && filter !== "Set no run" && l.status !== filter) return false;
+      if (filter !== "All" && l.status !== filter) return false;
       if (!needle) return true;
       return [l.name, l.city, l.setter, l.product, l.id, l.source, l.phone].join(" ").toLowerCase().includes(needle);
     });
-  }, [filter, query]);
+  }, [leads, filter, query]);
 
   return (
-    <Page>
-      <PageTitle
+    <main className="mx-auto max-w-7xl p-4 pb-10 md:p-5">
+      <PageHeader
+        kicker="Pipeline"
         title="Leads"
-        count={`${rows.length}`}
+        count={`${rows.length} shown`}
         actions={
-          <input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Filter this list"
-            className="h-10 w-56 rounded-md border border-line bg-card px-3 text-[13px] outline-none"
-          />
+          <div className="flex flex-wrap items-center gap-2">
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Filter this list"
+              className="h-10 w-56 rounded-lg border border-line bg-card px-3 text-sm outline-none focus:border-navy"
+            />
+            <button type="button" onClick={() => setOpen(true)} className="h-10 rounded-md bg-navy px-3 text-sm font-semibold text-card">
+              New lead
+            </button>
+          </div>
         }
       />
-      <div className="mb-4 flex flex-wrap gap-2">
+      <div className="mb-3 flex flex-wrap gap-1.5">
         {FILTERS.map((f) => (
           <FilterChip key={f} active={filter === f} onClick={() => setFilter(f)}>
             {f}
@@ -68,6 +77,7 @@ function LeadsPage() {
           ]}
         />
       )}
-    </Page>
+      <NewLeadSheet open={open} onClose={() => setOpen(false)} />
+    </main>
   );
 }

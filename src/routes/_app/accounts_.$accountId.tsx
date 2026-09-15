@@ -1,58 +1,29 @@
-import { Link, createFileRoute } from "@tanstack/react-router";
-import { Page, StatusPill } from "@/components/ui-bits";
+import { useState } from "react";
+import { createFileRoute } from "@tanstack/react-router";
+import { AccountWorkspace } from "@/features/account/workspace";
+import { useAccount, useAccountPhotos, type AccountFile } from "@/features/account/store";
+import { RecordShell } from "@/features/record-shell/record-shell";
+import { useOps } from "@/features/ops/store";
 import { accounts, byId, money, projects } from "@/lib/crm-data";
+import { followersByPerson } from "@/lib/file-data";
 
-export const Route = createFileRoute("/_app/accounts_/$accountId")({
-  component: AccountDetail,
-});
+export const Route = createFileRoute("/_app/accounts_/$accountId")({ component: AccountPage });
 
-function AccountDetail() {
+function AccountPage() {
   const { accountId } = Route.useParams();
   const account = byId(accounts, accountId);
-  if (!account) {
-    return (
-      <Page>
-        <p className="text-[13px] text-muted">Account not found.</p>
-        <Link to="/accounts" className="text-[13px] font-semibold text-navy">
-          Accounts
-        </Link>
-      </Page>
-    );
-  }
-  const jobs = projects.filter((p) => p.accountId === account.id);
-
+  const live = useAccount(accountId);
+  const photos = useAccountPhotos(accountId);
+  const { tickets, history } = useOps();
+  const [bookOpen, setBookOpen] = useState(false);
+  const [leadOpen, setLeadOpen] = useState(false);
+  const [lane, setLane] = useState("all");
+  const file: AccountFile | undefined = live ?? (account ? { accountId, leadId: accountId, name: account.name, city: account.city, owner: account.owner, visits: [], membership: null, photos: [], lanes: [], childLeads: [] } : undefined);
+  if (!account || !file) return <main className="p-6 text-sm text-muted">Account not found.</main>;
+  const jobs = projects.filter((p) => p.accountId === accountId);
   return (
-    <Page className="space-y-4">
-      <Link to="/accounts" className="text-[13px] font-semibold text-muted hover:text-ink">
-        Accounts
-      </Link>
-      <header className="flex flex-wrap items-start justify-between gap-4 rounded-sm bg-card p-4">
-        <div>
-          <p className="text-[11px] font-bold tracking-wide text-muted uppercase">{account.id}</p>
-          <h1 className="text-[28px] font-bold tracking-tight">{account.name}</h1>
-          <p className="mt-1 text-[13px] text-muted">
-            {account.city} · {account.owner}
-          </p>
-        </div>
-        <div className="text-right">
-          <StatusPill label={account.type} tone={account.type === "Repeat" ? "navy" : "up"} />
-          <p className="mt-2 text-[20px] font-bold tabular-nums">{money(account.lifetime)}</p>
-        </div>
-      </header>
-      <article className="rounded-sm bg-card p-4">
-        <h2 className="mb-3 text-[13px] font-bold">Jobs</h2>
-        <ul className="divide-y divide-line">
-          {jobs.map((j) => (
-            <li key={j.id} className="flex items-center justify-between py-2 text-[13px]">
-              <Link to="/projects/$projectId" params={{ projectId: j.id }} className="font-semibold hover:text-navy">
-                {j.name}
-              </Link>
-              <span className="tabular-nums text-muted">{money(j.amount)}</span>
-            </li>
-          ))}
-          {jobs.length === 0 ? <li className="py-2 text-[13px] text-muted">No jobs on file.</li> : null}
-        </ul>
-      </article>
-    </Page>
+    <RecordShell kind="account" personId={account.id} title={account.name} subtitle={`${account.city} · ${account.owner}`} stage={account.type} moneyLabel={money(account.lifetime)} owner={{ name: account.owner, role: "Owner" }} followers={followersByPerson[account.id] ?? []} related={jobs.slice(0, 2).map((j) => ({ label: `Job ${j.id}`, href: `/projects/${j.id}` }))} acts={[{ label: "Call" }, { label: "Text", opens: "thread" }, { label: "Book service", onClick: () => setBookOpen(true) }, { label: "New lead", onClick: () => setLeadOpen(true) }]} history={history?.[accountId] ?? []} tickets={(tickets ?? []).filter((t) => t.related === account.id)} photos={photos.length ? photos : file.photos}>
+      <AccountWorkspace file={file} bookOpen={bookOpen} leadOpen={leadOpen} lane={lane} onLane={setLane} />
+    </RecordShell>
   );
 }

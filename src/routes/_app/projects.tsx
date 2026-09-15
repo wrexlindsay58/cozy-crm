@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { Empty, FilterChip, Page, PageTitle, StatusPill } from "@/components/ui-bits";
+import { Empty, FilterChip, PageHeader, StatusPill } from "@/components/ui-bits";
 import { RecordTable } from "@/components/record-table";
 import { money, projects } from "@/lib/crm-data";
 
@@ -12,12 +12,15 @@ const FILTERS = ["All", "Scheduled", "Materials", "In progress", "On hold", "Clo
 
 function ProjectsPage() {
   const [filter, setFilter] = useState<(typeof FILTERS)[number]>("All");
-  const rows = useMemo(() => projects.filter((p) => filter === "All" || p.status === filter), [filter]);
+  const rows = useMemo(
+    () => projects.filter((p) => filter === "All" || p.status === filter),
+    [filter],
+  );
 
   return (
-    <Page>
-      <PageTitle title="Jobs" count={`${rows.length}`} />
-      <div className="mb-4 flex flex-wrap gap-2">
+    <main className="mx-auto max-w-7xl p-4 pb-10 md:p-5">
+      <PageHeader kicker="Production" title="Projects" count={`${rows.length} jobs`} />
+      <div className="mb-3 flex flex-wrap gap-1.5">
         {FILTERS.map((f) => (
           <FilterChip key={f} active={filter === f} onClick={() => setFilter(f)}>
             {f}
@@ -25,7 +28,7 @@ function ProjectsPage() {
         ))}
       </div>
       {rows.length === 0 ? (
-        <Empty>No jobs in that status.</Empty>
+        <Empty>No projects in that status.</Empty>
       ) : (
         <RecordTable
           rows={rows}
@@ -40,6 +43,6 @@ function ProjectsPage() {
           ]}
         />
       )}
-    </Page>
+    </main>
   );
 }

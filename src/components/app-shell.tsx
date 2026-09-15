@@ -9,11 +9,14 @@ import {
   FolderKanban,
   FileText,
   HardHat,
+  House,
   Map,
   MessageSquare,
   PanelLeft,
+  Receipt,
   Search,
   Settings,
+  ShoppingCart,
   Star,
   Sun,
   Ticket,
@@ -36,6 +39,8 @@ const DAILY = [
 
 const PIPELINE = [
   { icon: Users, label: "Leads", to: "/leads" },
+  { icon: ClipboardList, label: "Appointments", to: "/appointments" },
+  { icon: House, label: "Assessments", to: "/assessments" },
   { icon: Star, label: "Opportunities", to: "/opportunities" },
   { icon: Briefcase, label: "Jobs", to: "/projects" },
   { icon: FolderKanban, label: "Accounts", to: "/accounts" },
@@ -43,15 +48,16 @@ const PIPELINE = [
 
 const MONEY = [
   { icon: BarChart3, label: "Sales", to: "/scoreboard" },
-  { icon: FileText, label: "Reports", to: "/reports" },
+  { icon: Receipt, label: "Invoices", to: "/invoices" },
+  { icon: ShoppingCart, label: "Purchasing", to: "/purchasing" },
 ] as const;
 
 const COMPANY = [
-  { icon: ClipboardList, label: "Appointments", to: "/appointments" },
-  { icon: Ticket, label: "Tickets", to: "/tickets" },
+  { icon: Trophy, label: "Leaderboard", to: "/leaderboard" },
   { icon: HardHat, label: "Crews", to: "/crews" },
   { icon: UserRound, label: "Team", to: "/team" },
-  { icon: Trophy, label: "Leaderboard", to: "/leaderboard" },
+  { icon: Ticket, label: "Tickets", to: "/tickets" },
+  { icon: FileText, label: "Reports", to: "/reports" },
   { icon: Settings, label: "Settings", to: "/settings" },
 ] as const;
 
