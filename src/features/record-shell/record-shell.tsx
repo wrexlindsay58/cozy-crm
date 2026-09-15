@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import { Clock, MessageSquare, StickyNote, Ticket, Users } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { ClickToCall } from "@/features/lead/click-to-call";
-import { useOps } from "@/features/ops/store";
+import { LeadTools } from "@/features/lead/lead-tools";
+import { dndOn, useOps } from "@/features/ops/store";
 import { PhotoRail, HistoryList } from "./side-rails";
 import { PeopleRow } from "./people-row";
 import { ThreadPane } from "./thread-pane";
@@ -30,7 +31,7 @@ export function RecordShell(props: RecordShellProps & { openWork?: number }) {
   }
 
   function startCall() {
-    if (lead?.dnc) return;
+    if (dndOn(lead, "call")) return;
     setLane("customer");
     setCallOpen(true);
   }
@@ -48,7 +49,7 @@ export function RecordShell(props: RecordShellProps & { openWork?: number }) {
         kind={props.kind}
         title={props.title}
         subtitle={props.subtitle}
-        stage={lead?.dnc ? `${props.stage} · DNC` : props.stage}
+        stage={(lead?.dnd?.length ?? 0) === 3 ? `${props.stage} · DND` : props.stage}
         moneyLabel={props.moneyLabel}
         related={props.related}
         acts={acts}
@@ -66,6 +67,7 @@ export function RecordShell(props: RecordShellProps & { openWork?: number }) {
           <div className="space-y-3">
             {props.children}
             <PhotoRail personId={props.personId} photos={props.photos} />
+            {props.kind === "lead" && lead ? <LeadTools lead={lead} /> : null}
           </div>
         </div>
 
@@ -84,7 +86,7 @@ export function RecordShell(props: RecordShellProps & { openWork?: number }) {
                 <HistoryList history={props.history} flush />
               </div>
             ) : (
-              <ThreadPane personId={props.personId} mode={lane} onCall={startCall} dnc={lead?.dnc} />
+              <ThreadPane personId={props.personId} mode={lane} onCall={startCall} dnd={lead?.dnd} />
             )}
           </div>
         </aside>

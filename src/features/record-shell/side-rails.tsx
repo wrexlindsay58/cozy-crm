@@ -39,7 +39,7 @@ export function PhotoRail({ personId, photos: seed }: { personId: string; photos
 
   return (
     <section className="rounded-md border border-line bg-card p-4">
-      <h2 className="text-[11px] font-bold tracking-[0.14em] text-muted uppercase">Photos & files</h2>
+      <h2 className="text-[11px] font-bold tracking-[0.14em] text-muted uppercase">Media</h2>
       <form
         className="mt-3 flex flex-col gap-2 sm:flex-row sm:flex-wrap"
         onSubmit={(e) => {

@@ -5,7 +5,6 @@ import { BookWidget } from "@/features/lead/book-widget";
 import { CreateChore } from "@/features/lead/create-chore";
 import { DetailsForm } from "@/features/lead/details-form";
 import { DispositionControl } from "@/features/lead/disposition";
-import { LeadTools } from "@/features/lead/lead-tools";
 import { RecordShell } from "@/features/record-shell/record-shell";
 import { updateLead, useOps } from "@/features/ops/store";
 import { opportunities } from "@/lib/crm-data";
@@ -59,7 +58,6 @@ function LeadFile() {
       openWork={openWork}
     >
       <div className="space-y-3">
-        <LeadTools lead={lead} />
         <DetailsForm initial={lead} submitLabel="Save details" onSubmit={(d) => updateLead(lead.id, d)} />
         <BookWidget leadId={lead.id} defaultCloser={lead.closer} open={bookOpen} />
         <DispositionControl

@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from "react";
-import { activities, appointments as seedAppts, leads as seedLeads, tickets as seedTickets, type Appointment, type Lead, type Ticket } from "@/lib/crm-data";
+import { activities, appointments as seedAppts, leads as seedLeads, tickets as seedTickets, type Appointment, type DndChannel, type Lead, type Ticket } from "@/lib/crm-data";
 import { interestsLabel } from "@/features/lead/interests";
 import { followersByPerson, type PersonRef } from "@/lib/file-data";
 import { logCallMessage } from "@/features/thread/store";
@@ -176,9 +176,25 @@ export function toggleLeadTag(id: string, tag: string) {
   });
   addHistory(id, ACTOR, `Tag ${tag}.`);
 }
-export function setLeadDnc(id: string, on: boolean) {
-  leads = leads.map((l) => (l.id === id ? { ...l, dnc: on } : l));
-  addHistory(id, ACTOR, on ? "DNC on." : "DNC off.");
+export function dndOn(lead: { dnd?: DndChannel[] } | undefined, channel: DndChannel) {
+  const d = lead?.dnd ?? [];
+  return d.includes(channel);
+}
+export function setLeadDnd(id: string, next: DndChannel[]) {
+  leads = leads.map((l) => (l.id === id ? { ...l, dnd: next } : l));
+  const label = next.length === 3 ? "all" : next.length === 0 ? "off" : next.join(", ");
+  addHistory(id, ACTOR, `DND ${label}.`);
+}
+export function toggleLeadDnd(id: string, which: DndChannel | "all") {
+  const lead = leads.find((l) => l.id === id);
+  const cur = lead?.dnd ?? [];
+  let next: DndChannel[] = cur;
+  if (which === "all") {
+    next = cur.length === 3 ? [] : ["text", "call", "email"];
+  } else {
+    next = cur.includes(which) ? cur.filter((c) => c !== which) : [...cur, which];
+  }
+  setLeadDnd(id, next);
 }
 export function addWorkflow(id: string, name: string) {
   leads = leads.map((l) => {

@@ -1,4 +1,5 @@
 export type Tone = "navy" | "up" | "alert" | "muted";
+export type DndChannel = "text" | "call" | "email";
 
 export type Lead = {
   id: string;
@@ -27,7 +28,7 @@ export type Lead = {
   referrerPhone?: string;
   dropReason?: string;
   tags?: string[];
-  dnc?: boolean;
+  dnd?: DndChannel[];
   workflows?: string[];
 };
 

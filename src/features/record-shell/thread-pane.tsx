@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { Phone } from "lucide-react";
-import { addHistory } from "@/features/ops/store";
+import { addHistory, dndOn } from "@/features/ops/store";
 import { sendMessage, useThread } from "@/features/thread/store";
+import type { DndChannel } from "@/lib/crm-data";
 import { CallCard } from "./call-card";
 import { EmailCard } from "./email-card";
 import { cn } from "@/lib/cn";
@@ -10,17 +11,20 @@ export function ThreadPane({
   personId,
   mode,
   onCall,
-  dnc,
+  dnd,
 }: {
   personId: string;
   mode: "customer" | "internal" | "notes";
   onCall?: () => void;
-  dnc?: boolean;
+  dnd?: DndChannel[];
 }) {
   const rows = useThread(personId, mode);
   const [draft, setDraft] = useState("");
   const [subject, setSubject] = useState("");
   const [channel, setChannel] = useState<"sms" | "email">("sms");
+  const blockText = dndOn({ dnd }, "text");
+  const blockEmail = dndOn({ dnd }, "email");
+  const blockCall = dndOn({ dnd }, "call");
 
   function send() {
     if (mode === "notes") {
@@ -29,11 +33,12 @@ export function ThreadPane({
     } else if (mode === "internal") {
       sendMessage(personId, draft, "internal");
     } else if (channel === "email") {
+      if (blockEmail) return;
       sendMessage(personId, draft, "email", { subject });
       addHistory(personId, "Wrex Lindsay", `Email sent${subject.trim() ? `. ${subject.trim()}` : "."}`);
       setSubject("");
     } else {
-      if (dnc) return;
+      if (blockText) return;
       sendMessage(personId, draft, "sms");
       addHistory(personId, "Wrex Lindsay", "Text sent.");
     }
@@ -42,8 +47,19 @@ export function ThreadPane({
 
   const emptyCopy = mode === "internal" ? "None yet." : mode === "notes" ? "None yet." : "Nothing on this thread yet.";
   const placeholder =
-    mode === "internal" ? "Internal" : mode === "notes" ? "Note" : channel === "email" ? "Write the email" : dnc ? "DNC on this file" : "Send a text";
+    mode === "internal"
+      ? "Internal"
+      : mode === "notes"
+        ? "Note"
+        : channel === "email"
+          ? blockEmail
+            ? "DND on email"
+            : "Write the email"
+          : blockText
+            ? "DND on texts"
+            : "Send a text";
   const sendLabel = mode === "notes" ? "Add" : "Send";
+  const blocked = mode === "customer" && ((channel === "sms" && blockText) || (channel === "email" && blockEmail));
 
   return (
     <div className="flex h-full min-h-0 flex-col">
@@ -90,7 +106,7 @@ export function ThreadPane({
                 type="button"
                 aria-label="Call"
                 onClick={onCall}
-                disabled={dnc}
+                disabled={blockCall}
                 className="ml-auto grid size-10 place-items-center rounded-md text-navy disabled:opacity-40"
               >
                 <Phone className="size-4" />
@@ -103,7 +119,8 @@ export function ThreadPane({
             value={subject}
             onChange={(e) => setSubject(e.target.value)}
             placeholder="Subject"
-            className="mb-2 h-11 w-full rounded-md border border-line bg-card px-3 text-sm outline-none focus:border-navy"
+            disabled={blockEmail}
+            className="mb-2 h-11 w-full rounded-md border border-line bg-card px-3 text-sm outline-none focus:border-navy disabled:opacity-50"
           />
         ) : null}
         <label className="sr-only" htmlFor={`composer-${personId}-${mode}`}>
@@ -115,7 +132,7 @@ export function ThreadPane({
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             placeholder={placeholder}
-            disabled={mode === "customer" && channel === "sms" && dnc}
+            disabled={blocked}
             className="h-11 min-w-0 flex-1 rounded-md border border-line bg-card px-3 text-sm outline-none focus:border-navy disabled:opacity-50"
           />
           <button type="submit" className="h-11 rounded-md bg-navy px-3 text-sm font-semibold text-card">
