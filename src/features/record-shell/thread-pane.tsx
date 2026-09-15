@@ -2,6 +2,7 @@ import { useState } from "react";
 import { addHistory } from "@/features/ops/store";
 import { sendMessage, useThread } from "@/features/thread/store";
 import { CallCard } from "./call-card";
+import { EmailCard } from "./email-card";
 import { cn } from "@/lib/cn";
 
 export function ThreadPane({
@@ -13,6 +14,8 @@ export function ThreadPane({
 }) {
   const rows = useThread(personId, mode);
   const [draft, setDraft] = useState("");
+  const [subject, setSubject] = useState("");
+  const [channel, setChannel] = useState<"sms" | "email">("sms");
 
   function send() {
     if (mode === "notes") {
@@ -20,15 +23,21 @@ export function ThreadPane({
       addHistory(personId, "Wrex Lindsay", "Note added.");
     } else if (mode === "internal") {
       sendMessage(personId, draft, "internal");
+    } else if (channel === "email") {
+      sendMessage(personId, draft, "email", { subject });
+      addHistory(personId, "Wrex Lindsay", `Email sent${subject.trim() ? `. ${subject.trim()}` : "."}`);
+      setSubject("");
     } else {
       sendMessage(personId, draft, "sms");
+      addHistory(personId, "Wrex Lindsay", "Text sent.");
     }
     setDraft("");
   }
 
   const emptyCopy =
-    mode === "internal" ? "No internal messages." : mode === "notes" ? "No notes yet." : "No texts or calls on this file.";
-  const placeholder = mode === "internal" ? "Internal" : mode === "notes" ? "Note" : "Text this house";
+    mode === "internal" ? "No internal messages." : mode === "notes" ? "No notes yet." : "No texts, emails, or calls on this file.";
+  const placeholder =
+    mode === "internal" ? "Internal" : mode === "notes" ? "Note" : channel === "email" ? "Email body" : "Text this house";
   const sendLabel = mode === "notes" ? "Add" : "Send";
 
   return (
@@ -38,6 +47,8 @@ export function ThreadPane({
         {rows.map((m) =>
           m.channel === "call" ? (
             <CallCard key={m.id} msg={m} />
+          ) : m.channel === "email" ? (
+            <EmailCard key={m.id} msg={m} />
           ) : (
             <div key={m.id} className={cn("max-w-[92%]", m.from === "shop" || mode === "notes" ? "ml-auto" : "")}>
               <p className="text-[10px] font-semibold text-muted">
@@ -57,6 +68,28 @@ export function ThreadPane({
           send();
         }}
       >
+        {mode === "customer" ? (
+          <div className="mb-2 flex gap-1">
+            {(["sms", "email"] as const).map((ch) => (
+              <button
+                key={ch}
+                type="button"
+                onClick={() => setChannel(ch)}
+                className={cn("h-10 rounded-md px-3 text-sm font-semibold", channel === ch ? "bg-navy text-card" : "text-muted")}
+              >
+                {ch === "sms" ? "SMS" : "Email"}
+              </button>
+            ))}
+          </div>
+        ) : null}
+        {mode === "customer" && channel === "email" ? (
+          <input
+            value={subject}
+            onChange={(e) => setSubject(e.target.value)}
+            placeholder="Subject"
+            className="mb-2 h-11 w-full rounded-md border border-line bg-card px-3 text-sm outline-none focus:border-navy"
+          />
+        ) : null}
         <label className="sr-only" htmlFor={`composer-${personId}-${mode}`}>
           {placeholder}
         </label>

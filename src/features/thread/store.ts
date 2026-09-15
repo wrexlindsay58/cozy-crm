@@ -12,7 +12,12 @@ export function getMessages() {
   return messages;
 }
 
-export function sendMessage(personId: string, text: string, lane: boolean | "sms" | "internal" | "note" | "email" = false) {
+export function sendMessage(
+  personId: string,
+  text: string,
+  lane: boolean | "sms" | "internal" | "note" | "email" = false,
+  extra?: { subject?: string },
+) {
   const trimmed = text.trim();
   if (!trimmed) return;
   const now = new Date();
@@ -33,6 +38,7 @@ export function sendMessage(personId: string, text: string, lane: boolean | "sms
       from: "shop",
       at,
       text: trimmed,
+      subject: extra?.subject?.trim() || undefined,
     },
   ];
   emit();

@@ -49,7 +49,7 @@ export function RecordShell(props: RecordShellProps) {
           <div className="space-y-3">
             <CallLog personId={props.personId} open={callOpen} onClose={() => setCallOpen(false)} />
             {props.children}
-            <PhotoRail photos={props.photos} />
+            <PhotoRail personId={props.personId} photos={props.photos} />
           </div>
         </div>
 

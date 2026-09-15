@@ -5,6 +5,7 @@ export type Photo = {
   personId: string;
   caption: string;
   tone: "idle" | "info";
+  src?: string;
 };
 
 export type ThreadMessage = {
@@ -14,6 +15,7 @@ export type ThreadMessage = {
   from: "shop" | "customer";
   at: string;
   text: string;
+  subject?: string;
   durationSec?: number;
   direction?: "Out" | "In";
   result?: "Answered" | "VM" | "No answer";
@@ -44,7 +46,7 @@ export const followersByPerson: Record<string, PersonRef[]> = {
 
 export const photosByPerson: Record<string, Photo[]> = {
   "L-4821": [
-    { id: "PH-1", personId: "L-4821", caption: "Attic hatch — east hall", tone: "info" },
+    { id: "PH-1", personId: "L-4821", caption: "Attic hatch, east hall", tone: "info" },
     { id: "PH-2", personId: "L-4821", caption: "Can lights in great room", tone: "idle" },
   ],
   "A-198": [
@@ -89,11 +91,21 @@ export const seedThread: ThreadMessage[] = [
     text: "Reminder set. Marco will text when he is 20 min out.",
   },
   {
+    id: "M-3e",
+    personId: "L-4821",
+    channel: "email",
+    from: "shop",
+    at: "Sep 12 8:20a",
+    subject: "Sunday 6:00p confirmed",
+    text: "Elena, confirming Marco Sunday at 6:00p for attic and air seal. Both of you home. Dog in the backyard is fine.",
+  },
+  {
     id: "M-4",
     personId: "L-4819",
     channel: "email",
     from: "shop",
     at: "Sep 12 9:44p",
+    subject: "Proposal: HVAC + ducts",
     text: "Proposal for HVAC + ducts emailed. Cash and 12-month tiles on the file.",
   },
   {
