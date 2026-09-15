@@ -12,6 +12,14 @@ export type Photo = {
   name?: string;
 };
 
+export type NestKind = "ticket" | "task" | "note" | "media";
+
+export type ThreadNest = {
+  kind: NestKind;
+  id: string;
+  title: string;
+};
+
 export type ThreadMessage = {
   id: string;
   personId: string;
@@ -23,6 +31,8 @@ export type ThreadMessage = {
   durationSec?: number;
   direction?: "Out" | "In";
   result?: "Answered" | "VM" | "No answer";
+  nest?: ThreadNest;
+  replyTo?: string;
 };
 
 export const followersByPerson: Record<string, PersonRef[]> = {
@@ -128,5 +138,32 @@ export const seedThread: ThreadMessage[] = [
     from: "shop",
     at: "Sep 12 8:20a",
     text: "Both spouses required. Do not run if only one is home.",
+  },
+  {
+    id: "M-7",
+    personId: "L-4821",
+    channel: "note",
+    from: "shop",
+    at: "Sep 11 4:05p",
+    text: "Both spouses need to be home. Dog in backyard.",
+  },
+  {
+    id: "M-8",
+    personId: "L-4821",
+    channel: "internal",
+    from: "shop",
+    at: "Sep 14 9:12a",
+    text: "HOA wants tan, not white.",
+    nest: { kind: "ticket", id: "T-91", title: "HOA baffle color" },
+  },
+  {
+    id: "M-9",
+    personId: "L-4821",
+    channel: "internal",
+    from: "shop",
+    at: "Sep 14 9:40a",
+    text: "Got it. Sending the swatch.",
+    nest: { kind: "ticket", id: "T-91", title: "HOA baffle color" },
+    replyTo: "M-8",
   },
 ];

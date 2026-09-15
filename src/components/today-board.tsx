@@ -5,7 +5,7 @@ import { ExceptionRow, PageTitle, wash } from "@/components/ui-bits";
 import { cashOut, crews, incidents, notCalled, snapshot as s, tonightRuns } from "@/lib/snapshot";
 
 export function TodayBoard() {
-  const openTickets = tickets.filter((t) => t.status !== "Done");
+  const openTickets = tickets.filter((t) => t.status !== "Complete" && t.status !== "Cancel");
   const jobsSoon = projects.filter((p) => p.status === "Scheduled").slice(0, 3);
   const cashWatch = s.cashOutToday > s.cashInToday;
 

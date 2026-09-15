@@ -1,3 +1,5 @@
+import type { WorkStatus } from "@/lib/chrome";
+
 export type Tone = "navy" | "up" | "alert" | "muted";
 export type DndChannel = "text" | "call" | "email";
 
@@ -90,7 +92,7 @@ export type Ticket = {
   related: string;
   owner: string;
   priority: "High" | "Normal" | "Low";
-  status: "Open" | "Waiting" | "Done";
+  status: WorkStatus;
   age: string;
   description?: string;
   due?: string;
@@ -190,13 +192,13 @@ export const appointments: Appointment[] = [
 export const tickets: Ticket[] = [
   { id: "T-91", title: "HOA baffle color", related: "L-4821", owner: "Marco Velez", priority: "Normal", status: "Open", age: "1d", description: "HOA wants baffle color to match the vents. Need a photo of the approved color.", due: "Sep 18", followers: ["Priya Shah"] },
   { id: "T-88", title: "Unmarked run, Sharon Nguyen", related: "L-4808", owner: "Marco Velez", priority: "High", status: "Open", age: "5d" },
-  { id: "T-86", title: "HOA baffle color for Santos", related: "L-4718", owner: "Tasha Reed", priority: "High", status: "Waiting", age: "3d" },
+  { id: "T-86", title: "HOA baffle color for Santos", related: "L-4718", owner: "Tasha Reed", priority: "High", status: "Pause", age: "3d" },
   { id: "T-84", title: "Rebate packet, Rahman", related: "P-322", owner: "Evan Cole", priority: "Normal", status: "Open", age: "2d" },
   { id: "T-81", title: "Fix Briggs email in file", related: "L-4754", owner: "Priya Shah", priority: "Low", status: "Open", age: "1d" },
-  { id: "T-79", title: "North Canyon hold, unit 12", related: "P-297", owner: "Wrex Lindsay", priority: "High", status: "Waiting", age: "8d" },
+  { id: "T-79", title: "North Canyon hold, unit 12", related: "P-297", owner: "Wrex Lindsay", priority: "High", status: "Pause", age: "8d" },
   { id: "T-74", title: "Reset Kerr Saturday run", related: "L-4726", owner: "Amber Quinn", priority: "Normal", status: "Open", age: "12h" },
-  { id: "T-70", title: "Commission dispute, Cho HVAC adder", related: "P-331", owner: "Dana Ortiz", priority: "Normal", status: "Waiting", age: "4d" },
-  { id: "T-66", title: "Closed, Alvarez photo packet", related: "P-311", owner: "Evan Cole", priority: "Low", status: "Done", age: "None" },
+  { id: "T-70", title: "Commission dispute, Cho HVAC adder", related: "P-331", owner: "Dana Ortiz", priority: "Normal", status: "Pause", age: "4d" },
+  { id: "T-66", title: "Closed, Alvarez photo packet", related: "P-311", owner: "Evan Cole", priority: "Low", status: "Complete", age: "None" },
 ];
 
 export const activities: Record<string, Activity[]> = {

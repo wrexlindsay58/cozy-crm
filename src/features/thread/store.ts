@@ -16,7 +16,7 @@ export function sendMessage(
   personId: string,
   text: string,
   lane: boolean | "sms" | "internal" | "note" | "email" = false,
-  extra?: { subject?: string },
+  extra?: { subject?: string; nest?: ThreadMessage["nest"]; replyTo?: string },
 ) {
   const trimmed = text.trim();
   if (!trimmed) return;
@@ -28,20 +28,33 @@ export function sendMessage(
     minute: "2-digit",
   });
   const channel: ThreadMessage["channel"] =
-    lane === true || lane === "internal" ? "internal" : lane === "note" ? "note" : lane === "email" ? "email" : "sms";
-  messages = [
-    ...messages,
-    {
-      id: `M-${messages.length + 1}`,
-      personId,
-      channel,
-      from: "shop",
-      at,
-      text: trimmed,
-      subject: extra?.subject?.trim() || undefined,
-    },
-  ];
+    extra?.nest || lane === true || lane === "internal" ? "internal" : lane === "note" ? "note" : lane === "email" ? "email" : "sms";
+  const row: ThreadMessage = {
+    id: `M-${messages.length + 1}`,
+    personId,
+    channel: extra?.nest ? "internal" : channel,
+    from: "shop",
+    at,
+    text: trimmed,
+    subject: extra?.subject?.trim() || undefined,
+    nest: extra?.nest,
+    replyTo: extra?.replyTo,
+  };
+  messages = [...messages, row];
   emit();
+  return row;
+}
+
+export function useComments(personId: string, kind: string, nestId: string) {
+  const snap = useSyncExternalStore(
+    (cb) => {
+      listeners.add(cb);
+      return () => listeners.delete(cb);
+    },
+    getMessages,
+    getMessages,
+  );
+  return snap.filter((m) => m.personId === personId && m.nest?.kind === kind && m.nest.id === nestId);
 }
 
 export function logCallMessage(

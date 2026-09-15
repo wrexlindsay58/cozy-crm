@@ -1,6 +1,8 @@
 import { useRef, useState } from "react";
+import { MessageSquare } from "lucide-react";
 import { addPhoto, kindFromFile, kindWord, usePhotos } from "@/features/photos/store";
 import { FileLightbox } from "./file-lightbox";
+import { CommentBox } from "./comment-box";
 import type { Activity, Ticket } from "@/lib/crm-data";
 import type { Photo } from "@/lib/file-data";
 
@@ -82,30 +84,43 @@ export function PhotoRail({ personId, photos: seed }: { personId: string; photos
       {photos.length === 0 ? <p className="mt-3 text-sm text-muted">None on this file.</p> : null}
       <ul className="mt-3 grid grid-cols-2 gap-2 md:grid-cols-3">
         {photos.map((p, i) => (
-          <li key={p.id}>
-            <button
-              type="button"
-              className="w-full overflow-hidden rounded-md bg-page text-left"
-              onClick={() => setOpen(i)}
-            >
-              {p.src && (p.kind ?? "photo") === "photo" ? (
-                <img src={p.src} alt="" className="h-28 w-full object-cover" />
-              ) : p.src && p.kind === "video" ? (
-                <video src={p.src} muted className="h-28 w-full object-cover" />
-              ) : (
-                <div className="grid h-28 place-items-center bg-line px-2 text-center text-[11px] font-semibold text-muted">
-                  {kindWord(p.kind)}
-                </div>
-              )}
-              <p className="px-2 py-1.5 text-[11px] font-medium">{p.caption}</p>
-            </button>
-          </li>
+          <MediaTile key={p.id} photo={p} onOpen={() => setOpen(i)} />
         ))}
       </ul>
       {open !== null ? (
         <FileLightbox files={photos} index={open} onIndex={setOpen} onClose={() => setOpen(null)} />
       ) : null}
     </section>
+  );
+}
+
+function MediaTile({ photo, onOpen }: { photo: Photo; onOpen: () => void }) {
+  const [talk, setTalk] = useState(false);
+  return (
+    <li className="rounded-md bg-page">
+      <button type="button" className="w-full overflow-hidden text-left" onClick={onOpen}>
+        {photo.src && (photo.kind ?? "photo") === "photo" ? (
+          <img src={photo.src} alt="" className="h-28 w-full object-cover" />
+        ) : photo.src && photo.kind === "video" ? (
+          <video src={photo.src} muted className="h-28 w-full object-cover" />
+        ) : (
+          <div className="grid h-28 place-items-center bg-line px-2 text-center text-[11px] font-semibold text-muted">
+            {kindWord(photo.kind)}
+          </div>
+        )}
+        <p className="px-2 py-1.5 text-[11px] font-medium">{photo.caption}</p>
+      </button>
+      <button
+        type="button"
+        aria-label="Comment"
+        className="flex h-10 w-full items-center justify-center gap-1 text-[11px] font-semibold text-navy"
+        onClick={() => setTalk((v) => !v)}
+      >
+        <MessageSquare className="size-3.5" />
+        Comment
+      </button>
+      {talk ? <div className="px-2 pb-2"><CommentBox personId={photo.personId} nest={{ kind: "media", id: photo.id, title: photo.caption }} /></div> : null}
+    </li>
   );
 }
 

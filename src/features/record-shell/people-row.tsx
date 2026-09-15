@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { ActBar, type ActItem } from "@/components/act-bar";
 import { addFollower, dropLead, removeFollower, transferOwner, useOps } from "@/features/ops/store";
 import { useStaff } from "@/features/staff/store";
 import type { PersonRef } from "@/lib/file-data";
@@ -64,17 +65,15 @@ export function PeopleRow({
             </span>
           ))}
         </div>
-        <button type="button" className="h-10 rounded-md border border-line px-3 text-sm font-semibold" onClick={() => setPanel("follow")}>
-          Follow
-        </button>
-        <button type="button" className="h-10 rounded-md border border-line px-3 text-sm font-semibold" onClick={() => setPanel("transfer")}>
-          Transfer
-        </button>
-        {canDrop ? (
-          <button type="button" className="h-10 rounded-md border border-line px-3 text-sm font-semibold" onClick={() => setPanel("drop")}>
-            Drop
-          </button>
-        ) : null}
+        <ActBar
+          items={
+            [
+              { label: "Follow", onClick: () => setPanel("follow") },
+              { label: "Transfer", onClick: () => setPanel("transfer") },
+              ...(canDrop ? [{ label: "Drop", onClick: () => setPanel("drop") }] : []),
+            ] as ActItem[]
+          }
+        />
       </div>
       {mode === "follow" ? (
         <div className="mt-2 flex flex-wrap gap-2">

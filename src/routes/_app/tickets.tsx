@@ -11,8 +11,8 @@ export const Route = createFileRoute("/_app/tickets")({
 });
 
 function toneFor(t: Ticket) {
-  if (t.status === "Done") return "up" as const;
-  if (t.priority === "High") return "alert" as const;
+  if (t.status === "Complete") return "up" as const;
+  if (t.status === "Past Due" || t.priority === "High") return "alert" as const;
   return "navy" as const;
 }
 
@@ -23,7 +23,7 @@ function relatedTo(id: string) {
   return "/tickets";
 }
 
-const VIEWS = ["All", "Open", "Waiting", "Done"] as const;
+const VIEWS = ["All", "Open", "Past Due", "Pause", "Complete", "Cancel"] as const;
 
 function TicketsPage() {
   const { tickets } = useOps();
@@ -37,7 +37,7 @@ function TicketsPage() {
       return [t.title, t.id, t.owner, t.related].join(" ").toLowerCase().includes(needle);
     });
   }, [tickets, view, query]);
-  const oldest = tickets.filter((t) => t.status !== "Done").sort((a, b) => parseInt(b.age, 10) - parseInt(a.age, 10))[0];
+  const oldest = tickets.filter((t) => t.status !== "Complete" && t.status !== "Cancel").sort((a, b) => parseInt(b.age, 10) - parseInt(a.age, 10))[0];
 
   return (
     <ListPage

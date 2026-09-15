@@ -98,8 +98,8 @@ export function TicketFile({ ticket, onBack }: { ticket: Ticket; onBack: () => v
                   <option key={p.name}>{p.name}</option>
                 ))}
               </select>
-              <button type="button" className="h-10 rounded-md border border-line px-2 text-sm font-semibold" onClick={() => patchTask(k.id, { status: k.status === "Done" ? "Open" : "Done" })}>
-                {k.status === "Done" ? "Reopen" : "Done"}
+              <button type="button" className="h-10 rounded-md border border-line px-2 text-sm font-semibold" onClick={() => patchTask(k.id, { status: k.status === "Complete" ? "Open" : "Complete" })}>
+                {k.status === "Complete" ? "Reopen" : "Complete"}
               </button>
               <button
                 type="button"

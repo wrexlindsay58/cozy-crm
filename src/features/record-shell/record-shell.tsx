@@ -1,7 +1,8 @@
-import { useLayoutEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { Clock, MessageSquare, StickyNote, Ticket, Users } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { Tip } from "@/components/tip";
+import { useFit } from "@/components/use-fit";
 import { ClickToCall } from "@/features/lead/click-to-call";
 import { LeadTools } from "@/features/lead/lead-tools";
 import { dndOn, useOps } from "@/features/ops/store";
@@ -9,7 +10,6 @@ import { PhotoRail, HistoryList } from "./side-rails";
 import { PeopleRow } from "./people-row";
 import { ThreadPane } from "./thread-pane";
 import { TitleRow } from "./title-row";
-import { WorkDialog, type WorkTarget } from "./work-dialog";
 import { WorkTab } from "./work-tab";
 import type { RecordShellProps } from "./types";
 
@@ -24,7 +24,7 @@ function dndChip(dnd?: string[]) {
 export function RecordShell(props: RecordShellProps) {
   const [lane, setLane] = useState<ConvLane>("customer");
   const [callOpen, setCallOpen] = useState(false);
-  const [work, setWork] = useState<WorkTarget | null>(null);
+  const [draft, setDraft] = useState<"ticket" | "task" | null>(null);
   const { leads } = useOps();
   const lead = leads.find((l) => l.id === props.personId);
 
@@ -50,7 +50,10 @@ export function RecordShell(props: RecordShellProps) {
           ...a,
           menu: a.menu.map((item) => ({
             ...item,
-            onClick: () => setWork({ kind: item.label === "Task" ? "task" : "ticket" }),
+            onClick: () => {
+              setLane("tickets");
+              setDraft(item.label === "Task" ? "task" : "ticket");
+            },
           })),
         };
       }
@@ -96,7 +99,7 @@ export function RecordShell(props: RecordShellProps) {
               </div>
             ) : null}
             {lane === "tickets" ? (
-              <WorkTab personId={props.personId} owner={props.owner.name} onOpen={setWork} />
+              <WorkTab personId={props.personId} owner={props.owner.name} draft={draft} onDraftUsed={() => setDraft(null)} />
             ) : lane === "history" ? (
               <div className="h-full overflow-auto p-3">
                 <HistoryList history={props.history} flush />
@@ -107,9 +110,6 @@ export function RecordShell(props: RecordShellProps) {
           </div>
         </aside>
       </div>
-      {work ? (
-        <WorkDialog personId={props.personId} owner={props.owner.name} target={work} onClose={() => setWork(null)} />
-      ) : null}
     </div>
   );
 }
@@ -129,23 +129,7 @@ function SideHead({
   lane: ConvLane;
   onLane: (v: ConvLane) => void;
 }) {
-  const barRef = useRef<HTMLDivElement>(null);
-  const measureRef = useRef<HTMLDivElement>(null);
-  const [iconsOnly, setIconsOnly] = useState(true);
-
-  useLayoutEffect(() => {
-    const bar = barRef.current;
-    const measure = measureRef.current;
-    if (!bar || !measure) return;
-    function fit() {
-      if (!bar || !measure) return;
-      setIconsOnly(measure.offsetWidth > bar.clientWidth - 4);
-    }
-    fit();
-    const ro = new ResizeObserver(fit);
-    ro.observe(bar);
-    return () => ro.disconnect();
-  }, []);
+  const { barRef, measureRef, iconsOnly } = useFit();
 
   return (
     <div className="relative border-b border-line">

@@ -2,7 +2,8 @@ import { useSyncExternalStore } from "react";
 import { activities, appointments as seedAppts, leads as seedLeads, tickets as seedTickets, type Appointment, type DndChannel, type Lead, type Ticket } from "@/lib/crm-data";
 import { interestsLabel } from "@/features/lead/interests";
 import { followersByPerson, type PersonRef } from "@/lib/file-data";
-import { logCallMessage } from "@/features/thread/store";
+import { logCallMessage, sendMessage } from "@/features/thread/store";
+import { type WorkStatus } from "@/lib/chrome";
 
 export type Disposition = string;
 export const DISPOSITIONS = ["Unmarked", "Confirmed", "No sit", "Missed", "One legger", "Ran"] as const;
@@ -31,7 +32,7 @@ export type Task = {
   personId: string;
   owner: string;
   due: string;
-  status: "Open" | "Done";
+  status: WorkStatus;
   ticketId?: string;
   description?: string;
   followers?: string[];
@@ -136,11 +137,41 @@ export function createTask(input: { personId: string; title: string; owner: stri
     ...tasks,
   ];
   addHistory(input.personId, input.owner, input.ticketId ? `Task on ${input.ticketId}: ${input.title}.` : `Task opened: ${input.title}.`);
+  return tasks[0];
 }
 export function patchTicket(id: string, patch: Partial<Ticket>) {
   const t = tickets.find((x) => x.id === id);
   tickets = tickets.map((x) => (x.id === id ? { ...x, ...patch } : x));
   if (t) addHistory(t.related, ACTOR, `Ticket ${id} updated.`);
+}
+export function setWorkStatus(kind: "ticket" | "task", id: string, status: WorkStatus) {
+  if (kind === "ticket") {
+    const t = tickets.find((x) => x.id === id);
+    tickets = tickets.map((x) => (x.id === id ? { ...x, status } : x));
+    if (t) {
+      sendMessage(t.related, `Status → ${status}.`, "internal", { nest: { kind: "ticket", id: t.id, title: t.title } });
+      addHistory(t.related, ACTOR, `Ticket ${status}: ${t.title}.`);
+    }
+    return;
+  }
+  const k = tasks.find((x) => x.id === id);
+  tasks = tasks.map((x) => (x.id === id ? { ...x, status } : x));
+  if (k) {
+    sendMessage(k.personId, `Status → ${status}.`, "internal", { nest: { kind: "task", id: k.id, title: k.title } });
+    addHistory(k.personId, ACTOR, `Task ${status}: ${k.title}.`);
+  }
+}
+export function deleteTicket(id: string) {
+  const t = tickets.find((x) => x.id === id);
+  tickets = tickets.filter((x) => x.id !== id);
+  if (t) addHistory(t.related, ACTOR, `Ticket deleted: ${t.title}.`);
+  else emit();
+}
+export function deleteTask(id: string) {
+  const k = tasks.find((x) => x.id === id);
+  tasks = tasks.filter((x) => x.id !== id);
+  if (k) addHistory(k.personId, ACTOR, `Task deleted: ${k.title}.`);
+  else emit();
 }
 export function addTicketFollower(id: string, name: string) {
   tickets = tickets.map((t) => {

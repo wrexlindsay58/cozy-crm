@@ -30,6 +30,7 @@ import { Tip } from "@/components/tip";
 import { CozyHouse, CozyWordmark } from "@/components/cozy-mark";
 import { Omnibox } from "@/features/search/omnibox";
 import { unreadConversations } from "@/lib/crm-data";
+import { NAV_COLLAPSE_PX } from "@/lib/chrome";
 import { incidents, notCalled } from "@/lib/snapshot";
 
 const DAILY = [
@@ -89,7 +90,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   useEffect(() => {
     const saved = localStorage.getItem("cozy-nav");
     if (saved === "1") setCollapsed(true);
-    const mq = window.matchMedia("(max-width: 1279px)");
+    const mq = window.matchMedia(`(max-width: ${NAV_COLLAPSE_PX}px)`);
     function apply() {
       setAutoCollapse(mq.matches);
       if (!mq.matches) setForceOpen(false);

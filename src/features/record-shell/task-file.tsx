@@ -63,9 +63,9 @@ export function TaskFile({ task, onBack }: { task: Task; onBack: () => void }) {
       <button
         type="button"
         className="mt-3 h-11 rounded-md border border-line text-sm font-semibold"
-        onClick={() => patchTask(task.id, { status: task.status === "Done" ? "Open" : "Done" })}
+        onClick={() => patchTask(task.id, { status: task.status === "Complete" ? "Open" : "Complete" })}
       >
-        {task.status === "Done" ? "Reopen" : "Done"}
+        {task.status === "Complete" ? "Reopen" : "Complete"}
       </button>
       <div className="mt-4">
         <PhotoRail personId={task.id} />
