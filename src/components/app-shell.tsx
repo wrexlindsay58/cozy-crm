@@ -124,22 +124,28 @@ export function AppShell({ children }: { children: ReactNode }) {
   }) {
     const on = activePath(pathname, to);
     return (
-      <Tip label={label} on={shut} side="right" className="w-full">
+      <Tip label={label} on={shut} side="right" className={shut ? undefined : "w-full"}>
         <Link
           to={to}
           onClick={() => setMobileOpen(false)}
           className={cn(
-            "flex h-10 items-center gap-3 rounded-sm px-3 text-[13px] font-medium",
-            on ? "bg-white/15 text-card" : "text-faint hover:bg-white/10 hover:text-card",
-            shut && "justify-center px-0",
+            "relative flex items-center rounded-md text-[13px] font-medium",
+            shut
+              ? "size-10 justify-center"
+              : "h-10 gap-3 px-3",
+            on ? "bg-white/15 text-card" : shut ? "text-card/70 hover:bg-white/10 hover:text-card" : "text-faint hover:bg-white/10 hover:text-card",
           )}
         >
-          <Icon className="size-4 shrink-0" />
+          <Icon className={cn("shrink-0", shut ? "size-5" : "size-4")} />
           {!shut ? <span className="flex-1">{label}</span> : null}
-          {!shut && badge ? (
-            <span className="grid h-5 min-w-5 place-items-center rounded-sm bg-stop px-1 text-[11px] font-bold text-card">
-              {badge}
-            </span>
+          {badge ? (
+            shut ? (
+              <span className="absolute top-1.5 right-1.5 size-1.5 rounded-full bg-stop" />
+            ) : (
+              <span className="grid h-5 min-w-5 place-items-center rounded-sm bg-stop px-1 text-[11px] font-bold text-card">
+                {badge}
+              </span>
+            )
           ) : null}
         </Link>
       </Tip>
@@ -217,18 +223,19 @@ export function AppShell({ children }: { children: ReactNode }) {
 
         <aside
           className={cn(
-            "z-30 flex min-h-0 shrink-0 flex-col overflow-y-auto bg-navy py-3",
+            "z-30 flex min-h-0 shrink-0 flex-col overflow-y-auto bg-navy",
             "max-md:absolute max-md:inset-y-0 max-md:left-0",
             mobileOpen ? "max-md:translate-x-0" : "max-md:-translate-x-full",
-            shut ? "w-16" : "w-56",
+            shut ? "w-14 items-center py-2" : "w-56 py-3",
           )}
         >
-          {GROUPS.map((group) => (
-            <div key={group.label} className="mb-3 px-2">
-              <p className={cn("px-3 pb-1 text-[10px] font-bold tracking-[0.14em] text-faint uppercase", shut && "sr-only")}>
-                {group.label}
-              </p>
-              <nav className="flex flex-col gap-0.5">
+          {GROUPS.map((group, i) => (
+            <div key={group.label} className={cn(shut ? "flex flex-col items-center" : "mb-3 px-2")}>
+              {shut && i > 0 ? <div className="my-1.5 h-px w-6 bg-white/15" aria-hidden /> : null}
+              {shut ? null : (
+                <p className="px-3 pb-1 text-[10px] font-bold tracking-[0.14em] text-faint uppercase">{group.label}</p>
+              )}
+              <nav className={cn("flex flex-col", shut ? "items-center gap-0.5" : "gap-0.5")}>
                 {group.items.map((item) => (
                   <NavLink key={item.to} {...item} />
                 ))}
