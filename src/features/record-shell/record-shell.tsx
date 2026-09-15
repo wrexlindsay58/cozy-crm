@@ -1,10 +1,11 @@
 import { useState } from "react";
-import { Clock, ClipboardList, Image, ListChecks, MessageSquare, StickyNote, Users } from "lucide-react";
+import { Clock, ClipboardList, Image, ListChecks, MessageSquare, StickyNote, Tag, Users } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { Tip } from "@/components/tip";
 import { useFit } from "@/components/use-fit";
 import { ClickToCall } from "@/features/lead/click-to-call";
 import { LeadTools } from "@/features/lead/lead-tools";
+import { MarksPanel } from "@/features/lead/marks-bar";
 import { dndOn, setLeadStatus, useOps } from "@/features/ops/store";
 import { setCallFrom, setSmsFrom } from "@/features/from/store";
 import { useMoneySettings } from "@/features/money-settings/store";
@@ -16,7 +17,7 @@ import { TitleRow } from "./title-row";
 import { WorkTab } from "./work-tab";
 import type { RecordShellProps } from "./types";
 
-export type ConvLane = "customer" | "internal" | "notes" | "actions" | "history" | "media" | "form";
+export type ConvLane = "customer" | "internal" | "notes" | "tags" | "actions" | "history" | "media" | "form";
 
 function dndChip(dnd?: string[]) {
   if (!dnd?.length) return;
@@ -115,6 +116,8 @@ export function RecordShell(props: RecordShellProps) {
             ) : null}
             {lane === "actions" ? (
               <WorkTab personId={props.personId} owner={props.owner.name} draft={draft} onDraftUsed={() => setDraft(null)} />
+            ) : lane === "tags" ? (
+              lead ? <MarksPanel lead={lead} /> : <p className="p-3 text-sm text-muted">No file.</p>
             ) : lane === "history" ? (
               <div className="h-full overflow-auto p-3">
                 <HistoryList history={props.history} flush />
@@ -139,6 +142,7 @@ const LANES: { id: ConvLane; label: string; icon: typeof MessageSquare }[] = [
   { id: "customer", label: "Customer", icon: MessageSquare },
   { id: "internal", label: "Internal", icon: Users },
   { id: "notes", label: "Notes", icon: StickyNote },
+  { id: "tags", label: "Tags", icon: Tag },
   { id: "actions", label: "Actions", icon: ListChecks },
   { id: "history", label: "History", icon: Clock },
   { id: "media", label: "Media", icon: Image },

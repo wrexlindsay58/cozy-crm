@@ -20,6 +20,7 @@ import {
   SquareArrowOutUpRight,
   Star,
   StickyNote,
+  Tag,
   User,
   UserPlus,
   Users,
@@ -31,7 +32,7 @@ import { pipelineOf } from "@/lib/pipeline-of";
 import { stageWash, toneForStatus, LEAD_STATUSES } from "@/lib/lead-status";
 import { ClickToCall } from "@/features/lead/click-to-call";
 import { DndPick } from "@/features/lead/dnd-pick";
-import { MarksBar } from "@/features/lead/marks-bar";
+import { MarksPanel } from "@/features/lead/marks-bar";
 import { BookWidget } from "@/features/lead/book-widget";
 import { useOps } from "@/features/ops/store";
 import { useStaff } from "@/features/staff/store";
@@ -78,6 +79,7 @@ const LANES = [
   { id: "customer", label: "Customer", icon: MessageSquare },
   { id: "internal", label: "Internal", icon: Users },
   { id: "notes", label: "Notes", icon: StickyNote },
+  { id: "tags", label: "Tags", icon: Tag },
   { id: "actions", label: "Actions", icon: ListChecks },
   { id: "history", label: "History", icon: Clock },
   { id: "media", label: "Media", icon: Image },
@@ -358,7 +360,6 @@ export function Conversations() {
                     {active.city ? ` · ${active.city}` : ""}
                     {active.appt ? ` · Sep ${active.appt.day} ${active.appt.time}` : ""}
                   </p>
-                  {lead ? <div className="mt-1"><MarksBar lead={lead} compact /></div> : null}
                 </div>
                 {lead ? <DndPick lead={lead} compact /> : null}
                 <button type="button" aria-label={starred ? "Unstar" : "Star"} className="grid size-9 place-items-center rounded-md border border-line" onClick={() => toggleStar(active.id)}>
@@ -385,6 +386,8 @@ export function Conversations() {
                 ) : null}
                 {lane === "actions" ? (
                   <WorkTab personId={personId} owner={me} />
+                ) : lane === "tags" ? (
+                  lead ? <MarksPanel lead={lead} /> : <p className="p-3 text-sm text-muted">No file.</p>
                 ) : lane === "history" ? (
                   <div className="h-full overflow-auto p-3">
                     <HistoryList history={history?.[threadId] ?? history?.[personId] ?? []} flush />
