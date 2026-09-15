@@ -71,7 +71,7 @@ export function RecordShell(props: RecordShellProps & { openWork?: number }) {
           </div>
         </div>
 
-        <aside className="flex h-[55vh] min-h-0 min-w-0 shrink-0 flex-col border-t border-line bg-card lg:h-auto lg:flex-[2] lg:border-t-0 lg:border-l">
+        <aside className="@container flex h-[55vh] min-h-0 min-w-0 shrink-0 flex-col border-t border-line bg-card lg:h-auto lg:flex-[2] lg:border-t-0 lg:border-l">
           <SideHead lane={lane} onLane={setLane} />
           <div className="min-h-0 flex-1 overflow-hidden">
             {callOpen && lead?.phone ? (
@@ -120,11 +120,16 @@ function SideHead({
             type="button"
             onClick={() => onLane(l.id)}
             aria-label={l.label}
-            title={l.label}
-            className={cn("flex h-10 shrink-0 items-center gap-1.5 rounded-md px-3 text-xs font-semibold", lane === l.id ? "bg-navy text-card" : "text-muted")}
+            className={cn(
+              "group relative flex h-10 shrink-0 items-center gap-1.5 rounded-md px-2.5 text-xs font-semibold @[26rem]:px-3",
+              lane === l.id ? "bg-navy text-card" : "text-muted",
+            )}
           >
             <Icon className="size-4" />
-            <span className="hidden md:inline">{l.label}</span>
+            <span className="hidden @[26rem]:inline">{l.label}</span>
+            <span className="pointer-events-none absolute top-[calc(100%+4px)] left-1/2 z-30 hidden -translate-x-1/2 rounded-md bg-ink px-2 py-1 text-[11px] font-semibold whitespace-nowrap text-card group-hover:block @[26rem]:hidden">
+              {l.label}
+            </span>
           </button>
         );
       })}

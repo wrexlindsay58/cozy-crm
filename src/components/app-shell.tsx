@@ -78,16 +78,31 @@ const lateCount = incidents.length + notCalled.length;
 
 export function AppShell({ children }: { children: ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
+  const [forceOpen, setForceOpen] = useState(false);
+  const [autoCollapse, setAutoCollapse] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [mobileSearch, setMobileSearch] = useState(false);
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const shut = autoCollapse ? !forceOpen : collapsed;
 
   useEffect(() => {
     const saved = localStorage.getItem("cozy-nav");
     if (saved === "1") setCollapsed(true);
+    const mq = window.matchMedia("(max-width: 1279px)");
+    function apply() {
+      setAutoCollapse(mq.matches);
+      if (!mq.matches) setForceOpen(false);
+    }
+    apply();
+    mq.addEventListener("change", apply);
+    return () => mq.removeEventListener("change", apply);
   }, []);
 
   function toggle() {
+    if (autoCollapse) {
+      setForceOpen((v) => !v);
+      return;
+    }
     setCollapsed((c) => {
       const next = !c;
       localStorage.setItem("cozy-nav", next ? "1" : "0");
@@ -114,12 +129,13 @@ export function AppShell({ children }: { children: ReactNode }) {
         className={cn(
           "flex h-10 items-center gap-3 rounded-sm px-3 text-[13px] font-medium",
           on ? "bg-white/15 text-card" : "text-faint hover:bg-white/10 hover:text-card",
-          collapsed && "justify-center px-0",
+          shut && "justify-center px-0",
         )}
+        title={shut ? label : undefined}
       >
         <Icon className="size-4 shrink-0" />
-        {!collapsed ? <span className="flex-1">{label}</span> : null}
-        {!collapsed && badge ? (
+        {!shut ? <span className="flex-1">{label}</span> : null}
+        {!shut && badge ? (
           <span className="grid h-5 min-w-5 place-items-center rounded-sm bg-stop px-1 text-[11px] font-bold text-card">
             {badge}
           </span>
@@ -202,12 +218,12 @@ export function AppShell({ children }: { children: ReactNode }) {
             "z-30 flex min-h-0 shrink-0 flex-col overflow-y-auto bg-navy py-3",
             "max-md:absolute max-md:inset-y-0 max-md:left-0",
             mobileOpen ? "max-md:translate-x-0" : "max-md:-translate-x-full",
-            collapsed ? "w-16" : "w-56",
+            shut ? "w-16" : "w-56",
           )}
         >
           {GROUPS.map((group) => (
             <div key={group.label} className="mb-3 px-2">
-              <p className={cn("px-3 pb-1 text-[10px] font-bold tracking-[0.14em] text-faint uppercase", collapsed && "sr-only")}>
+              <p className={cn("px-3 pb-1 text-[10px] font-bold tracking-[0.14em] text-faint uppercase", shut && "sr-only")}>
                 {group.label}
               </p>
               <nav className="flex flex-col gap-0.5">
