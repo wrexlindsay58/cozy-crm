@@ -31,6 +31,7 @@ import { pipelineOf } from "@/lib/pipeline-of";
 import { stageWash, toneForStatus, LEAD_STATUSES } from "@/lib/lead-status";
 import { ClickToCall } from "@/features/lead/click-to-call";
 import { DndPick } from "@/features/lead/dnd-pick";
+import { MarksBar } from "@/features/lead/marks-bar";
 import { BookWidget } from "@/features/lead/book-widget";
 import { useOps } from "@/features/ops/store";
 import { useStaff } from "@/features/staff/store";
@@ -357,6 +358,7 @@ export function Conversations() {
                     {active.city ? ` · ${active.city}` : ""}
                     {active.appt ? ` · Sep ${active.appt.day} ${active.appt.time}` : ""}
                   </p>
+                  {lead ? <div className="mt-1"><MarksBar lead={lead} compact /></div> : null}
                 </div>
                 {lead ? <DndPick lead={lead} compact /> : null}
                 <button type="button" aria-label={starred ? "Unstar" : "Star"} className="grid size-9 place-items-center rounded-md border border-line" onClick={() => toggleStar(active.id)}>
@@ -395,7 +397,7 @@ export function Conversations() {
                   lead ? <FormAnswers lead={lead} /> : <p className="p-3 text-sm text-muted">No form.</p>
                 ) : lane === "book" ? (
                   <div className="overflow-auto p-3">
-                    <BookWidget leadId={personId} defaultCloser={active.closer} defaultKind="Sales" formOpen />
+                    <BookWidget leadId={personId} defaultCloser={active.closer} defaultKind="Sales" flush />
                   </div>
                 ) : (
                   <ThreadPane

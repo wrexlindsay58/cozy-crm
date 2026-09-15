@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { assessmentForLead, startAssessment } from "@/features/assessment/store";
 import { BookWidget } from "@/features/lead/book-widget";
@@ -15,7 +14,6 @@ function LeadFile() {
   const { leadId } = Route.useParams();
   const { leads, appointments, tickets, history } = useOps();
   const lead = leads.find((l) => l.id === leadId);
-  const [bookOpen, setBookOpen] = useState(false);
   const navigate = useNavigate();
   const assessment = assessmentForLead(leadId);
   if (!lead) return <main className="p-6 text-sm text-muted">Lead not found.</main>;
@@ -41,7 +39,7 @@ function LeadFile() {
       acts={[
         { label: "Call" },
         { label: "Text", opens: "thread" },
-        { label: "Book", onClick: () => setBookOpen((v) => !v) },
+        { label: "Book", onClick: () => document.getElementById("book-widget")?.scrollIntoView({ behavior: "smooth", block: "start" }) },
         { label: "Create", menu: [{ label: "Ticket" }, { label: "Task" }] },
       ]}
       history={history?.[lead.id] ?? []}
@@ -50,7 +48,7 @@ function LeadFile() {
     >
       <div className="space-y-3">
         <DetailsForm initial={lead} submitLabel="Save details" onSubmit={(d) => updateLead(lead.id, d)} />
-        <BookWidget leadId={lead.id} defaultCloser={lead.closer} defaultKind="Sales" formOpen={bookOpen} />
+        <BookWidget leadId={lead.id} defaultCloser={lead.closer} defaultKind="Sales" />
         <DispositionControl
           lead={lead}
           appointment={appt}

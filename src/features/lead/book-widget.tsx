@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Plus } from "lucide-react";
+import { useMemo, useState, type ReactNode } from "react";
 import { bookAppointment, useOps } from "@/features/ops/store";
 import { namesIn, useStaff } from "@/features/staff/store";
 import { SHOP_ACTOR } from "@/lib/chrome";
@@ -36,21 +36,18 @@ export function BookWidget({
   leadId,
   defaultCloser,
   defaultKind = "Sales",
-  formOpen = false,
+  flush,
 }: {
   leadId: string;
   defaultCloser: string;
   defaultKind?: EventKind;
-  formOpen?: boolean;
+  flush?: boolean;
 }) {
   const { viewAs } = useStaff();
   const { appointments, leads, history } = useOps();
   const lead = leads.find((l) => l.id === leadId);
   const setBy = viewAs === "Owner" ? SHOP_ACTOR : viewAs;
-  const [open, setOpen] = useState(formOpen);
-  useEffect(() => {
-    if (formOpen) setOpen(true);
-  }, [formOpen]);
+  const [open, setOpen] = useState(false);
   const [kind, setKind] = useState<EventKind>(defaultKind);
   const def = EVENTS.find((e) => e.id === kind) ?? EVENTS[0];
   const assignList = namesIn(...def.assign);
@@ -76,12 +73,12 @@ export function BookWidget({
   }
 
   return (
-    <section id="book-widget" className="rounded-md border border-line bg-card p-4">
+    <section id="book-widget" className={flush ? "" : "rounded-md border border-line bg-card p-4"}>
       <div className="flex items-center justify-between gap-2">
-        <h2 className="text-[11px] font-bold tracking-wide text-muted uppercase">Schedule</h2>
+        <h2 className="text-[11px] font-bold tracking-wide text-muted uppercase">On the book</h2>
         {!open ? (
-          <button type="button" className="h-9 rounded-md bg-navy px-3 text-sm font-semibold text-card" onClick={() => setOpen(true)}>
-            Schedule
+          <button type="button" aria-label="Add event" className="grid size-8 place-items-center rounded-md bg-navy text-card" onClick={() => setOpen(true)}>
+            <Plus className="size-4" />
           </button>
         ) : null}
       </div>
@@ -208,7 +205,7 @@ export function BookWidget({
         <p className="mt-2 text-sm font-medium text-up">{saved}</p>
       ) : null}
 
-      <h3 className="mt-4 text-[11px] font-bold tracking-wide text-muted uppercase">On the book</h3>
+      <h3 className="sr-only">Events</h3>
       {mine.length === 0 ? <p className="mt-2 text-sm text-muted">Nothing scheduled yet.</p> : null}
       <ul className="mt-2 space-y-2">
         {mine.map((a) => (
