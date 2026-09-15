@@ -99,6 +99,33 @@ export function logCallMessage(
   emit();
 }
 
+let starred = new Set<string>(["L-4821"]);
+let read = new Set<string>();
+
+export function toggleStar(personId: string) {
+  const next = new Set(starred);
+  if (next.has(personId)) next.delete(personId);
+  else next.add(personId);
+  starred = next;
+  emit();
+}
+
+export function markRead(personId: string) {
+  if (read.has(personId)) return;
+  const next = new Set(read);
+  next.add(personId);
+  read = next;
+  emit();
+}
+
+export function isStarred(personId: string) {
+  return starred.has(personId);
+}
+
+export function isRead(personId: string) {
+  return read.has(personId);
+}
+
 export function useMessages() {
   return useSyncExternalStore(
     (cb) => {

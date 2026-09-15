@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Clock, ClipboardList, MessageSquare, StickyNote, Ticket, Users } from "lucide-react";
+import { Clock, ClipboardList, Image, ListChecks, MessageSquare, StickyNote, Users } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { Tip } from "@/components/tip";
 import { useFit } from "@/components/use-fit";
@@ -16,7 +16,7 @@ import { TitleRow } from "./title-row";
 import { WorkTab } from "./work-tab";
 import type { RecordShellProps } from "./types";
 
-export type ConvLane = "customer" | "internal" | "notes" | "tickets" | "history" | "form";
+export type ConvLane = "customer" | "internal" | "notes" | "actions" | "history" | "media" | "form";
 
 function dndChip(dnd?: string[]) {
   if (!dnd?.length) return;
@@ -64,7 +64,7 @@ export function RecordShell(props: RecordShellProps) {
           menu: a.menu.map((item) => ({
             ...item,
             onClick: () => {
-              setLane("tickets");
+              setLane("actions");
               setDraft(item.label === "Task" ? "task" : "ticket");
             },
           })),
@@ -113,11 +113,15 @@ export function RecordShell(props: RecordShellProps) {
                 <ClickToCall personId={props.personId} phone={lead.phone} name={props.title} open={callOpen} onClose={() => setCallOpen(false)} />
               </div>
             ) : null}
-            {lane === "tickets" ? (
+            {lane === "actions" ? (
               <WorkTab personId={props.personId} owner={props.owner.name} draft={draft} onDraftUsed={() => setDraft(null)} />
             ) : lane === "history" ? (
               <div className="h-full overflow-auto p-3">
                 <HistoryList history={props.history} flush />
+              </div>
+            ) : lane === "media" ? (
+              <div className="h-full overflow-auto">
+                <PhotoRail personId={props.personId} photos={props.photos} flush />
               </div>
             ) : lane === "form" ? (
               lead ? <FormAnswers lead={lead} /> : <p className="p-3 text-sm text-muted">No file.</p>
@@ -135,8 +139,9 @@ const LANES: { id: ConvLane; label: string; icon: typeof MessageSquare }[] = [
   { id: "customer", label: "Customer", icon: MessageSquare },
   { id: "internal", label: "Internal", icon: Users },
   { id: "notes", label: "Notes", icon: StickyNote },
-  { id: "tickets", label: "Tickets", icon: Ticket },
+  { id: "actions", label: "Actions", icon: ListChecks },
   { id: "history", label: "History", icon: Clock },
+  { id: "media", label: "Media", icon: Image },
   { id: "form", label: "Form", icon: ClipboardList },
 ];
 

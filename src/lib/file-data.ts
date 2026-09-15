@@ -170,4 +170,12 @@ export const seedThread: ThreadMessage[] = [
     nest: { kind: "ticket", id: "T-91", title: "HOA baffle color" },
     replyTo: "M-8",
   },
+  {
+    id: "M-10",
+    personId: "L-4774",
+    channel: "sms",
+    from: "customer",
+    at: "Sep 15 11:02a",
+    text: "Can we move Sunday? Kids have a game.",
+  },
 ];
