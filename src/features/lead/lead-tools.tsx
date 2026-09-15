@@ -1,3 +1,4 @@
+import { ChevronDown } from "lucide-react";
 import { useState } from "react";
 import { addWorkflow, createTag, createWorkflow, stopWorkflow, toggleLeadTag, useOps } from "@/features/ops/store";
 import type { Lead } from "@/lib/crm-data";
@@ -61,19 +62,22 @@ export function LeadTools({ lead }: { lead: Lead }) {
           </li>
         ))}
       </ul>
-      <select
-        className="mt-2 h-11 w-full rounded-md border border-line bg-card px-3 text-sm"
-        defaultValue=""
-        onChange={(e) => {
-          if (e.target.value) addWorkflow(lead.id, e.target.value);
-          e.target.value = "";
-        }}
-      >
-        <option value="">Add to workflow</option>
-        {flowPool.filter((w) => !flows.includes(w)).map((w) => (
-          <option key={w}>{w}</option>
-        ))}
-      </select>
+      <div className="relative mt-2">
+        <select
+          className="h-11 w-full appearance-none rounded-md border border-line bg-card px-3 pr-10 text-sm"
+          defaultValue=""
+          onChange={(e) => {
+            if (e.target.value) addWorkflow(lead.id, e.target.value);
+            e.target.value = "";
+          }}
+        >
+          <option value="">Add to workflow</option>
+          {flowPool.filter((w) => !flows.includes(w)).map((w) => (
+            <option key={w}>{w}</option>
+          ))}
+        </select>
+        <ChevronDown className="pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2 text-muted" />
+      </div>
       <form
         className="mt-2 flex gap-2"
         onSubmit={(e) => {
