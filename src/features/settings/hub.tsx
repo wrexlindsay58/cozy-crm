@@ -1,4 +1,3 @@
-import { Link } from "@tanstack/react-router";
 
 const GROUPS = [
   {
@@ -78,10 +77,10 @@ export function SettingsHub() {
           <ul className="divide-y divide-line overflow-hidden rounded-md border border-line bg-card">
             {g.links.map((l) => (
               <li key={l.to}>
-                <Link to={l.to} className="block px-4 py-3 hover:bg-page">
+                <a href={l.to} className="block px-4 py-3 hover:bg-page">
                   <p className="font-semibold">{l.title}</p>
                   <p className="text-sm text-muted">{l.note}</p>
-                </Link>
+                </a>
               </li>
             ))}
           </ul>

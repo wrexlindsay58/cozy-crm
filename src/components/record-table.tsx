@@ -1,4 +1,3 @@
-import { Link } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/cn";
 
@@ -52,9 +51,9 @@ export function RecordTable<T extends { id: string }>({
                   )}
                 >
                   {i === 0 ? (
-                    <Link to={href(row) as never} className="font-semibold text-ink hover:text-navy">
+                    <a href={href(row)} className="font-semibold text-ink hover:text-navy">
                       {c.render(row)}
-                    </Link>
+                    </a>
                   ) : (
                     c.render(row)
                   )}
