@@ -99,6 +99,17 @@ export function logCallMessage(
   emit();
 }
 
+export function useMessages() {
+  return useSyncExternalStore(
+    (cb) => {
+      listeners.add(cb);
+      return () => listeners.delete(cb);
+    },
+    getMessages,
+    getMessages,
+  );
+}
+
 export function useThread(personId: string, lane: "customer" | "internal" | "notes" | boolean = false) {
   const snap = useSyncExternalStore(
     (cb) => {
