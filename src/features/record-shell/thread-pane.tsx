@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { Braces, FileText, Link, Paperclip, Phone, Plus, Smile } from "lucide-react";
 import { addHistory, dndOn } from "@/features/ops/store";
 import { sendMessage, useThread } from "@/features/thread/store";
@@ -153,7 +154,7 @@ export function ThreadPane({
           {placeholder}
         </label>
         <div className="flex gap-1">
-          <div className="flex h-11 min-w-0 flex-1 items-stretch overflow-hidden rounded-md border border-line bg-card focus-within:border-navy">
+          <div className="flex h-11 min-w-0 flex-1 items-stretch rounded-md border border-line bg-card focus-within:border-navy">
             <input
               id={`composer-${personId}-${mode}`}
               value={draft}
@@ -249,8 +250,10 @@ function ComposeExtras({
   onInsert: (bit: string) => void;
 }) {
   const fileRef = useRef<HTMLInputElement>(null);
+  const btnRef = useRef<HTMLButtonElement>(null);
   const [open, setOpen] = useState(false);
   const [pane, setPane] = useState<"icons" | "templates" | "links" | "values" | "emoji">("icons");
+  const [box, setBox] = useState<DOMRect | null>(null);
   const canned = cannedFor(channel);
 
   function addFile(file: File | undefined) {
@@ -266,6 +269,18 @@ function ComposeExtras({
   function close() {
     setOpen(false);
     setPane("icons");
+    setBox(null);
+  }
+
+  function toggle() {
+    if (open) {
+      close();
+      return;
+    }
+    const el = btnRef.current;
+    if (el) setBox(el.getBoundingClientRect());
+    setPane("icons");
+    setOpen(true);
   }
 
   return (
@@ -273,12 +288,11 @@ function ComposeExtras({
       <input ref={fileRef} type="file" className="sr-only" accept="image/*,video/*,.pdf,.doc,.docx" onChange={(e) => addFile(e.target.files?.[0])} />
       <Tip label="Insert" on={!open} side="top">
         <button
+          ref={btnRef}
           type="button"
           aria-label="Insert"
-          onClick={() => {
-            setOpen((v) => !v);
-            setPane("icons");
-          }}
+          aria-expanded={open}
+          onClick={toggle}
           className="relative grid h-11 w-10 place-items-center border-l border-line text-navy"
         >
           <Plus className="size-4" />
@@ -287,100 +301,106 @@ function ComposeExtras({
           ) : null}
         </button>
       </Tip>
-      {open ? (
-        <div className="absolute right-0 bottom-12 z-30 w-56 rounded-md border border-line bg-card shadow-sm">
-          {pane === "icons" ? (
-            <div className="flex">
-              {(
-                [
-                  { id: "attach", label: files.length ? files.map((f) => f.name).join(", ") : "Attach", icon: Paperclip, run: () => fileRef.current?.click() },
-                  { id: "templates", label: "Templates", icon: FileText, run: () => setPane("templates") },
-                  { id: "links", label: "Trigger links", icon: Link, run: () => setPane("links") },
-                  { id: "values", label: "Custom values", icon: Braces, run: () => setPane("values") },
-                  { id: "emoji", label: "Emojis", icon: Smile, run: () => setPane("emoji") },
-                ] as const
-              ).map((item) => {
-                const Icon = item.icon;
-                return (
-                  <Tip key={item.id} label={item.label} on side="top">
-                    <button type="button" aria-label={item.label} onClick={item.run} className="grid h-10 flex-1 place-items-center text-navy hover:bg-page">
-                      <Icon className="size-4" />
-                    </button>
-                  </Tip>
-                );
-              })}
-            </div>
-          ) : (
-            <div className="py-1">
-              <button type="button" className="px-3 py-1 text-[11px] font-semibold text-muted" onClick={() => setPane("icons")}>
-                Back
-              </button>
-              {pane === "templates"
-                ? canned.map((c) => (
-                    <button
-                      key={c.id}
-                      type="button"
-                      className="block w-full px-3 py-2 text-left text-sm hover:bg-page"
-                      onClick={() => {
-                        onTemplate(c.body, c.subject);
-                        close();
-                      }}
-                    >
-                      {c.label}
-                    </button>
-                  ))
-                : null}
-              {pane === "links"
-                ? TRIGGER_LINKS.map((c) => (
-                    <button
-                      key={c.id}
-                      type="button"
-                      className="block w-full px-3 py-2 text-left text-sm hover:bg-page"
-                      onClick={() => {
-                        onInsert(c.insert);
-                        close();
-                      }}
-                    >
-                      {c.label}
-                    </button>
-                  ))
-                : null}
-              {pane === "values"
-                ? CUSTOM_VALUES.map((c) => (
-                    <button
-                      key={c.id}
-                      type="button"
-                      className="block w-full px-3 py-2 text-left text-sm hover:bg-page"
-                      onClick={() => {
-                        onInsert(c.insert);
-                        close();
-                      }}
-                    >
-                      {c.label}
-                    </button>
-                  ))
-                : null}
-              {pane === "emoji" ? (
-                <div className="grid grid-cols-5 gap-0 px-1 pb-1">
-                  {COMPOSE_EMOJI.map((e) => (
-                    <button
-                      key={e}
-                      type="button"
-                      className="grid h-10 place-items-center text-base hover:bg-page"
-                      onClick={() => {
-                        onInsert(e);
-                        close();
-                      }}
-                    >
-                      {e}
-                    </button>
-                  ))}
+      {open && box
+        ? createPortal(
+            <div
+              className="fixed z-50 w-56 rounded-md border border-line bg-card shadow-sm"
+              style={{ left: Math.max(8, box.right - 224), top: box.top - 8, transform: "translateY(-100%)" }}
+            >
+              {pane === "icons" ? (
+                <div className="flex">
+                  {(
+                    [
+                      { id: "attach", label: files.length ? files.map((f) => f.name).join(", ") : "Attach", icon: Paperclip, run: () => fileRef.current?.click() },
+                      { id: "templates", label: "Templates", icon: FileText, run: () => setPane("templates") },
+                      { id: "links", label: "Trigger links", icon: Link, run: () => setPane("links") },
+                      { id: "values", label: "Custom values", icon: Braces, run: () => setPane("values") },
+                      { id: "emoji", label: "Emojis", icon: Smile, run: () => setPane("emoji") },
+                    ] as const
+                  ).map((item) => {
+                    const Icon = item.icon;
+                    return (
+                      <Tip key={item.id} label={item.label} on side="top">
+                        <button type="button" aria-label={item.label} onClick={item.run} className="grid h-10 flex-1 place-items-center text-navy hover:bg-page">
+                          <Icon className="size-4" />
+                        </button>
+                      </Tip>
+                    );
+                  })}
                 </div>
-              ) : null}
-            </div>
-          )}
-        </div>
-      ) : null}
+              ) : (
+                <div className="py-1">
+                  <button type="button" className="px-3 py-1 text-[11px] font-semibold text-muted" onClick={() => setPane("icons")}>
+                    Back
+                  </button>
+                  {pane === "templates"
+                    ? canned.map((c) => (
+                        <button
+                          key={c.id}
+                          type="button"
+                          className="block w-full px-3 py-2 text-left text-sm hover:bg-page"
+                          onClick={() => {
+                            onTemplate(c.body, c.subject);
+                            close();
+                          }}
+                        >
+                          {c.label}
+                        </button>
+                      ))
+                    : null}
+                  {pane === "links"
+                    ? TRIGGER_LINKS.map((c) => (
+                        <button
+                          key={c.id}
+                          type="button"
+                          className="block w-full px-3 py-2 text-left text-sm hover:bg-page"
+                          onClick={() => {
+                            onInsert(c.insert);
+                            close();
+                          }}
+                        >
+                          {c.label}
+                        </button>
+                      ))
+                    : null}
+                  {pane === "values"
+                    ? CUSTOM_VALUES.map((c) => (
+                        <button
+                          key={c.id}
+                          type="button"
+                          className="block w-full px-3 py-2 text-left text-sm hover:bg-page"
+                          onClick={() => {
+                            onInsert(c.insert);
+                            close();
+                          }}
+                        >
+                          {c.label}
+                        </button>
+                      ))
+                    : null}
+                  {pane === "emoji" ? (
+                    <div className="grid grid-cols-5 gap-0 px-1 pb-1">
+                      {COMPOSE_EMOJI.map((e) => (
+                        <button
+                          key={e}
+                          type="button"
+                          className="grid h-10 place-items-center text-base hover:bg-page"
+                          onClick={() => {
+                            onInsert(e);
+                            close();
+                          }}
+                        >
+                          {e}
+                        </button>
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
+              )}
+            </div>,
+            document.body,
+          )
+        : null}
     </div>
   );
 }
