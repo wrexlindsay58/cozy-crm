@@ -10,10 +10,13 @@ export type Photo = {
 export type ThreadMessage = {
   id: string;
   personId: string;
-  channel: "sms" | "call" | "email" | "internal";
+  channel: "sms" | "call" | "email" | "internal" | "note";
   from: "shop" | "customer";
   at: string;
   text: string;
+  durationSec?: number;
+  direction?: "Out" | "In";
+  result?: "Answered" | "VM" | "No answer";
 };
 
 export const followersByPerson: Record<string, PersonRef[]> = {
@@ -56,7 +59,18 @@ export const seedThread: ThreadMessage[] = [
     channel: "sms",
     from: "shop",
     at: "Sep 11 4:08p",
-    text: "Elena — Priya from Cozy. Confirmed Sunday 6:00p with Marco. Both of you home?",
+    text: "Elena, Priya from Cozy. Confirmed Sunday 6:00p with Marco. Both of you home?",
+  },
+  {
+    id: "M-1c",
+    personId: "L-4821",
+    channel: "call",
+    from: "shop",
+    at: "Sep 11 4:22p",
+    text: "Call Out · Answered · 4 min",
+    durationSec: 247,
+    direction: "Out",
+    result: "Answered",
   },
   {
     id: "M-2",

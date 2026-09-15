@@ -168,7 +168,12 @@ export function logCall(personId: string, input: CallInput) {
   const mins = input.duration.trim() ? ` · ${input.duration} min` : "";
   const note = input.note.trim() ? `. ${input.note.trim()}` : ".";
   const line = `Call ${input.direction} · ${input.result}${mins}${note}`;
-  logCallMessage(personId, line);
+  const durationSec = input.duration.trim() ? Math.round(Number(input.duration) * 60) : undefined;
+  logCallMessage(personId, line, {
+    durationSec: Number.isFinite(durationSec) ? durationSec : undefined,
+    direction: input.direction,
+    result: input.result,
+  });
   addHistory(personId, ACTOR, line);
 }
 export function addFollower(personId: string, person: PersonRef) {

@@ -134,7 +134,7 @@ export function DetailsForm({
       </fieldset>
 
       <label className="block">
-        <span className="text-[11px] font-bold tracking-wide text-muted uppercase">Notes</span>
+        <span className="text-[11px] font-bold tracking-wide text-muted uppercase">Homeowner notes</span>
         <textarea value={draft.notes} onChange={(e) => set("notes", e.target.value)} rows={3} className="mt-1 w-full rounded-md border border-line bg-card px-3 py-2 text-base md:text-sm outline-none focus:border-navy" />
       </label>
       <button type="submit" className="h-12 rounded-md bg-navy text-sm font-semibold text-card">

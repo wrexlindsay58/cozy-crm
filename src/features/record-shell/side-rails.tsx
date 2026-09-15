@@ -37,10 +37,9 @@ export function PhotoRail({ photos }: { photos: Photo[] }) {
   );
 }
 
-export function HistoryList({ history }: { history: Activity[] }) {
-  return (
-    <section className="mt-4 rounded-md border border-line bg-card p-4">
-      <h2 className="mb-3 text-[11px] font-bold tracking-[0.14em] text-muted uppercase">History</h2>
+export function HistoryList({ history, flush }: { history: Activity[]; flush?: boolean }) {
+  const body = (
+    <>
       {history.length === 0 ? <p className="text-sm text-muted">No history yet.</p> : null}
       <ol className="space-y-3">
         {history.map((a) => (
@@ -52,6 +51,13 @@ export function HistoryList({ history }: { history: Activity[] }) {
           </li>
         ))}
       </ol>
+    </>
+  );
+  if (flush) return body;
+  return (
+    <section className="mt-4 rounded-md border border-line bg-card p-4">
+      <h2 className="mb-3 text-[11px] font-bold tracking-[0.14em] text-muted uppercase">History</h2>
+      {body}
     </section>
   );
 }

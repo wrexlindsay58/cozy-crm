@@ -5,7 +5,6 @@ import { BookWidget } from "@/features/lead/book-widget";
 import { CreateChore } from "@/features/lead/create-chore";
 import { DetailsForm } from "@/features/lead/details-form";
 import { DispositionControl } from "@/features/lead/disposition";
-import { DropLead } from "@/features/lead/drop-lead";
 import { RecordShell } from "@/features/record-shell/record-shell";
 import { updateLead, useOps } from "@/features/ops/store";
 import { opportunities } from "@/lib/crm-data";
@@ -19,7 +18,6 @@ function LeadFile() {
   const lead = leads.find((l) => l.id === leadId);
   const [bookOpen, setBookOpen] = useState(false);
   const [chore, setChore] = useState<"ticket" | "task" | null>(null);
-  const [dropOpen, setDropOpen] = useState(false);
   const navigate = useNavigate();
   const assessment = assessmentForLead(leadId);
   if (!lead) return <main className="p-6 text-sm text-muted">Lead not found.</main>;
@@ -46,14 +44,12 @@ function LeadFile() {
         { label: "Text", opens: "thread" },
         { label: "Book", onClick: () => setBookOpen((v) => !v) },
         { label: "Create", menu: [{ label: "Ticket", onClick: () => setChore("ticket") }, { label: "Task", onClick: () => setChore("task") }] },
-        { label: "Drop", onClick: () => setDropOpen((v) => !v) },
       ]}
       history={history?.[lead.id] ?? []}
       tickets={(tickets ?? []).filter((t) => t.related === lead.id)}
       photos={photosByPerson[lead.id] ?? []}
     >
       <div className="space-y-3">
-        <DropLead leadId={lead.id} open={dropOpen} onClose={() => setDropOpen(false)} />
         <DetailsForm initial={lead} submitLabel="Save details" onSubmit={(d) => updateLead(lead.id, d)} />
         <BookWidget leadId={lead.id} defaultCloser={lead.closer} open={bookOpen} />
         <DispositionControl

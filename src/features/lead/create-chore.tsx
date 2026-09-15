@@ -30,7 +30,7 @@ export function CreateChore({
       >
         <input autoFocus value={title} onChange={(e) => setTitle(e.target.value)} placeholder={kind === "ticket" ? "What is blocked?" : "What is due?"} className="h-11 rounded-md border border-line px-3 text-base md:text-sm outline-none focus:border-navy" />
         {kind === "task" ? (
-          <input value={due} onChange={(e) => setDue(e.target.value)} placeholder="Due — Sep 15 5:00p" className="h-11 rounded-md border border-line px-3 text-base md:text-sm outline-none focus:border-navy" />
+          <input value={due} onChange={(e) => setDue(e.target.value)} placeholder="Due, Sep 15 5:00p" className="h-11 rounded-md border border-line px-3 text-base md:text-sm outline-none focus:border-navy" />
         ) : null}
         <button type="submit" className="h-11 rounded-md bg-navy text-sm font-semibold text-card">Save {kind}</button>
       </form>

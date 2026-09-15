@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { addFollower, removeFollower, transferOwner, useOps } from "@/features/ops/store";
+import { addFollower, dropLead, removeFollower, transferOwner, useOps } from "@/features/ops/store";
 import { useStaff } from "@/features/staff/store";
 import type { PersonRef } from "@/lib/file-data";
 
@@ -17,17 +17,23 @@ export function PeopleRow({
   personId,
   owner,
   seedFollowers,
+  canDrop,
 }: {
   personId: string;
   owner: PersonRef;
   seedFollowers: PersonRef[];
+  canDrop?: boolean;
 }) {
   const { followers } = useOps();
   const { people } = useStaff();
   const list = followers[personId] ?? seedFollowers;
-  const [mode, setMode] = useState<"idle" | "follow" | "transfer">("idle");
+  const [mode, setMode] = useState<"idle" | "follow" | "transfer" | "drop">("idle");
   const [pick, setPick] = useState(people[0]?.name ?? "");
   const [reason, setReason] = useState("");
+
+  function setPanel(next: "idle" | "follow" | "transfer" | "drop") {
+    setMode((cur) => (cur === next ? "idle" : next));
+  }
 
   return (
     <div className="border-b border-line bg-card px-4 py-2 md:px-5">
@@ -58,12 +64,17 @@ export function PeopleRow({
             </span>
           ))}
         </div>
-        <button type="button" className="h-10 rounded-md border border-line px-3 text-sm font-semibold" onClick={() => setMode(mode === "follow" ? "idle" : "follow")}>
+        <button type="button" className="h-10 rounded-md border border-line px-3 text-sm font-semibold" onClick={() => setPanel("follow")}>
           Follow
         </button>
-        <button type="button" className="h-10 rounded-md border border-line px-3 text-sm font-semibold" onClick={() => setMode(mode === "transfer" ? "idle" : "transfer")}>
+        <button type="button" className="h-10 rounded-md border border-line px-3 text-sm font-semibold" onClick={() => setPanel("transfer")}>
           Transfer
         </button>
+        {canDrop ? (
+          <button type="button" className="h-10 rounded-md border border-line px-3 text-sm font-semibold" onClick={() => setPanel("drop")}>
+            Drop
+          </button>
+        ) : null}
       </div>
       {mode === "follow" ? (
         <div className="mt-2 flex flex-wrap gap-2">
@@ -103,6 +114,23 @@ export function PeopleRow({
             }}
           >
             Transfer
+          </button>
+        </div>
+      ) : null}
+      {mode === "drop" ? (
+        <div className="mt-2 flex flex-wrap gap-2">
+          <input value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Reason" className="h-11 min-w-40 flex-1 rounded-md border border-line bg-card px-3 text-sm" />
+          <button
+            type="button"
+            className="h-11 rounded-md bg-stop px-3 text-sm font-semibold text-card"
+            onClick={() => {
+              if (!reason.trim()) return;
+              dropLead(personId, reason.trim());
+              setReason("");
+              setMode("idle");
+            }}
+          >
+            Drop
           </button>
         </div>
       ) : null}
