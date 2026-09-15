@@ -7,10 +7,10 @@ export function PhotoGrid({ accountId }: { accountId: string }) {
   const [err, setErr] = useState("");
   return (
     <section className="rounded-md border border-line bg-card p-4">
-      <h2 className="mb-3 text-[11px] font-bold tracking-[0.14em] text-muted uppercase">Photos</h2>
-      <form className="mb-3 flex flex-col gap-2 sm:flex-row" onSubmit={(e) => { e.preventDefault(); const ok = addPhoto(accountId, caption); if (!ok) { setErr("Caption required."); return; } setCaption(""); setErr(""); }}>
-        <input value={caption} onChange={(e) => setCaption(e.target.value)} placeholder="Caption (required)" className="h-11 flex-1 rounded-md border border-line px-3 text-sm" />
-        <button type="submit" className="h-11 rounded-md bg-navy px-3 text-sm font-semibold text-card">Add photo</button>
+      <h2 className="mb-3 text-[11px] font-bold tracking-[0.14em] text-muted uppercase">Photos & files</h2>
+      <form className="mb-3 flex flex-col gap-2 sm:flex-row" onSubmit={(e) => { e.preventDefault(); const ok = addPhoto(accountId, caption); if (!ok) { setErr("Name it."); return; } setCaption(""); setErr(""); }}>
+        <input value={caption} onChange={(e) => setCaption(e.target.value)} placeholder="Attic, unit, HOA letter" className="h-11 flex-1 rounded-md border border-line px-3 text-sm" />
+        <button type="submit" className="h-11 rounded-md bg-navy px-3 text-sm font-semibold text-card">Add</button>
       </form>
       {err ? <p className="mb-2 text-sm text-alert">{err}</p> : null}
       <ul className="grid grid-cols-2 gap-2 md:grid-cols-4">

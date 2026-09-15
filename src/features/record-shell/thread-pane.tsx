@@ -34,10 +34,8 @@ export function ThreadPane({
     setDraft("");
   }
 
-  const emptyCopy =
-    mode === "internal" ? "No internal messages." : mode === "notes" ? "No notes yet." : "No texts, emails, or calls on this file.";
-  const placeholder =
-    mode === "internal" ? "Internal" : mode === "notes" ? "Note" : channel === "email" ? "Email body" : "Text this house";
+  const emptyCopy = mode === "internal" ? "None yet." : mode === "notes" ? "None yet." : "Nothing on this thread yet.";
+  const placeholder = mode === "internal" ? "Internal" : mode === "notes" ? "Note" : channel === "email" ? "Write the email" : "Text this house";
   const sendLabel = mode === "notes" ? "Add" : "Send";
 
   return (

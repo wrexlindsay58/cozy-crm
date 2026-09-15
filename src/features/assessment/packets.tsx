@@ -41,9 +41,9 @@ function PacketCard({
               <input value={packet.fields[field] ?? ""} onChange={(e) => setField(assessmentId, def.id as PacketId, field, e.target.value)} className="mt-1 h-11 w-full rounded-md border border-line px-3 text-sm" />
             </label>
           ))}
-          <form className="flex flex-col gap-2 sm:flex-row" onSubmit={(e) => { e.preventDefault(); const ok = addPacketPhoto(assessmentId, def.id as PacketId, caption); if (!ok) { setErr("Caption required."); return; } setCaption(""); setErr(""); }}>
-            <input value={caption} onChange={(e) => setCaption(e.target.value)} placeholder="Caption (required)" className="h-11 flex-1 rounded-md border border-line px-3 text-sm" />
-            <button type="submit" className="h-11 rounded-md border border-line px-3 text-sm font-semibold">Add photo</button>
+          <form className="flex flex-col gap-2 sm:flex-row" onSubmit={(e) => { e.preventDefault(); const ok = addPacketPhoto(assessmentId, def.id as PacketId, caption); if (!ok) { setErr("Name it."); return; } setCaption(""); setErr(""); }}>
+            <input value={caption} onChange={(e) => setCaption(e.target.value)} placeholder="Attic hatch, unit tag" className="h-11 flex-1 rounded-md border border-line px-3 text-sm" />
+            <button type="submit" className="h-11 rounded-md border border-line px-3 text-sm font-semibold">Add</button>
           </form>
           {err ? <p className="text-sm text-alert">{err}</p> : null}
           <ul className="grid grid-cols-2 gap-2 md:grid-cols-3">

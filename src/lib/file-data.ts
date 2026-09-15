@@ -1,11 +1,15 @@
 export type PersonRef = { name: string; role: string };
 
+export type FileKind = "photo" | "video" | "pdf" | "file";
+
 export type Photo = {
   id: string;
   personId: string;
   caption: string;
   tone: "idle" | "info";
   src?: string;
+  kind?: FileKind;
+  name?: string;
 };
 
 export type ThreadMessage = {
@@ -46,8 +50,9 @@ export const followersByPerson: Record<string, PersonRef[]> = {
 
 export const photosByPerson: Record<string, Photo[]> = {
   "L-4821": [
-    { id: "PH-1", personId: "L-4821", caption: "Attic hatch, east hall", tone: "info" },
-    { id: "PH-2", personId: "L-4821", caption: "Can lights in great room", tone: "idle" },
+    { id: "PH-1", personId: "L-4821", caption: "Attic hatch, east hall", tone: "info", kind: "photo" },
+    { id: "PH-2", personId: "L-4821", caption: "Can lights in great room", tone: "idle", kind: "photo" },
+    { id: "PH-3", personId: "L-4821", caption: "HOA letter", tone: "info", kind: "pdf", name: "HOA-letter.pdf" },
   ],
   "A-198": [
     { id: "PH-8", personId: "A-198", caption: "Prior air-seal register", tone: "info" },

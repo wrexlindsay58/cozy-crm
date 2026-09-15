@@ -13,7 +13,7 @@ export function WorkTab({ personId, owner }: { personId: string; owner: string }
   return (
     <div className="flex h-full min-h-0 flex-col">
       <div className="min-h-0 flex-1 overflow-auto p-3">
-        {mineT.length === 0 && mineK.length === 0 ? <p className="text-sm text-muted">No tickets or tasks on this file.</p> : null}
+        {mineT.length === 0 && mineK.length === 0 ? <p className="text-sm text-muted">None yet.</p> : null}
         {mineT.length > 0 ? <h2 className="mb-2 text-[11px] font-bold tracking-wide text-muted uppercase">Tickets</h2> : null}
         <ul className="space-y-2">
           {mineT.map((t) => (
