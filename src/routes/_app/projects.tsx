@@ -1,48 +1,51 @@
 import { useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { Empty, FilterChip, PageHeader, StatusPill } from "@/components/ui-bits";
+import { Empty, StatusPill } from "@/components/ui-bits";
 import { RecordTable } from "@/components/record-table";
+import { ListPage } from "@/features/lists/list-page";
 import { money, projects } from "@/lib/crm-data";
 
 export const Route = createFileRoute("/_app/projects")({
   component: ProjectsPage,
 });
 
-const FILTERS = ["All", "Scheduled", "Materials", "In progress", "On hold", "Closed"] as const;
+const VIEWS = ["All", "Scheduled", "Materials", "In progress", "On hold", "Closed"] as const;
 
 function ProjectsPage() {
-  const [filter, setFilter] = useState<(typeof FILTERS)[number]>("All");
-  const rows = useMemo(
-    () => projects.filter((p) => filter === "All" || p.status === filter),
-    [filter],
-  );
+  const [view, setView] = useState<(typeof VIEWS)[number]>("All");
+  const [query, setQuery] = useState("");
+  const rows = useMemo(() => {
+    const needle = query.trim().toLowerCase();
+    return projects.filter((p) => {
+      if (view !== "All" && p.status !== view) return false;
+      if (!needle) return true;
+      return [p.name, p.product, p.pm, p.office, p.id].join(" ").toLowerCase().includes(needle);
+    });
+  }, [view, query]);
 
   return (
-    <main className="mx-auto max-w-7xl p-4 pb-10 md:p-5">
-      <PageHeader kicker="Production" title="Projects" count={`${rows.length} jobs`} />
-      <div className="mb-3 flex flex-wrap gap-1.5">
-        {FILTERS.map((f) => (
-          <FilterChip key={f} active={filter === f} onClick={() => setFilter(f)}>
-            {f}
-          </FilterChip>
-        ))}
-      </div>
-      {rows.length === 0 ? (
-        <Empty>No projects in that status.</Empty>
-      ) : (
-        <RecordTable
-          rows={rows}
-          href={(r) => `/projects/${r.id}`}
-          columns={[
-            { key: "name", label: "Job", render: (r) => r.name },
-            { key: "status", label: "Status", render: (r) => <StatusPill label={r.status} tone={r.tone} /> },
-            { key: "office", label: "Office", hide: "sm", render: (r) => r.office },
-            { key: "pm", label: "PM", hide: "md", render: (r) => r.pm },
-            { key: "install", label: "Install", hide: "md", render: (r) => r.install },
-            { key: "amount", label: "Amount", render: (r) => <span className="font-semibold tabular-nums">{money(r.amount)}</span> },
-          ]}
-        />
-      )}
-    </main>
+    <ListPage
+      title="Jobs"
+      count={`${rows.length} jobs`}
+      views={[...VIEWS]}
+      view={view}
+      onView={(v) => setView(v as (typeof VIEWS)[number])}
+      search={query}
+      onSearch={setQuery}
+      empty={rows.length === 0 ? <Empty>No jobs in {view}. Clear the filter.</Empty> : undefined}
+    >
+      <RecordTable
+        rows={rows}
+        href={(r) => `/projects/${r.id}`}
+        columns={[
+          { key: "name", label: "Name", render: (r) => r.name },
+          { key: "status", label: "Status", render: (r) => <StatusPill label={r.status} tone={r.tone} /> },
+          { key: "install", label: "Next", hide: "md", render: (r) => <span className="text-muted">{r.install}</span> },
+          { key: "who", label: "Who", hide: "md", render: (r) => r.pm },
+          { key: "office", label: "Office", hide: "lg", render: (r) => r.office },
+          { key: "amount", label: "$", render: (r) => <span className="font-semibold tabular-nums">{money(r.amount)}</span> },
+        ]}
+      />
+    </ListPage>
   );
 }

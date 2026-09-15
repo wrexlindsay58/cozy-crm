@@ -57,7 +57,7 @@ export function TitleRow({
             const open = openMenu === act.label;
             return (
               <div key={act.label} className="relative">
-                <button type="button" onClick={() => setOpenMenu(open ? null : act.label)} className="h-9 rounded-md border border-line bg-card px-3 text-sm font-semibold hover:border-navy">
+                <button type="button" onClick={() => setOpenMenu(open ? null : act.label)} className="h-11 rounded-md border border-line bg-card px-3 text-sm font-semibold hover:border-navy">
                   {act.label}
                 </button>
                 {open ? (
@@ -82,27 +82,27 @@ export function TitleRow({
           }
           if (act.opens === "thread") {
             return (
-              <button key={act.label} type="button" onClick={onText} className="h-9 rounded-md bg-navy px-3 text-sm font-semibold text-card">
+              <button key={act.label} type="button" onClick={onText} className="h-11 rounded-md bg-navy px-3 text-sm font-semibold text-card">
                 {act.label}
               </button>
             );
           }
           if (act.onClick) {
             return (
-              <button key={act.label} type="button" onClick={act.onClick} className="h-9 rounded-md border border-line px-3 text-sm font-semibold hover:border-navy">
+              <button key={act.label} type="button" onClick={act.onClick} className="h-11 rounded-md border border-line px-3 text-sm font-semibold hover:border-navy">
                 {act.label}
               </button>
             );
           }
           if (act.href) {
             return (
-              <a key={act.label} href={act.href} className="grid h-9 place-items-center rounded-md border border-line px-3 text-sm font-semibold hover:border-navy">
+              <a key={act.label} href={act.href} className="grid h-11 place-items-center rounded-md border border-line px-3 text-sm font-semibold hover:border-navy">
                 {act.label}
               </a>
             );
           }
           return (
-            <button key={act.label} type="button" className="h-9 rounded-md border border-line px-3 text-sm font-semibold hover:border-navy">
+            <button key={act.label} type="button" className="h-11 rounded-md border border-line px-3 text-sm font-semibold hover:border-navy">
               {act.label}
             </button>
           );

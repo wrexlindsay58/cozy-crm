@@ -18,15 +18,16 @@ export function RecordTable<T extends { id: string }>({
   href: (row: T) => string;
 }) {
   return (
-    <div className="w-full min-w-0 overflow-x-auto rounded-sm bg-card shadow-card">
-      <table className="w-full min-w-[640px] text-left text-sm">
+    <div className="w-full min-w-0 overflow-auto">
+      <table className="w-full min-w-[720px] border-separate border-spacing-0 text-left text-sm">
         <thead>
-          <tr className="border-b border-line bg-page">
-            {columns.map((c) => (
+          <tr>
+            {columns.map((c, i) => (
               <th
                 key={c.key}
                 className={cn(
-                  "px-3 py-2.5 text-[11px] font-bold tracking-wider text-muted uppercase",
+                  "sticky top-0 z-10 border-b border-line bg-page px-3 py-2.5 text-[11px] font-bold tracking-wider text-muted uppercase",
+                  i === 0 && "sticky left-0 z-20",
                   c.hide === "sm" && "hidden sm:table-cell",
                   c.hide === "md" && "hidden md:table-cell",
                   c.hide === "lg" && "hidden lg:table-cell",
@@ -39,23 +40,24 @@ export function RecordTable<T extends { id: string }>({
         </thead>
         <tbody>
           {rows.map((row) => (
-            <tr key={row.id} className="border-b border-line last:border-0 hover:bg-page/80">
+            <tr key={row.id} className="group">
               {columns.map((c, i) => (
                 <td
                   key={c.key}
                   className={cn(
-                    "px-3 py-3",
+                    "border-b border-line bg-card px-3 py-0 group-hover:bg-page",
+                    i === 0 && "sticky left-0 z-[1]",
                     c.hide === "sm" && "hidden sm:table-cell",
                     c.hide === "md" && "hidden md:table-cell",
                     c.hide === "lg" && "hidden lg:table-cell",
                   )}
                 >
                   {i === 0 ? (
-                    <a href={href(row)} className="font-semibold text-ink hover:text-navy">
+                    <a href={href(row)} className="flex min-h-11 items-center font-semibold text-ink hover:text-navy">
                       {c.render(row)}
                     </a>
                   ) : (
-                    c.render(row)
+                    <div className="flex min-h-11 items-center">{c.render(row)}</div>
                   )}
                 </td>
               ))}

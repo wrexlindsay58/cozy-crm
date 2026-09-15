@@ -1,5 +1,5 @@
 import { Link, createFileRoute } from "@tanstack/react-router";
-import { PageHeader } from "@/components/ui-bits";
+import { ListPage } from "@/features/lists/list-page";
 import { ReportViewer, reportTitle } from "@/features/reports/viewer";
 
 export const Route = createFileRoute("/_app/reports_/$reportId")({
@@ -9,10 +9,17 @@ export const Route = createFileRoute("/_app/reports_/$reportId")({
 function ReportFile() {
   const { reportId } = Route.useParams();
   return (
-    <main className="mx-auto max-w-6xl p-4 pb-10 md:p-5">
-      <p className="mb-2 text-sm"><Link to="/reports" className="font-semibold text-navy">Reports</Link></p>
-      <PageHeader kicker="Company" title={reportTitle(reportId)} />
-      <ReportViewer reportId={reportId} />
-    </main>
+    <ListPage
+      title={reportTitle(reportId)}
+      actions={
+        <Link to="/reports" className="text-sm font-semibold text-navy">
+          Reports
+        </Link>
+      }
+    >
+      <div className="p-4 md:p-5">
+        <ReportViewer reportId={reportId} />
+      </div>
+    </ListPage>
   );
 }

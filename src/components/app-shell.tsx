@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from "react";
-import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
+import { Link, useRouterState } from "@tanstack/react-router";
 import {
   BarChart3,
   Bell,
@@ -27,6 +27,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { CozyHouse, CozyWordmark } from "@/components/cozy-mark";
+import { Omnibox } from "@/features/search/omnibox";
 import { unreadConversations } from "@/lib/crm-data";
 import { incidents, notCalled } from "@/lib/snapshot";
 
@@ -78,8 +79,8 @@ const lateCount = incidents.length + notCalled.length;
 export function AppShell({ children }: { children: ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [mobileSearch, setMobileSearch] = useState(false);
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const navigate = useNavigate();
 
   useEffect(() => {
     const saved = localStorage.getItem("cozy-nav");
@@ -128,7 +129,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   }
 
   return (
-    <div className="grid h-dvh w-full min-w-0 max-w-full grid-rows-[56px_minmax(0,1fr)] overflow-hidden bg-page text-ink">
+    <div className="relative grid h-dvh w-full min-w-0 max-w-full grid-rows-[56px_minmax(0,1fr)] overflow-hidden bg-page text-ink">
       <header className="z-30 flex min-w-0 items-center gap-3 border-b border-white/10 bg-navy px-3 text-card md:px-4">
         <button
           type="button"
@@ -147,22 +148,18 @@ export function AppShell({ children }: { children: ReactNode }) {
         <Link to="/" className="shrink-0">
           <CozyWordmark className="h-6 w-28 md:h-7 md:w-32" />
         </Link>
-        <form
-          className="relative ml-2 hidden min-w-0 flex-1 md:block"
-          onSubmit={(e) => {
-            e.preventDefault();
-            const q = String(new FormData(e.currentTarget).get("q") ?? "");
-            void navigate({ to: "/leads", search: { q } });
-          }}
-        >
-          <Search className="pointer-events-none absolute top-1/2 left-3 size-3.5 -translate-y-1/2 text-faint" />
-          <input
-            name="q"
-            className="h-10 w-full rounded-md border-0 bg-card pr-3 pl-9 text-[13px] text-ink outline-none placeholder:text-faint"
-            placeholder="Name, phone, address"
-          />
-        </form>
+        <div className="relative ml-2 hidden min-w-0 flex-1 md:block">
+          <Omnibox />
+        </div>
         <div className="ml-auto flex items-center gap-1">
+          <button
+            type="button"
+            className="grid size-10 place-items-center text-faint hover:text-card md:hidden"
+            aria-label="Search"
+            onClick={() => setMobileSearch((v) => !v)}
+          >
+            <Search className="size-4" />
+          </button>
           <Link
             to="/"
             hash="late"
@@ -184,6 +181,11 @@ export function AppShell({ children }: { children: ReactNode }) {
           </Link>
         </div>
       </header>
+      {mobileSearch ? (
+        <div className="absolute top-14 right-0 left-0 z-40 border-b border-white/10 bg-navy px-3 py-2 md:hidden">
+          <Omnibox compact />
+        </div>
+      ) : null}
 
       <div className="relative flex min-h-0 min-w-0 overflow-hidden">
         {mobileOpen ? (

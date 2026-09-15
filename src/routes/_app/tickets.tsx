@@ -1,8 +1,10 @@
 import { useMemo, useState } from "react";
-import { Link, createFileRoute } from "@tanstack/react-router";
-import { FilterChip, Page, PageTitle, StatusPill } from "@/components/ui-bits";
-import { tickets, type Ticket } from "@/lib/crm-data";
-import { cn } from "@/lib/cn";
+import { createFileRoute } from "@tanstack/react-router";
+import { Empty, StatusPill } from "@/components/ui-bits";
+import { RecordTable } from "@/components/record-table";
+import { ListPage } from "@/features/lists/list-page";
+import { useOps } from "@/features/ops/store";
+import type { Ticket } from "@/lib/crm-data";
 
 export const Route = createFileRoute("/_app/tickets")({
   component: TicketsPage,
@@ -17,46 +19,48 @@ function toneFor(t: Ticket) {
 function relatedTo(id: string) {
   if (id.startsWith("L-")) return `/leads/${id}`;
   if (id.startsWith("P-")) return `/projects/${id}`;
+  if (id.startsWith("A-")) return `/accounts/${id}`;
   return "/tickets";
 }
 
+const VIEWS = ["All", "Open", "Waiting", "Done"] as const;
+
 function TicketsPage() {
-  const [filter, setFilter] = useState<"All" | "Open" | "Waiting" | "Done">("All");
-  const rows = useMemo(() => tickets.filter((t) => filter === "All" || t.status === filter), [filter]);
+  const { tickets } = useOps();
+  const [view, setView] = useState<(typeof VIEWS)[number]>("All");
+  const [query, setQuery] = useState("");
+  const rows = useMemo(() => {
+    const needle = query.trim().toLowerCase();
+    return tickets.filter((t) => {
+      if (view !== "All" && t.status !== view) return false;
+      if (!needle) return true;
+      return [t.title, t.id, t.owner, t.related].join(" ").toLowerCase().includes(needle);
+    });
+  }, [tickets, view, query]);
   const oldest = tickets.filter((t) => t.status !== "Done").sort((a, b) => parseInt(b.age, 10) - parseInt(a.age, 10))[0];
 
   return (
-    <Page>
-      <PageTitle title="Tickets" count={oldest ? `oldest ${oldest.age}` : undefined} />
-      <div className="mb-4 flex flex-wrap gap-2">
-        {(["All", "Open", "Waiting", "Done"] as const).map((f) => (
-          <FilterChip key={f} active={filter === f} onClick={() => setFilter(f)}>
-            {f}
-          </FilterChip>
-        ))}
-      </div>
-      <ul className="overflow-hidden rounded-sm bg-card">
-        {rows.map((t) => (
-          <li
-            key={t.id}
-            className={cn(
-              "flex flex-wrap items-center gap-3 border-l-4 px-4 py-3",
-              t.priority === "High" && t.status !== "Done" ? "border-l-stop bg-stop-bg" : "border-l-navy",
-            )}
-          >
-            <div className="min-w-0 flex-1">
-              <p className="font-semibold">{t.title}</p>
-              <p className="text-[11px] text-muted">
-                {t.id} · {t.owner} · {t.age}
-              </p>
-            </div>
-            <Link to={relatedTo(t.related) as never} className="text-[13px] font-semibold text-navy">
-              {t.related}
-            </Link>
-            <StatusPill label={`${t.priority} · ${t.status}`} tone={toneFor(t)} />
-          </li>
-        ))}
-      </ul>
-    </Page>
+    <ListPage
+      title="Tickets"
+      count={oldest ? `oldest ${oldest.age}` : `${rows.length}`}
+      views={[...VIEWS]}
+      view={view}
+      onView={(v) => setView(v as (typeof VIEWS)[number])}
+      search={query}
+      onSearch={setQuery}
+      empty={rows.length === 0 ? <Empty>No tickets in {view}. Clear the filter.</Empty> : undefined}
+    >
+      <RecordTable
+        rows={rows}
+        href={(r) => relatedTo(r.related)}
+        columns={[
+          { key: "name", label: "Name", render: (r) => r.title },
+          { key: "status", label: "Status", render: (r) => <StatusPill label={`${r.priority} · ${r.status}`} tone={toneFor(r)} /> },
+          { key: "age", label: "Next", hide: "md", render: (r) => <span className="text-muted">{r.age}</span> },
+          { key: "who", label: "Who", hide: "md", render: (r) => r.owner },
+          { key: "related", label: "File", hide: "lg", render: (r) => r.related },
+        ]}
+      />
+    </ListPage>
   );
 }

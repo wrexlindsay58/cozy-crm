@@ -32,7 +32,7 @@ let people = seedPeople.map((p) => ({ ...p }));
 let perms: RolePerms = Object.fromEntries(Object.entries(seedPerms).map(([k, v]) => [k, { ...v }]));
 let viewAs = "Owner";
 let sources = ["Canvass", "Google", "Website", "Referral", "Partner"];
-let dispositions = ["Unmarked", "No sit", "One legger", "Sold", "Set — no run"];
+let dispositions = ["Unmarked", "No sit", "One legger", "Sold", "Set, no run"];
 let ticketCats = ["Permit", "HOA", "Material", "Callback", "Warranty"];
 let territories = [
   { id: "T-PHX", name: "West Valley", zips: "85388, 85374, 85379" },

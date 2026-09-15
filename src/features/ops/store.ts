@@ -1,5 +1,7 @@
 import { useSyncExternalStore } from "react";
-import { appointments as seedAppts, leads as seedLeads, tickets as seedTickets, type Appointment, type Lead, type Ticket } from "@/lib/crm-data";
+import { activities, appointments as seedAppts, leads as seedLeads, tickets as seedTickets, type Appointment, type Lead, type Ticket } from "@/lib/crm-data";
+import { followersByPerson, type PersonRef } from "@/lib/file-data";
+import { logCallMessage } from "@/features/thread/store";
 
 export type Disposition = string;
 export const DISPOSITIONS = ["Unmarked", "Confirmed", "No sit", "Missed", "One legger", "Ran"] as const;
@@ -16,16 +18,22 @@ export type LeadDraft = {
   closer?: string;
 };
 export type Task = { id: string; title: string; personId: string; owner: string; due: string; status: "Open" | "Done" };
+export type CallInput = { direction: "Out" | "In"; result: "Answered" | "VM" | "No answer"; duration: string; note: string };
+
+const ACTOR = "Wrex Lindsay";
 
 let leads: Lead[] = [...seedLeads];
 let appointments: Appointment[] = [...seedAppts];
 let tickets: Ticket[] = [...seedTickets];
 let tasks: Task[] = [];
-let history: Record<string, { at: string; who: string; what: string }[]> = {};
+let history: Record<string, { at: string; who: string; what: string }[]> = Object.fromEntries(
+  Object.entries(activities).map(([id, rows]) => [id, rows.map((r) => ({ ...r }))]),
+);
+let followers: Record<string, PersonRef[]> = Object.fromEntries(Object.entries(followersByPerson).map(([k, v]) => [k, [...v]]));
 let cached = pack();
 const listeners = new Set<() => void>();
 function pack() {
-  return { leads, appointments, tickets, tasks, history };
+  return { leads, appointments, tickets, tasks, history, followers };
 }
 function emit() {
   cached = pack();
@@ -47,8 +55,10 @@ export function addHistory(personId: string, who: string, what: string) {
   emit();
 }
 export function setDisposition(id: string, status: Disposition) {
+  const appt = appointments.find((a) => a.id === id);
   appointments = appointments.map((a) => (a.id === id ? { ...a, status } : a));
-  emit();
+  if (appt) addHistory(appt.leadId, ACTOR, `Disposition ${status}.`);
+  else emit();
 }
 export function bookAppointment(leadId: string, closer: string, day: number, hour: string) {
   const lead = leads.find((l) => l.id === leadId);
@@ -102,8 +112,8 @@ export function createLead(draft: LeadDraft) {
     id,
     name: draft.name.trim(),
     phone: draft.phone.trim(),
-    email: draft.email || "—",
-    address: draft.address || "—",
+    email: draft.email || "",
+    address: draft.address || "",
     city: draft.city || "Surprise, AZ",
     source: draft.source || "Canvass",
     status: "Pending",
@@ -113,11 +123,12 @@ export function createLead(draft: LeadDraft) {
     office: "Phoenix",
     created: "now",
     next: "Qualify",
-    product: draft.product || "—",
+    product: draft.product || "",
     value: 0,
     notes: draft.notes || "",
   } as Lead;
   leads = [lead, ...leads];
+  followers = { ...followers, [id]: [{ name: lead.setter, role: "Setter" }] };
   addHistory(id, lead.setter, `Source in: ${lead.source}.`);
   return lead;
 }
@@ -126,5 +137,27 @@ export function useLead(id: string) {
 }
 export function updateLead(id: string, patch: Partial<Lead>) {
   leads = leads.map((l) => (l.id === id ? { ...l, ...patch } : l));
-  emit();
+  addHistory(id, ACTOR, "Details saved.");
+}
+export function logCall(personId: string, input: CallInput) {
+  const mins = input.duration.trim() ? ` · ${input.duration} min` : "";
+  const note = input.note.trim() ? `. ${input.note.trim()}` : ".";
+  const line = `Call ${input.direction} · ${input.result}${mins}${note}`;
+  logCallMessage(personId, line);
+  addHistory(personId, ACTOR, line);
+}
+export function addFollower(personId: string, person: PersonRef) {
+  const cur = followers[personId] ?? [];
+  if (cur.some((f) => f.name === person.name)) return;
+  followers = { ...followers, [personId]: [...cur, person] };
+  addHistory(personId, ACTOR, `Follow ${person.name}.`);
+}
+export function removeFollower(personId: string, name: string) {
+  followers = { ...followers, [personId]: (followers[personId] ?? []).filter((f) => f.name !== name) };
+  addHistory(personId, ACTOR, `Unfollow ${name}.`);
+}
+export function transferOwner(personId: string, toName: string, reason: string) {
+  const why = reason.trim() || "No reason given";
+  leads = leads.map((l) => (l.id === personId ? { ...l, closer: toName } : l));
+  addHistory(personId, ACTOR, `Transfer to ${toName}. ${why}.`);
 }

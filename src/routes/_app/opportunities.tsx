@@ -1,50 +1,53 @@
 import { useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { Empty, FilterChip, PageHeader, StatusPill } from "@/components/ui-bits";
+import { Empty, StatusPill } from "@/components/ui-bits";
 import { RecordTable } from "@/components/record-table";
+import { ListPage } from "@/features/lists/list-page";
 import { money, opportunities } from "@/lib/crm-data";
 
 export const Route = createFileRoute("/_app/opportunities")({
   component: OppsPage,
 });
 
-const FILTERS = ["All", "Proposal out", "Won — production", "Appt set", "One legger", "Waiting HOA"] as const;
+const VIEWS = ["All", "Proposal out", "Won, production", "Appt set", "One legger", "Waiting HOA"] as const;
 
 function OppsPage() {
-  const [filter, setFilter] = useState<(typeof FILTERS)[number]>("All");
-  const rows = useMemo(
-    () => opportunities.filter((o) => filter === "All" || o.stage === filter),
-    [filter],
-  );
+  const [view, setView] = useState<(typeof VIEWS)[number]>("All");
+  const [query, setQuery] = useState("");
+  const rows = useMemo(() => {
+    const needle = query.trim().toLowerCase();
+    return opportunities.filter((o) => {
+      if (view !== "All" && o.stage !== view) return false;
+      if (!needle) return true;
+      return [o.name, o.product, o.closer, o.office, o.id].join(" ").toLowerCase().includes(needle);
+    });
+  }, [view, query]);
   const pipeline = rows.reduce((s, r) => s + r.amount, 0);
 
   return (
-    <main className="mx-auto max-w-7xl p-4 pb-10 md:p-5">
-      <PageHeader kicker="Pipeline" title="Opportunities" count={`${money(pipeline)} open in view`} />
-      <div className="mb-3 flex flex-wrap gap-1.5">
-        {FILTERS.map((f) => (
-          <FilterChip key={f} active={filter === f} onClick={() => setFilter(f)}>
-            {f}
-          </FilterChip>
-        ))}
-      </div>
-      {rows.length === 0 ? (
-        <Empty>No opportunities in that stage.</Empty>
-      ) : (
-        <RecordTable
-          rows={rows}
-          href={(r) => `/opportunities/${r.id}`}
-          columns={[
-            { key: "name", label: "Household", render: (r) => r.name },
-            { key: "product", label: "Package", hide: "sm", render: (r) => r.product },
-            { key: "stage", label: "Stage", render: (r) => <StatusPill label={r.stage} tone={r.tone} /> },
-            { key: "closer", label: "Closer", hide: "md", render: (r) => r.closer },
-            { key: "office", label: "Office", hide: "lg", render: (r) => r.office },
-            { key: "amount", label: "Amount", render: (r) => <span className="font-semibold tabular-nums">{money(r.amount)}</span> },
-            { key: "close", label: "Close by", hide: "md", render: (r) => <span className="text-muted">{r.closeBy}</span> },
-          ]}
-        />
-      )}
-    </main>
+    <ListPage
+      title="Opportunities"
+      count={`${money(pipeline)} in view`}
+      views={[...VIEWS]}
+      view={view}
+      onView={(v) => setView(v as (typeof VIEWS)[number])}
+      search={query}
+      onSearch={setQuery}
+      empty={rows.length === 0 ? <Empty>No opportunities in {view}. Clear the filter.</Empty> : undefined}
+    >
+      <RecordTable
+        rows={rows}
+        href={(r) => `/opportunities/${r.id}`}
+        columns={[
+          { key: "name", label: "Name", render: (r) => r.name },
+          { key: "stage", label: "Stage", render: (r) => <StatusPill label={r.stage} tone={r.tone} /> },
+          { key: "close", label: "Next", hide: "md", render: (r) => <span className="text-muted">{r.closeBy}</span> },
+          { key: "who", label: "Who", hide: "md", render: (r) => r.closer },
+          { key: "office", label: "Office", hide: "lg", render: (r) => r.office },
+          { key: "amount", label: "$", render: (r) => <span className="font-semibold tabular-nums">{money(r.amount)}</span> },
+          { key: "updated", label: "Last touch", hide: "lg", render: (r) => <span className="text-muted">{r.updated}</span> },
+        ]}
+      />
+    </ListPage>
   );
 }

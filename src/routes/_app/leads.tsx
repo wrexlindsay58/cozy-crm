@@ -1,8 +1,9 @@
 import { useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { Empty, FilterChip, PageHeader, StatusPill } from "@/components/ui-bits";
+import { Empty, StatusPill } from "@/components/ui-bits";
 import { RecordTable } from "@/components/record-table";
 import { NewLeadSheet } from "@/features/lead/new-sheet";
+import { ListPage } from "@/features/lists/list-page";
 import { useOps } from "@/features/ops/store";
 import { money } from "@/lib/crm-data";
 
@@ -14,70 +15,60 @@ export const Route = createFileRoute("/_app/leads")({
   component: LeadsPage,
 });
 
-const FILTERS = ["All", "Unmarked", "Pending", "Set — no run", "Ran", "Sold"] as const;
+const VIEWS = ["All", "Unmarked", "Pending", "Set, no run", "Ran", "Sold", "Phoenix"] as const;
 
 function LeadsPage() {
   const { q = "" } = Route.useSearch();
-  const { leads } = useOps();
-  const [filter, setFilter] = useState<(typeof FILTERS)[number]>("All");
+  const { leads, history } = useOps();
+  const [view, setView] = useState<(typeof VIEWS)[number]>("All");
   const [query, setQuery] = useState(q);
   const [open, setOpen] = useState(false);
 
   const rows = useMemo(() => {
     const needle = query.trim().toLowerCase();
     return leads.filter((l) => {
-      if (filter !== "All" && l.status !== filter) return false;
+      if (view === "Phoenix") {
+        if (l.office !== "Phoenix") return false;
+      } else if (view !== "All" && l.status !== view) {
+        return false;
+      }
       if (!needle) return true;
-      return [l.name, l.city, l.setter, l.product, l.id, l.source, l.phone].join(" ").toLowerCase().includes(needle);
+      return [l.name, l.city, l.setter, l.closer, l.product, l.id, l.source, l.phone, l.address].join(" ").toLowerCase().includes(needle);
     });
-  }, [leads, filter, query]);
+  }, [leads, view, query]);
 
   return (
-    <main className="mx-auto max-w-7xl p-4 pb-10 md:p-5">
-      <PageHeader
-        kicker="Pipeline"
+    <>
+      <ListPage
         title="Leads"
         count={`${rows.length} shown`}
+        views={[...VIEWS]}
+        view={view}
+        onView={(v) => setView(v as (typeof VIEWS)[number])}
+        search={query}
+        onSearch={setQuery}
         actions={
-          <div className="flex flex-wrap items-center gap-2">
-            <input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Filter this list"
-              className="h-10 w-56 rounded-lg border border-line bg-card px-3 text-sm outline-none focus:border-navy"
-            />
-            <button type="button" onClick={() => setOpen(true)} className="h-10 rounded-md bg-navy px-3 text-sm font-semibold text-card">
-              New lead
-            </button>
-          </div>
+          <button type="button" onClick={() => setOpen(true)} className="h-11 rounded-md bg-navy px-3 text-sm font-semibold text-card">
+            New lead
+          </button>
         }
-      />
-      <div className="mb-3 flex flex-wrap gap-1.5">
-        {FILTERS.map((f) => (
-          <FilterChip key={f} active={filter === f} onClick={() => setFilter(f)}>
-            {f}
-          </FilterChip>
-        ))}
-      </div>
-      {rows.length === 0 ? (
-        <Empty>No leads match that filter.</Empty>
-      ) : (
+        empty={rows.length === 0 ? <Empty>No leads in {view}. Clear the filter.</Empty> : undefined}
+      >
         <RecordTable
           rows={rows}
           href={(r) => `/leads/${r.id}`}
           columns={[
             { key: "name", label: "Name", render: (r) => r.name },
-            { key: "id", label: "ID", hide: "lg", render: (r) => <span className="text-muted">{r.id}</span> },
             { key: "status", label: "Status", render: (r) => <StatusPill label={r.status} tone={r.tone} /> },
-            { key: "city", label: "City", hide: "sm", render: (r) => r.city },
-            { key: "product", label: "Interest", hide: "md", render: (r) => r.product },
-            { key: "setter", label: "Setter", hide: "lg", render: (r) => r.setter },
-            { key: "value", label: "Est.", render: (r) => <span className="font-semibold tabular-nums">{money(r.value)}</span> },
             { key: "next", label: "Next", hide: "md", render: (r) => <span className="text-muted">{r.next}</span> },
+            { key: "who", label: "Who", hide: "md", render: (r) => r.closer },
+            { key: "office", label: "Office", hide: "lg", render: (r) => r.office },
+            { key: "value", label: "$", render: (r) => <span className="font-semibold tabular-nums">{money(r.value)}</span> },
+            { key: "touch", label: "Last touch", hide: "lg", render: (r) => <span className="text-muted">{history[r.id]?.[0]?.at ?? r.created}</span> },
           ]}
         />
-      )}
+      </ListPage>
       <NewLeadSheet open={open} onClose={() => setOpen(false)} />
-    </main>
+    </>
   );
 }

@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { PageHeader } from "@/components/ui-bits";
+import { ListPage } from "@/features/lists/list-page";
 import { ReportLibrary } from "@/features/reports/library";
 
 export const Route = createFileRoute("/_app/reports")({
@@ -8,9 +8,10 @@ export const Route = createFileRoute("/_app/reports")({
 
 function ReportsPage() {
   return (
-    <main className="mx-auto max-w-6xl p-4 pb-10 md:p-5">
-      <PageHeader kicker="Company" title="Reports" />
-      <ReportLibrary />
-    </main>
+    <ListPage title="Reports" count="Library">
+      <div className="p-4 md:p-5">
+        <ReportLibrary />
+      </div>
+    </ListPage>
   );
 }

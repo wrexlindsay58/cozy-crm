@@ -36,6 +36,28 @@ export function sendMessage(personId: string, text: string, internal = false) {
   emit();
 }
 
+export function logCallMessage(personId: string, text: string) {
+  const now = new Date();
+  const at = now.toLocaleString("en-US", {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+  messages = [
+    ...messages,
+    {
+      id: `M-${messages.length + 1}`,
+      personId,
+      channel: "call",
+      from: "shop",
+      at,
+      text,
+    },
+  ];
+  emit();
+}
+
 export function useThread(personId: string, internal = false) {
   const snap = useSyncExternalStore(
     (cb) => {

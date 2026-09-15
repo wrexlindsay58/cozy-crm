@@ -99,7 +99,7 @@ export function FilterChip({
       type="button"
       onClick={onClick}
       className={cn(
-        "h-8 min-h-8 rounded-sm px-3 text-[13px] font-semibold",
+        "h-11 min-h-11 rounded-sm px-3 text-[13px] font-semibold",
         active ? "bg-navy text-card" : "border border-line bg-card text-muted hover:text-ink",
       )}
     >
