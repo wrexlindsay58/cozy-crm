@@ -57,20 +57,33 @@ export function WorkCard({
 
   return (
     <article className="rounded-md border border-line p-3">
-      {editing && edit ? (
-        <input
-          autoFocus
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          onBlur={saveTitle}
-          onKeyDown={(e) => e.key === "Enter" && saveTitle()}
-          className="h-11 w-full rounded-md border border-line px-3 text-sm font-semibold outline-none focus:border-navy"
-        />
-      ) : (
-        <button type="button" className="text-left text-sm font-semibold" onClick={() => edit && setEditing(true)}>
-          {row.title}
-        </button>
-      )}
+      <div className="flex items-start gap-2">
+        <div className="min-w-0 flex-1">
+          {editing && edit ? (
+            <input
+              autoFocus
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              onBlur={saveTitle}
+              onKeyDown={(e) => e.key === "Enter" && saveTitle()}
+              className="h-9 w-full rounded-md border border-line px-2 text-sm font-semibold outline-none focus:border-navy"
+            />
+          ) : (
+            <button type="button" className="text-left text-sm font-semibold" onClick={() => edit && setEditing(true)}>
+              {row.title}
+            </button>
+          )}
+        </div>
+        <input ref={fileRef} type="file" className="sr-only" accept="image/*,video/*,.pdf,.doc,.docx" onChange={(e) => attach(e.target.files?.[0])} />
+        <Tip label="Attach" on side="bottom">
+          <button type="button" aria-label="Attach" className="grid size-8 shrink-0 place-items-center rounded-md text-muted hover:bg-page hover:text-navy" onClick={() => fileRef.current?.click()}>
+            <Paperclip className="size-4" />
+          </button>
+        </Tip>
+      </div>
+      {files.length > 0 ? (
+        <p className="mt-1 text-[11px] text-muted">{files.map((f) => f.name || f.caption).join(" · ")}</p>
+      ) : null}
       <p className="mt-0.5 text-[11px] text-muted">
         {row.owner} · {row.due || "No due"} · {status}
       </p>
@@ -107,19 +120,6 @@ export function WorkCard({
           </button>
         </div>
       ) : null}
-      <div className="mt-2 flex flex-wrap items-center gap-2">
-        <input ref={fileRef} type="file" className="sr-only" accept="image/*,video/*,.pdf,.doc,.docx" onChange={(e) => attach(e.target.files?.[0])} />
-        <Tip label="Attach" on side="bottom">
-          <button type="button" aria-label="Attach" className="grid size-11 place-items-center rounded-md border border-line" onClick={() => fileRef.current?.click()}>
-            <Paperclip className="size-4" />
-          </button>
-        </Tip>
-        {files.map((f) => (
-          <span key={f.id} className="text-[11px] text-muted">
-            {f.name || f.caption}
-          </span>
-        ))}
-      </div>
       <CommentBox personId={personId} nest={{ kind, id: row.id, title: row.title }} />
     </article>
   );

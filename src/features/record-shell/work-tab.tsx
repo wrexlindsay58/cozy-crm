@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { ActBar } from "@/components/act-bar";
 import { createTask, createTicket, useOps } from "@/features/ops/store";
 import { WorkCard } from "./work-card";
 
@@ -16,42 +17,56 @@ export function WorkTab({
   const { tickets, tasks } = useOps();
   const mineT = tickets.filter((t) => t.related === personId);
   const mineK = tasks.filter((t) => t.personId === personId && !t.ticketId);
-  const [kind, setKind] = useState<"ticket" | "task">(draft ?? "ticket");
+  const [kind, setKind] = useState<"ticket" | "task" | null>(draft ?? null);
   const [title, setTitle] = useState("");
   const [due, setDue] = useState("");
   useEffect(() => {
     if (draft) setKind(draft);
   }, [draft]);
 
+  function closeDraft() {
+    setKind(null);
+    setTitle("");
+    setDue("");
+    onDraftUsed?.();
+  }
+
   return (
     <div className="flex h-full min-h-0 flex-col">
       <div className="min-h-0 flex-1 space-y-3 overflow-auto p-3">
-        <form
-            className="rounded-md border border-dashed border-line p-3"
+        <div className="flex justify-end">
+          <ActBar
+            items={[
+              {
+                label: "Create",
+                variant: "navy",
+                menu: [
+                  { label: "Ticket", onClick: () => setKind("ticket") },
+                  { label: "Task", onClick: () => setKind("task") },
+                ],
+              },
+            ]}
+          />
+        </div>
+        {kind ? (
+          <form
+            className="rounded-md border border-line p-3"
             onSubmit={(e) => {
               e.preventDefault();
               if (!title.trim()) return;
               if (kind === "ticket") createTicket({ personId, title, owner, due });
               else createTask({ personId, title, owner, due });
-              setTitle("");
-              setDue("");
-              onDraftUsed?.();
+              closeDraft();
             }}
           >
-            <div className="mb-2 flex gap-1">
-              {(["ticket", "task"] as const).map((k) => (
-                <button
-                  key={k}
-                  type="button"
-                  onClick={() => setKind(k)}
-                  className={`h-10 rounded-md px-3 text-sm font-semibold ${kind === k ? "bg-navy text-card" : "text-muted"}`}
-                >
-                  {k === "ticket" ? "Ticket" : "Task"}
-                </button>
-              ))}
+            <div className="mb-2 flex items-center justify-between">
+              <p className="text-[11px] font-bold tracking-wide text-muted uppercase">{kind === "ticket" ? "New ticket" : "New task"}</p>
+              <button type="button" className="h-10 px-2 text-sm font-semibold text-muted" onClick={closeDraft}>
+                Cancel
+              </button>
             </div>
             <input
-              autoFocus={Boolean(draft)}
+              autoFocus
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder={kind === "ticket" ? "Ticket name" : "Task name"}
@@ -67,6 +82,7 @@ export function WorkTab({
               Save
             </button>
           </form>
+        ) : null}
         {mineT.map((t) => (
           <WorkCard key={t.id} personId={personId} kind="ticket" ticket={t} />
         ))}
