@@ -50,7 +50,7 @@ function LeadFile() {
     >
       <div className="space-y-3">
         <DetailsForm initial={lead} submitLabel="Save details" onSubmit={(d) => updateLead(lead.id, d)} />
-        <BookWidget leadId={lead.id} defaultCloser={lead.closer} open={bookOpen} />
+        <BookWidget leadId={lead.id} defaultCloser={lead.closer} defaultKind="Sales" formOpen={bookOpen} />
         <DispositionControl
           lead={lead}
           appointment={appt}

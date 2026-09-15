@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from "react";
-import { activities, appointments as seedAppts, leads as seedLeads, tickets as seedTickets, type Appointment, type DndChannel, type Lead, type Ticket } from "@/lib/crm-data";
+import { activities, appointments as seedAppts, leads as seedLeads, tickets as seedTickets, type Appointment, type DndChannel, type EventKind, type Lead, type Ticket } from "@/lib/crm-data";
 import { interestsLabel } from "@/features/lead/interests";
 import { followersByPerson, type PersonRef } from "@/lib/file-data";
 import { logCallMessage, sendMessage } from "@/features/thread/store";
@@ -84,26 +84,47 @@ export function setDisposition(id: string, status: Disposition) {
   if (appt) addHistory(appt.leadId, ACTOR, `Disposition ${status}.`);
   else emit();
 }
-export function bookAppointment(leadId: string, closer: string, day: number, hour: string) {
-  const lead = leads.find((l) => l.id === leadId);
+export function bookAppointment(input: {
+  leadId: string;
+  kind: EventKind;
+  day: number;
+  time: string;
+  assignee: string;
+  setBy: string;
+  notes?: string;
+  crew?: string;
+  duration?: string;
+  scope?: string;
+}) {
+  const lead = leads.find((l) => l.id === input.leadId);
   if (!lead) return;
   appointments = [
     {
       id: `AP-${80 + appointments.length}`,
-      leadId,
+      leadId: input.leadId,
       name: lead.name,
-      day,
-      time: hour,
+      day: input.day,
+      time: input.time,
       status: "Confirmed",
       tone: "navy",
       setter: lead.setter,
-      closer,
+      closer: input.assignee,
       product: lead.product,
       city: lead.city,
+      kind: input.kind,
+      notes: input.notes,
+      setBy: input.setBy,
+      crew: input.crew,
+      duration: input.duration,
+      scope: input.scope,
     } as Appointment,
     ...appointments,
   ];
-  addHistory(leadId, closer, `Booked Sep ${day} ${hour}.`);
+  addHistory(
+    input.leadId,
+    input.setBy,
+    `Scheduled ${input.kind}: Sep ${input.day} ${input.time} · ${input.assignee}${input.crew ? ` · ${input.crew}` : ""}.`,
+  );
 }
 export function createTicket(input: { personId: string; title: string; owner: string; description?: string; due?: string }) {
   if (!input.title.trim()) return;

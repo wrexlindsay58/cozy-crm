@@ -58,8 +58,11 @@ function subscribe(cb: () => void) {
 export function useStaff() {
   return useSyncExternalStore(subscribe, () => snap, () => snap);
 }
+export function namesIn(...roles: string[]) {
+  return people.filter((p) => p.active && roles.includes(p.role)).map((p) => p.name);
+}
 export function activeClosers() {
-  return people.filter((p) => p.active && (p.role === "Closer" || p.role === "Owner")).map((p) => p.name);
+  return namesIn("Closer", "Owner");
 }
 export function canSeeCost(role = viewAs) {
   return Boolean(perms[role]?.seeCost);

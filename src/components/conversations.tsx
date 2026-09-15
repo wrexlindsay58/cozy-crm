@@ -395,7 +395,7 @@ export function Conversations() {
                   lead ? <FormAnswers lead={lead} /> : <p className="p-3 text-sm text-muted">No form.</p>
                 ) : lane === "book" ? (
                   <div className="overflow-auto p-3">
-                    <BookWidget leadId={personId} defaultCloser={active.closer} open />
+                    <BookWidget leadId={personId} defaultCloser={active.closer} defaultKind="Sales" formOpen />
                   </div>
                 ) : (
                   <ThreadPane

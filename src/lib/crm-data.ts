@@ -74,6 +74,8 @@ export type Account = {
   last: string;
 };
 
+export type EventKind = "Sales" | "Assessment" | "Install" | "Service" | "Warranty" | "Go-back" | "Callback";
+
 export type Appointment = {
   id: string;
   leadId: string;
@@ -86,6 +88,12 @@ export type Appointment = {
   closer: string;
   product: string;
   city: string;
+  kind?: EventKind;
+  notes?: string;
+  setBy?: string;
+  crew?: string;
+  duration?: string;
+  scope?: string;
 };
 
 export type Ticket = {
@@ -185,20 +193,20 @@ export const projects: Project[] = [
 ];
 
 export const appointments: Appointment[] = [
-  { id: "AP-91", leadId: "L-4821", name: "Elena Vargas", day: 14, time: "6:00p", status: "Confirmed", tone: "navy", setter: "Priya Shah", closer: "Marco Velez", product: "Attic R-49 + air seal", city: "Surprise" },
-  { id: "AP-90", leadId: "L-4814", name: "Marcus Bell", day: 15, time: "5:30p", status: "Confirmed", tone: "navy", setter: "Priya Shah", closer: "Luis Haddad", product: "Aeroseal + attic", city: "Dallas" },
-  { id: "AP-88", leadId: "L-4802", name: "Jamal Ortiz", day: 16, time: "6:00p", status: "Follow-up", tone: "muted", setter: "Amber Quinn", closer: "Cole Brennan", product: "Attic R-49", city: "Fort Worth" },
-  { id: "AP-86", leadId: "L-4754", name: "Owen Briggs", day: 17, time: "6:30p", status: "Set", tone: "muted", setter: "Priya Shah", closer: "Cole Brennan", product: "Aeroseal", city: "Fort Worth" },
-  { id: "AP-84", leadId: "L-4761", name: "Whitaker install", day: 18, time: "7:30a", status: "Install", tone: "up", setter: "None", closer: "Dana Ortiz", product: "Envelope package", city: "Scottsdale" },
-  { id: "AP-82", leadId: "L-4726", name: "Paul & Diane Kerr", day: 19, time: "11:00a", status: "Reset", tone: "alert", setter: "Amber Quinn", closer: "Dana Ortiz", product: "Windows + air seal", city: "Scottsdale" },
-  { id: "AP-80", leadId: "L-4788", name: "Cho install", day: 22, time: "7:00a", status: "Install", tone: "up", setter: "None", closer: "Dana Ortiz", product: "Attic + HVAC", city: "Scottsdale" },
-  { id: "AP-78", leadId: "L-4733", name: "Rahman install", day: 24, time: "8:00a", status: "Install", tone: "up", setter: "None", closer: "Luis Haddad", product: "Attic + Aeroseal", city: "Dallas" },
-  { id: "AP-77", leadId: "L-4819", name: "Hale proposal review", day: 13, time: "5:00p", status: "Today", tone: "navy", setter: "Amber Quinn", closer: "Dana Ortiz", product: "HVAC 4-ton + ducts", city: "Scottsdale" },
-  { id: "AP-76", leadId: "L-4774", name: "Nina Patel", day: 13, time: "4:00p", status: "No sit", tone: "alert", setter: "Amber Quinn", closer: "Luis Haddad", product: "Air sealing", city: "Dallas" },
-  { id: "AP-74", leadId: "L-4808", name: "Sharon Nguyen", day: 8, time: "6:00p", status: "Unmarked", tone: "alert", setter: "Priya Shah", closer: "Marco Velez", product: "Insulation removal", city: "Surprise" },
-  { id: "AP-71", leadId: "L-4769", name: "Chris Duran", day: 10, time: "5:30p", status: "Missed", tone: "alert", setter: "Priya Shah", closer: "Nate Solis", product: "HVAC replacement", city: "Phoenix" },
-  { id: "AP-70", leadId: "L-4740", name: "Greg Fontaine", day: 11, time: "5:00p", status: "One legger", tone: "alert", setter: "Amber Quinn", closer: "Wrex Lindsay", product: "HVAC 3.5-ton", city: "Phoenix" },
-  { id: "AP-68", leadId: "L-4769", name: "Chris Duran", day: 12, time: "5:30p", status: "Reschedule", tone: "navy", setter: "Priya Shah", closer: "Nate Solis", product: "HVAC replacement", city: "Phoenix" },
+  { id: "AP-91", leadId: "L-4821", name: "Elena Vargas", day: 14, time: "6:00p", status: "Confirmed", tone: "navy", setter: "Priya Shah", closer: "Marco Velez", product: "Attic R-49 + air seal", city: "Surprise", kind: "Sales", setBy: "Priya Shah", duration: "2h", notes: "Both spouses home. Dog in the backyard." },
+  { id: "AP-90", leadId: "L-4814", name: "Marcus Bell", day: 15, time: "5:30p", status: "Confirmed", tone: "navy", setter: "Priya Shah", closer: "Luis Haddad", product: "Aeroseal + attic", city: "Dallas", kind: "Sales", setBy: "Priya Shah", duration: "2h", notes: "Need the attic hatch photo before he rolls." },
+  { id: "AP-88", leadId: "L-4802", name: "Jamal Ortiz", day: 16, time: "6:00p", status: "Follow-up", tone: "muted", setter: "Amber Quinn", closer: "Cole Brennan", product: "Attic R-49", city: "Fort Worth", kind: "Callback", setBy: "Amber Quinn", duration: "1h" },
+  { id: "AP-86", leadId: "L-4754", name: "Owen Briggs", day: 17, time: "6:30p", status: "Set", tone: "muted", setter: "Priya Shah", closer: "Cole Brennan", product: "Aeroseal", city: "Fort Worth", kind: "Sales", setBy: "Priya Shah", duration: "2h" },
+  { id: "AP-84", leadId: "L-4761", name: "Whitaker install", day: 18, time: "7:30a", status: "Install", tone: "up", setter: "None", closer: "Dana Ortiz", product: "Envelope package", city: "Scottsdale", kind: "Install", setBy: "Tasha Reed", crew: "Crew 2 — Tasha", duration: "All day", scope: "Envelope package. Prior air-seal registers on the file." },
+  { id: "AP-82", leadId: "L-4726", name: "Paul & Diane Kerr", day: 19, time: "11:00a", status: "Reset", tone: "alert", setter: "Amber Quinn", closer: "Dana Ortiz", product: "Windows + air seal", city: "Scottsdale", kind: "Sales", setBy: "Amber Quinn", duration: "2h" },
+  { id: "AP-80", leadId: "L-4788", name: "Cho install", day: 22, time: "7:00a", status: "Install", tone: "up", setter: "None", closer: "Dana Ortiz", product: "Attic + HVAC", city: "Scottsdale", kind: "Install", setBy: "Tasha Reed", crew: "Crew 2 — Tasha", duration: "All day", scope: "Attic R-49, HVAC swap, ducts." },
+  { id: "AP-78", leadId: "L-4733", name: "Rahman install", day: 24, time: "8:00a", status: "Install", tone: "up", setter: "None", closer: "Luis Haddad", product: "Attic + Aeroseal", city: "Dallas", kind: "Install", setBy: "Evan Cole", crew: "Crew 3 — Dallas", duration: "All day" },
+  { id: "AP-77", leadId: "L-4819", name: "Hale proposal review", day: 13, time: "5:00p", status: "Today", tone: "navy", setter: "Amber Quinn", closer: "Dana Ortiz", product: "HVAC 4-ton + ducts", city: "Scottsdale", kind: "Assessment", setBy: "Amber Quinn", duration: "1.5h", notes: "Walk the condenser and the hatch." },
+  { id: "AP-76", leadId: "L-4774", name: "Nina Patel", day: 13, time: "4:00p", status: "No sit", tone: "alert", setter: "Amber Quinn", closer: "Luis Haddad", product: "Air sealing", city: "Dallas", kind: "Sales", setBy: "Amber Quinn", duration: "2h" },
+  { id: "AP-74", leadId: "L-4808", name: "Sharon Nguyen", day: 8, time: "6:00p", status: "Unmarked", tone: "alert", setter: "Priya Shah", closer: "Marco Velez", product: "Insulation removal", city: "Surprise", kind: "Sales", setBy: "Priya Shah", duration: "2h" },
+  { id: "AP-71", leadId: "L-4769", name: "Chris Duran", day: 10, time: "5:30p", status: "Missed", tone: "alert", setter: "Priya Shah", closer: "Nate Solis", product: "HVAC replacement", city: "Phoenix", kind: "Sales", setBy: "Priya Shah", duration: "2h" },
+  { id: "AP-70", leadId: "L-4740", name: "Greg Fontaine", day: 11, time: "5:00p", status: "One legger", tone: "alert", setter: "Amber Quinn", closer: "Wrex Lindsay", product: "HVAC 3.5-ton", city: "Phoenix", kind: "Sales", setBy: "Amber Quinn", duration: "2h" },
+  { id: "AP-68", leadId: "L-4769", name: "Chris Duran", day: 12, time: "5:30p", status: "Reschedule", tone: "navy", setter: "Priya Shah", closer: "Nate Solis", product: "HVAC replacement", city: "Phoenix", kind: "Sales", setBy: "Priya Shah", duration: "2h", notes: "Reset after the miss. Confirm both home." },
 ];
 
 export const tickets: Ticket[] = [
