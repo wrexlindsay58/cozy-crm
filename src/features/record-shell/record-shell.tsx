@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Clock, MessageSquare, StickyNote, Ticket, Users } from "lucide-react";
+import { Clock, ClipboardList, MessageSquare, StickyNote, Ticket, Users } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { Tip } from "@/components/tip";
 import { useFit } from "@/components/use-fit";
@@ -7,13 +7,14 @@ import { ClickToCall } from "@/features/lead/click-to-call";
 import { LeadTools } from "@/features/lead/lead-tools";
 import { dndOn, useOps } from "@/features/ops/store";
 import { PhotoRail, HistoryList } from "./side-rails";
+import { FormAnswers } from "./form-answers";
 import { PeopleRow } from "./people-row";
 import { ThreadPane } from "./thread-pane";
 import { TitleRow } from "./title-row";
 import { WorkTab } from "./work-tab";
 import type { RecordShellProps } from "./types";
 
-export type ConvLane = "customer" | "internal" | "notes" | "tickets" | "history";
+export type ConvLane = "customer" | "internal" | "notes" | "tickets" | "history" | "form";
 
 function dndChip(dnd?: string[]) {
   if (!dnd?.length) return;
@@ -104,6 +105,8 @@ export function RecordShell(props: RecordShellProps) {
               <div className="h-full overflow-auto p-3">
                 <HistoryList history={props.history} flush />
               </div>
+            ) : lane === "form" ? (
+              lead ? <FormAnswers lead={lead} /> : <p className="p-3 text-sm text-muted">No file.</p>
             ) : (
               <ThreadPane personId={props.personId} mode={lane} onCall={startCall} dnd={lead?.dnd} />
             )}
@@ -120,6 +123,7 @@ const LANES: { id: ConvLane; label: string; icon: typeof MessageSquare }[] = [
   { id: "notes", label: "Notes", icon: StickyNote },
   { id: "tickets", label: "Tickets", icon: Ticket },
   { id: "history", label: "History", icon: Clock },
+  { id: "form", label: "Form", icon: ClipboardList },
 ];
 
 function SideHead({

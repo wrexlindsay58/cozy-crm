@@ -291,6 +291,15 @@ export function dropLead(id: string, reason: string) {
   leads = leads.map((l) => (l.id === id ? { ...l, status: "Dropped", tone: "muted", next: "Dropped", dropReason: why } : l));
   addHistory(id, ACTOR, `Dropped. ${why}.`);
 }
+export function mergeLead(fromId: string, intoId: string) {
+  if (fromId === intoId) return;
+  const from = leads.find((l) => l.id === fromId);
+  const into = leads.find((l) => l.id === intoId);
+  if (!from || !into) return;
+  leads = leads.map((l) => (l.id === fromId ? { ...l, status: "Merged", tone: "muted", next: `Merged into ${into.id}` } : l));
+  addHistory(intoId, ACTOR, `Merged ${from.name} (${fromId}) into this file.`);
+  addHistory(fromId, ACTOR, `Merged into ${into.name} (${intoId}).`);
+}
 export function logCall(personId: string, input: CallInput) {
   const mins = input.duration.trim() ? ` · ${input.duration} min` : "";
   const note = input.note.trim() ? `. ${input.note.trim()}` : ".";

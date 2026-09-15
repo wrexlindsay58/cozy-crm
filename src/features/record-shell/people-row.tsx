@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { ActBar, type ActItem } from "@/components/act-bar";
-import { addFollower, dropLead, removeFollower, transferOwner, useOps } from "@/features/ops/store";
+import { addFollower, dropLead, mergeLead, removeFollower, transferOwner, useOps } from "@/features/ops/store";
 import { useStaff } from "@/features/staff/store";
 import type { PersonRef } from "@/lib/file-data";
 
@@ -25,14 +25,16 @@ export function PeopleRow({
   seedFollowers: PersonRef[];
   canDrop?: boolean;
 }) {
-  const { followers } = useOps();
+  const { followers, leads } = useOps();
   const { people } = useStaff();
   const list = followers[personId] ?? seedFollowers;
-  const [mode, setMode] = useState<"idle" | "follow" | "transfer" | "drop">("idle");
+  const [mode, setMode] = useState<"idle" | "follow" | "transfer" | "drop" | "merge">("idle");
   const [pick, setPick] = useState(people[0]?.name ?? "");
   const [reason, setReason] = useState("");
+  const others = leads.filter((l) => l.id !== personId && l.status !== "Merged" && l.status !== "Dropped");
+  const [into, setInto] = useState(others[0]?.id ?? "");
 
-  function setPanel(next: "idle" | "follow" | "transfer" | "drop") {
+  function setPanel(next: "idle" | "follow" | "transfer" | "drop" | "merge") {
     setMode((cur) => (cur === next ? "idle" : next));
   }
 
@@ -70,7 +72,12 @@ export function PeopleRow({
             [
               { label: "Follow", onClick: () => setPanel("follow") },
               { label: "Transfer", onClick: () => setPanel("transfer") },
-              ...(canDrop ? [{ label: "Drop", onClick: () => setPanel("drop") }] : []),
+              ...(canDrop
+                ? [
+                    { label: "Merge", onClick: () => setPanel("merge") },
+                    { label: "Drop", onClick: () => setPanel("drop") },
+                  ]
+                : []),
             ] as ActItem[]
           }
         />
@@ -113,6 +120,28 @@ export function PeopleRow({
             }}
           >
             Transfer
+          </button>
+        </div>
+      ) : null}
+      {mode === "merge" ? (
+        <div className="mt-2 flex flex-wrap gap-2">
+          <select value={into} onChange={(e) => setInto(e.target.value)} className="h-11 min-w-0 flex-1 rounded-md border border-line bg-card px-3 text-sm">
+            {others.map((l) => (
+              <option key={l.id} value={l.id}>
+                {l.name} · {l.address}
+              </option>
+            ))}
+          </select>
+          <button
+            type="button"
+            className="h-11 rounded-md bg-navy px-3 text-sm font-semibold text-card"
+            onClick={() => {
+              if (!into) return;
+              mergeLead(personId, into);
+              setMode("idle");
+            }}
+          >
+            Merge
           </button>
         </div>
       ) : null}

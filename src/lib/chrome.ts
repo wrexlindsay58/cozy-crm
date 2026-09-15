@@ -2,6 +2,7 @@ import type { LucideIcon } from "lucide-react";
 import {
   ArrowRightLeft,
   Calendar,
+  GitMerge,
   MessageSquare,
   Paperclip,
   Phone,
@@ -36,6 +37,7 @@ export const ACT_ICONS: Record<string, LucideIcon> = {
   Create: Plus,
   Follow: UserPlus,
   Transfer: ArrowRightLeft,
+  Merge: GitMerge,
   Drop: UserMinus,
   Attach: Paperclip,
 };
