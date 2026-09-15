@@ -3,6 +3,7 @@ import { Phone } from "lucide-react";
 import { addHistory, dndOn } from "@/features/ops/store";
 import { sendMessage, useThread } from "@/features/thread/store";
 import type { DndChannel } from "@/lib/crm-data";
+import { TalkLine } from "./talk-line";
 import { CommentBox } from "./comment-box";
 import { CallCard } from "./call-card";
 import { EmailCard } from "./email-card";
@@ -50,7 +51,7 @@ export function ThreadPane({
   const emptyCopy = mode === "internal" ? "None yet." : mode === "notes" ? "None yet." : "Nothing on this thread yet.";
   const placeholder =
     mode === "internal"
-      ? "Internal"
+      ? "Message the shop"
       : mode === "notes"
         ? "Note"
         : channel === "email"
@@ -68,11 +69,19 @@ export function ThreadPane({
       <div className="min-h-0 flex-1 space-y-3 overflow-auto p-3">
         {rows.length === 0 ? <p className="text-sm text-muted">{emptyCopy}</p> : null}
         {mode === "internal"
-          ? groupInternal(rows).map((block, i) =>
+          ? groupInternal(rows.filter((m) => !m.replyTo)).map((block, i) =>
               block.nest ? (
-                <NestBlock key={`${block.nest.kind}-${block.nest.id}-${i}`} nest={block.nest} items={block.items} />
+                <NestBlock
+                  key={`${block.nest.kind}-${block.nest.id}-${i}`}
+                  nest={block.nest}
+                  items={block.items}
+                  replies={rows.filter((m) => m.replyTo)}
+                  personId={personId}
+                />
               ) : (
-                block.items.map((m) => <PlainInternal key={m.id} text={m.text} at={m.at} />)
+                block.items.map((m) => (
+                  <PlainInternal key={m.id} msg={m} personId={personId} replies={rows.filter((r) => r.replyTo === m.id)} />
+                ))
               ),
             )
           : rows.map((m) =>
@@ -169,28 +178,39 @@ function groupInternal(rows: ThreadMessage[]) {
   return blocks;
 }
 
-function NestBlock({ nest, items }: { nest: ThreadNest; items: ThreadMessage[] }) {
+function NestBlock({
+  nest,
+  items,
+  replies,
+  personId,
+}: {
+  nest: ThreadNest;
+  items: ThreadMessage[];
+  replies: ThreadMessage[];
+  personId: string;
+}) {
   const label = nest.kind === "ticket" ? "Ticket" : nest.kind === "task" ? "Task" : nest.kind === "note" ? "Note" : "Media";
   return (
     <div className="rounded-md border border-line bg-page px-2.5 py-2">
       <p className="text-[10px] font-bold tracking-wide text-muted uppercase">
         {label} · {nest.title}
       </p>
-      {items.map((m) => (
-        <p key={m.id} className={cn("mt-1 text-sm", m.replyTo && "ml-3 text-muted")}>
-          {m.text}
-          <span className="ml-1 text-[10px] text-muted">{m.at}</span>
-        </p>
-      ))}
+      <div className="mt-2 space-y-3">
+        {items.map((m) => (
+          <TalkLine key={m.id} msg={m} personId={personId} nest={nest} replies={replies.filter((r) => r.replyTo === m.id)} />
+        ))}
+      </div>
     </div>
   );
 }
 
-function PlainInternal({ text, at }: { text: string; at: string }) {
+function PlainInternal({ msg, personId, replies }: { msg: ThreadMessage; personId: string; replies: ThreadMessage[] }) {
   return (
-    <div className="ml-auto max-w-[92%]">
-      <p className="text-[10px] font-semibold text-muted">Internal · {at}</p>
-      <p className="mt-0.5 rounded-md bg-navy px-2.5 py-2 text-sm text-card">{text}</p>
+    <div className="rounded-md border border-line p-2.5">
+      <p className="text-[10px] font-bold tracking-wide text-muted uppercase">Internal · {msg.at}</p>
+      <div className="mt-1">
+        <TalkLine msg={msg} personId={personId} replies={replies} />
+      </div>
     </div>
   );
 }

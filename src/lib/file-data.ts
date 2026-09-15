@@ -33,6 +33,7 @@ export type ThreadMessage = {
   result?: "Answered" | "VM" | "No answer";
   nest?: ThreadNest;
   replyTo?: string;
+  reactions?: { emoji: string; by: string }[];
 };
 
 export const followersByPerson: Record<string, PersonRef[]> = {
@@ -138,6 +139,7 @@ export const seedThread: ThreadMessage[] = [
     from: "shop",
     at: "Sep 12 8:20a",
     text: "Both spouses required. Do not run if only one is home.",
+    reactions: [{ emoji: "👍", by: "Marco Velez" }, { emoji: "✅", by: "Priya Shah" }],
   },
   {
     id: "M-7",
@@ -155,6 +157,7 @@ export const seedThread: ThreadMessage[] = [
     at: "Sep 14 9:12a",
     text: "HOA wants tan, not white.",
     nest: { kind: "ticket", id: "T-91", title: "HOA baffle color" },
+    reactions: [{ emoji: "👍", by: "Marco Velez" }],
   },
   {
     id: "M-9",

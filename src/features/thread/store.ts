@@ -1,5 +1,6 @@
 import { useSyncExternalStore } from "react";
 import { seedThread, type ThreadMessage } from "@/lib/file-data";
+import { SHOP_ACTOR } from "@/lib/chrome";
 
 let messages: ThreadMessage[] = [...seedThread];
 const listeners = new Set<() => void>();
@@ -43,6 +44,17 @@ export function sendMessage(
   messages = [...messages, row];
   emit();
   return row;
+}
+
+export function toggleReaction(id: string, emoji: string, by = SHOP_ACTOR) {
+  messages = messages.map((m) => {
+    if (m.id !== id) return m;
+    const cur = m.reactions ?? [];
+    const mine = cur.some((r) => r.emoji === emoji && r.by === by);
+    const next = mine ? cur.filter((r) => !(r.emoji === emoji && r.by === by)) : [...cur, { emoji, by }];
+    return { ...m, reactions: next };
+  });
+  emit();
 }
 
 export function useComments(personId: string, kind: string, nestId: string) {
