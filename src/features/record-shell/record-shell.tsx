@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Clock, MessageSquare, StickyNote, Ticket, Users } from "lucide-react";
 import { cn } from "@/lib/cn";
+import { Tip } from "@/components/tip";
 import { ClickToCall } from "@/features/lead/click-to-call";
 import { LeadTools } from "@/features/lead/lead-tools";
 import { dndOn, useOps } from "@/features/ops/store";
@@ -71,7 +72,7 @@ export function RecordShell(props: RecordShellProps & { openWork?: number }) {
           </div>
         </div>
 
-        <aside className="@container flex h-[55vh] min-h-0 min-w-0 shrink-0 flex-col border-t border-line bg-card lg:h-auto lg:flex-[2] lg:border-t-0 lg:border-l">
+        <aside className="flex h-[55vh] min-h-0 min-w-0 shrink-0 flex-col border-t border-line bg-card lg:h-auto lg:flex-[2] lg:border-t-0 lg:border-l">
           <SideHead lane={lane} onLane={setLane} />
           <div className="min-h-0 flex-1 overflow-hidden">
             {callOpen && lead?.phone ? (
@@ -110,29 +111,58 @@ function SideHead({
   lane: ConvLane;
   onLane: (v: ConvLane) => void;
 }) {
+  const barRef = useRef<HTMLDivElement>(null);
+  const measureRef = useRef<HTMLDivElement>(null);
+  const [iconsOnly, setIconsOnly] = useState(true);
+
+  useLayoutEffect(() => {
+    const bar = barRef.current;
+    const measure = measureRef.current;
+    if (!bar || !measure) return;
+    function fit() {
+      if (!bar || !measure) return;
+      setIconsOnly(measure.offsetWidth > bar.clientWidth - 4);
+    }
+    fit();
+    const ro = new ResizeObserver(fit);
+    ro.observe(bar);
+    return () => ro.disconnect();
+  }, []);
+
   return (
-    <div className="flex gap-1 overflow-x-auto border-b border-line px-2 py-2">
-      {LANES.map((l) => {
-        const Icon = l.icon;
-        return (
-          <button
-            key={l.id}
-            type="button"
-            onClick={() => onLane(l.id)}
-            aria-label={l.label}
-            className={cn(
-              "group relative flex h-10 shrink-0 items-center gap-1.5 rounded-md px-2.5 text-xs font-semibold @[26rem]:px-3",
-              lane === l.id ? "bg-navy text-card" : "text-muted",
-            )}
-          >
-            <Icon className="size-4" />
-            <span className="hidden @[26rem]:inline">{l.label}</span>
-            <span className="pointer-events-none absolute top-[calc(100%+4px)] left-1/2 z-30 hidden -translate-x-1/2 rounded-md bg-ink px-2 py-1 text-[11px] font-semibold whitespace-nowrap text-card group-hover:block @[26rem]:hidden">
+    <div className="relative border-b border-line">
+      <div ref={measureRef} className="pointer-events-none invisible absolute flex gap-1 px-2 py-2 whitespace-nowrap" aria-hidden>
+        {LANES.map((l) => {
+          const Icon = l.icon;
+          return (
+            <span key={l.id} className="flex h-10 items-center gap-1.5 rounded-md px-3 text-xs font-semibold">
+              <Icon className="size-4" />
               {l.label}
             </span>
-          </button>
-        );
-      })}
+          );
+        })}
+      </div>
+      <div ref={barRef} className="flex gap-1 px-2 py-2">
+        {LANES.map((l) => {
+          const Icon = l.icon;
+          return (
+            <Tip key={l.id} label={l.label} on={iconsOnly} side="bottom">
+              <button
+                type="button"
+                onClick={() => onLane(l.id)}
+                aria-label={l.label}
+                className={cn(
+                  "flex h-10 shrink-0 items-center gap-1.5 rounded-md px-2.5 text-xs font-semibold",
+                  lane === l.id ? "bg-navy text-card" : "text-muted",
+                )}
+              >
+                <Icon className="size-4" />
+                {iconsOnly ? null : l.label}
+              </button>
+            </Tip>
+          );
+        })}
+      </div>
     </div>
   );
 }

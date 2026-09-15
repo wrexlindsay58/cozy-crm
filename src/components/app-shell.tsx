@@ -26,6 +26,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
+import { Tip } from "@/components/tip";
 import { CozyHouse, CozyWordmark } from "@/components/cozy-mark";
 import { Omnibox } from "@/features/search/omnibox";
 import { unreadConversations } from "@/lib/crm-data";
@@ -123,24 +124,25 @@ export function AppShell({ children }: { children: ReactNode }) {
   }) {
     const on = activePath(pathname, to);
     return (
-      <Link
-        to={to}
-        onClick={() => setMobileOpen(false)}
-        className={cn(
-          "flex h-10 items-center gap-3 rounded-sm px-3 text-[13px] font-medium",
-          on ? "bg-white/15 text-card" : "text-faint hover:bg-white/10 hover:text-card",
-          shut && "justify-center px-0",
-        )}
-        title={shut ? label : undefined}
-      >
-        <Icon className="size-4 shrink-0" />
-        {!shut ? <span className="flex-1">{label}</span> : null}
-        {!shut && badge ? (
-          <span className="grid h-5 min-w-5 place-items-center rounded-sm bg-stop px-1 text-[11px] font-bold text-card">
-            {badge}
-          </span>
-        ) : null}
-      </Link>
+      <Tip label={label} on={shut} side="right" className="w-full">
+        <Link
+          to={to}
+          onClick={() => setMobileOpen(false)}
+          className={cn(
+            "flex h-10 items-center gap-3 rounded-sm px-3 text-[13px] font-medium",
+            on ? "bg-white/15 text-card" : "text-faint hover:bg-white/10 hover:text-card",
+            shut && "justify-center px-0",
+          )}
+        >
+          <Icon className="size-4 shrink-0" />
+          {!shut ? <span className="flex-1">{label}</span> : null}
+          {!shut && badge ? (
+            <span className="grid h-5 min-w-5 place-items-center rounded-sm bg-stop px-1 text-[11px] font-bold text-card">
+              {badge}
+            </span>
+          ) : null}
+        </Link>
+      </Tip>
     );
   }
 
