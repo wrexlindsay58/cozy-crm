@@ -19,7 +19,7 @@ export function RecordTable<T extends { id: string }>({
   href: (row: T) => string;
 }) {
   return (
-    <div className="overflow-x-auto rounded-xl border border-line bg-card shadow-sm">
+    <div className="w-full min-w-0 overflow-x-auto rounded-sm bg-card shadow-card">
       <table className="w-full min-w-[640px] text-left text-sm">
         <thead>
           <tr className="border-b border-line bg-page">

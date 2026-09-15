@@ -1,7 +1,8 @@
 import { useMemo, useState } from "react";
 import { Link, createFileRoute } from "@tanstack/react-router";
-import { FilterChip, PageHeader, StatusPill } from "@/components/ui-bits";
+import { FilterChip, Page, PageTitle, StatusPill } from "@/components/ui-bits";
 import { tickets, type Ticket } from "@/lib/crm-data";
+import { cn } from "@/lib/cn";
 
 export const Route = createFileRoute("/_app/tickets")({
   component: TicketsPage,
@@ -21,37 +22,41 @@ function relatedTo(id: string) {
 
 function TicketsPage() {
   const [filter, setFilter] = useState<"All" | "Open" | "Waiting" | "Done">("All");
-  const rows = useMemo(
-    () => tickets.filter((t) => filter === "All" || t.status === filter),
-    [filter],
-  );
+  const rows = useMemo(() => tickets.filter((t) => filter === "All" || t.status === filter), [filter]);
+  const oldest = tickets.filter((t) => t.status !== "Done").sort((a, b) => parseInt(b.age, 10) - parseInt(a.age, 10))[0];
 
   return (
-    <main className="mx-auto max-w-5xl p-4 pb-10 md:p-5">
-      <PageHeader kicker="Ops" title="Tickets" count={`${rows.filter((t) => t.status !== "Done").length} open`} />
-      <div className="mb-3 flex flex-wrap gap-1.5">
+    <Page>
+      <PageTitle title="Tickets" count={oldest ? `oldest ${oldest.age}` : undefined} />
+      <div className="mb-4 flex flex-wrap gap-2">
         {(["All", "Open", "Waiting", "Done"] as const).map((f) => (
           <FilterChip key={f} active={filter === f} onClick={() => setFilter(f)}>
             {f}
           </FilterChip>
         ))}
       </div>
-      <ul className="space-y-2">
+      <ul className="overflow-hidden rounded-sm bg-card">
         {rows.map((t) => (
-          <li key={t.id} className="flex flex-wrap items-center gap-3 rounded-xl border border-line bg-card p-4 shadow-sm">
+          <li
+            key={t.id}
+            className={cn(
+              "flex flex-wrap items-center gap-3 border-l-4 px-4 py-3",
+              t.priority === "High" && t.status !== "Done" ? "border-l-stop bg-stop-bg" : "border-l-navy",
+            )}
+          >
             <div className="min-w-0 flex-1">
               <p className="font-semibold">{t.title}</p>
-              <p className="text-xs text-muted">
+              <p className="text-[11px] text-muted">
                 {t.id} · {t.owner} · {t.age}
               </p>
             </div>
-            <Link to={relatedTo(t.related) as never} className="text-xs font-semibold text-navy">
+            <Link to={relatedTo(t.related) as never} className="text-[13px] font-semibold text-navy">
               {t.related}
             </Link>
             <StatusPill label={`${t.priority} · ${t.status}`} tone={toneFor(t)} />
           </li>
         ))}
       </ul>
-    </main>
+    </Page>
   );
 }

@@ -1,10 +1,11 @@
-export type Kid = { n: string; l: string; z?: boolean; a?: boolean };
+export type Kid = { n: string; l: string; z?: boolean; a?: boolean; stop?: boolean };
 
 export type Drill = {
   title: string;
   note: string;
   grid: "g3" | "g4";
   items: Kid[];
+  more?: Kid[];
 };
 
 export const months = [
@@ -51,13 +52,11 @@ export const rates = [
   { l: "Cancel", pct: 4, v: "4%" },
 ];
 
-export const kpis: { key: string; n: string; l: string }[] = [
-  { key: "activities", n: "14,862", l: "Activities" },
-  { key: "leads", n: "1,842", l: "Leads" },
+export const kpis: { key: string; n: string; l: string; flag?: "stop" | "watch" | "none" }[] = [
   { key: "appointments", n: "926", l: "Appointments" },
+  { key: "leads", n: "1,842", l: "Leads" },
   { key: "opportunities", n: "284", l: "Opportunities" },
-  { key: "projects", n: "186", l: "Projects" },
-  { key: "accounts", n: "164", l: "Accounts" },
+  { key: "projects", n: "186", l: "Jobs" },
 ];
 
 export const drills: Record<string, Drill> = {
@@ -84,21 +83,19 @@ export const drills: Record<string, Drill> = {
   },
   appointments: {
     title: "Appointments",
-    note: "926 set YTD. Outcomes below.",
+    note: "926 set this year.",
     grid: "g4",
     items: [
-      { n: "710", l: "Runs" },
-      { n: "96", l: "Non runs" },
-      { n: "28", l: "Pending" },
-      { n: "41", l: "Unmarked", a: true },
-      { n: "22", l: "Cancelled" },
+      { n: "41", l: "Unmarked", a: true, z: false, stop: true },
+      { n: "18", l: "No sit" },
       { n: "14", l: "Missed" },
-      { n: "18", l: "No-shows" },
-      { n: "9", l: "One legger — no run" },
-      { n: "31", l: "Not qualified" },
-      { n: "12", l: "Abandoned" },
-      { n: "24", l: "Phone consult sold" },
-      { n: "19", l: "Phone consult not sold" },
+      { n: "9", l: "One legger" },
+    ],
+    more: [
+      { n: "710", l: "Runs" },
+      { n: "96", l: "Did not run" },
+      { n: "28", l: "Pending" },
+      { n: "22", l: "Cancelled" },
     ],
   },
   opportunities: {
@@ -123,7 +120,7 @@ export const drills: Record<string, Drill> = {
   },
   accounts: {
     title: "Accounts",
-    note: "Households that bought at least one package this year.",
+    note: "Accounts that bought at least one package this year.",
     grid: "g3",
     items: [
       { n: "141", l: "New accounts" },
@@ -133,4 +130,4 @@ export const drills: Record<string, Drill> = {
   },
 };
 
-export const ranges = ["Custom", "Lifetime", "Year", "Quarter", "Month", "Week", "Today"] as const;
+export const ranges = ["Year", "Quarter", "Month", "Week", "Today"] as const;

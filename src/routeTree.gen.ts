@@ -12,18 +12,24 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as AppIndexRouteImport } from './routes/_app/index'
 import { Route as AppAccountsRouteImport } from './routes/_app/accounts'
+import { Route as AppAppointmentsRouteImport } from './routes/_app/appointments'
 import { Route as AppCalendarRouteImport } from './routes/_app/calendar'
+import { Route as AppConversationsRouteImport } from './routes/_app/conversations'
+import { Route as AppCrewsRouteImport } from './routes/_app/crews'
+import { Route as AppDispatchRouteImport } from './routes/_app/dispatch'
 import { Route as AppLeaderboardRouteImport } from './routes/_app/leaderboard'
 import { Route as AppLeadsRouteImport } from './routes/_app/leads'
 import { Route as AppOpportunitiesRouteImport } from './routes/_app/opportunities'
 import { Route as AppProjectsRouteImport } from './routes/_app/projects'
 import { Route as AppReportsRouteImport } from './routes/_app/reports'
+import { Route as AppScoreboardRouteImport } from './routes/_app/scoreboard'
 import { Route as AppSettingsRouteImport } from './routes/_app/settings'
+import { Route as AppTeamRouteImport } from './routes/_app/team'
 import { Route as AppTicketsRouteImport } from './routes/_app/tickets'
-import { Route as AppAccountsAccountIdRouteImport } from './routes/_app/accounts.$accountId'
-import { Route as AppLeadsLeadIdRouteImport } from './routes/_app/leads.$leadId'
-import { Route as AppOpportunitiesOppIdRouteImport } from './routes/_app/opportunities.$oppId'
-import { Route as AppProjectsProjectIdRouteImport } from './routes/_app/projects.$projectId'
+import { Route as AppAccountsAccountIdRouteImport } from './routes/_app/accounts_.$accountId'
+import { Route as AppLeadsLeadIdRouteImport } from './routes/_app/leads_.$leadId'
+import { Route as AppOpportunitiesOppIdRouteImport } from './routes/_app/opportunities_.$oppId'
+import { Route as AppProjectsProjectIdRouteImport } from './routes/_app/projects_.$projectId'
 
 const AppRoute = AppRouteImport.update({
   id: '/_app',
@@ -39,9 +45,29 @@ const AppAccountsRoute = AppAccountsRouteImport.update({
   path: '/accounts',
   getParentRoute: () => AppRoute,
 } as any)
+const AppAppointmentsRoute = AppAppointmentsRouteImport.update({
+  id: '/appointments',
+  path: '/appointments',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppCalendarRoute = AppCalendarRouteImport.update({
   id: '/calendar',
   path: '/calendar',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppConversationsRoute = AppConversationsRouteImport.update({
+  id: '/conversations',
+  path: '/conversations',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppCrewsRoute = AppCrewsRouteImport.update({
+  id: '/crews',
+  path: '/crews',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppDispatchRoute = AppDispatchRouteImport.update({
+  id: '/dispatch',
+  path: '/dispatch',
   getParentRoute: () => AppRoute,
 } as any)
 const AppLeaderboardRoute = AppLeaderboardRouteImport.update({
@@ -69,9 +95,19 @@ const AppReportsRoute = AppReportsRouteImport.update({
   path: '/reports',
   getParentRoute: () => AppRoute,
 } as any)
+const AppScoreboardRoute = AppScoreboardRouteImport.update({
+  id: '/scoreboard',
+  path: '/scoreboard',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppSettingsRoute = AppSettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppTeamRoute = AppTeamRouteImport.update({
+  id: '/team',
+  path: '/team',
   getParentRoute: () => AppRoute,
 } as any)
 const AppTicketsRoute = AppTicketsRouteImport.update({
@@ -80,36 +116,42 @@ const AppTicketsRoute = AppTicketsRouteImport.update({
   getParentRoute: () => AppRoute,
 } as any)
 const AppAccountsAccountIdRoute = AppAccountsAccountIdRouteImport.update({
-  id: '/$accountId',
-  path: '/$accountId',
-  getParentRoute: () => AppAccountsRoute,
+  id: '/accounts_/$accountId',
+  path: '/accounts/$accountId',
+  getParentRoute: () => AppRoute,
 } as any)
 const AppLeadsLeadIdRoute = AppLeadsLeadIdRouteImport.update({
-  id: '/$leadId',
-  path: '/$leadId',
-  getParentRoute: () => AppLeadsRoute,
+  id: '/leads_/$leadId',
+  path: '/leads/$leadId',
+  getParentRoute: () => AppRoute,
 } as any)
 const AppOpportunitiesOppIdRoute = AppOpportunitiesOppIdRouteImport.update({
-  id: '/$oppId',
-  path: '/$oppId',
-  getParentRoute: () => AppOpportunitiesRoute,
+  id: '/opportunities_/$oppId',
+  path: '/opportunities/$oppId',
+  getParentRoute: () => AppRoute,
 } as any)
 const AppProjectsProjectIdRoute = AppProjectsProjectIdRouteImport.update({
-  id: '/$projectId',
-  path: '/$projectId',
-  getParentRoute: () => AppProjectsRoute,
+  id: '/projects_/$projectId',
+  path: '/projects/$projectId',
+  getParentRoute: () => AppRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
-  '/accounts': typeof AppAccountsRouteWithChildren
+  '/accounts': typeof AppAccountsRoute
+  '/appointments': typeof AppAppointmentsRoute
   '/calendar': typeof AppCalendarRoute
+  '/conversations': typeof AppConversationsRoute
+  '/crews': typeof AppCrewsRoute
+  '/dispatch': typeof AppDispatchRoute
   '/leaderboard': typeof AppLeaderboardRoute
-  '/leads': typeof AppLeadsRouteWithChildren
-  '/opportunities': typeof AppOpportunitiesRouteWithChildren
-  '/projects': typeof AppProjectsRouteWithChildren
+  '/leads': typeof AppLeadsRoute
+  '/opportunities': typeof AppOpportunitiesRoute
+  '/projects': typeof AppProjectsRoute
   '/reports': typeof AppReportsRoute
+  '/scoreboard': typeof AppScoreboardRoute
   '/settings': typeof AppSettingsRoute
+  '/team': typeof AppTeamRoute
   '/tickets': typeof AppTicketsRoute
   '/accounts/$accountId': typeof AppAccountsAccountIdRoute
   '/leads/$leadId': typeof AppLeadsLeadIdRoute
@@ -117,14 +159,20 @@ export interface FileRoutesByFullPath {
   '/projects/$projectId': typeof AppProjectsProjectIdRoute
 }
 export interface FileRoutesByTo {
-  '/accounts': typeof AppAccountsRouteWithChildren
+  '/accounts': typeof AppAccountsRoute
+  '/appointments': typeof AppAppointmentsRoute
   '/calendar': typeof AppCalendarRoute
+  '/conversations': typeof AppConversationsRoute
+  '/crews': typeof AppCrewsRoute
+  '/dispatch': typeof AppDispatchRoute
   '/leaderboard': typeof AppLeaderboardRoute
-  '/leads': typeof AppLeadsRouteWithChildren
-  '/opportunities': typeof AppOpportunitiesRouteWithChildren
-  '/projects': typeof AppProjectsRouteWithChildren
+  '/leads': typeof AppLeadsRoute
+  '/opportunities': typeof AppOpportunitiesRoute
+  '/projects': typeof AppProjectsRoute
   '/reports': typeof AppReportsRoute
+  '/scoreboard': typeof AppScoreboardRoute
   '/settings': typeof AppSettingsRoute
+  '/team': typeof AppTeamRoute
   '/tickets': typeof AppTicketsRoute
   '/': typeof AppIndexRoute
   '/accounts/$accountId': typeof AppAccountsAccountIdRoute
@@ -135,33 +183,45 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_app': typeof AppRouteWithChildren
-  '/_app/accounts': typeof AppAccountsRouteWithChildren
+  '/_app/accounts': typeof AppAccountsRoute
+  '/_app/appointments': typeof AppAppointmentsRoute
   '/_app/calendar': typeof AppCalendarRoute
+  '/_app/conversations': typeof AppConversationsRoute
+  '/_app/crews': typeof AppCrewsRoute
+  '/_app/dispatch': typeof AppDispatchRoute
   '/_app/leaderboard': typeof AppLeaderboardRoute
-  '/_app/leads': typeof AppLeadsRouteWithChildren
-  '/_app/opportunities': typeof AppOpportunitiesRouteWithChildren
-  '/_app/projects': typeof AppProjectsRouteWithChildren
+  '/_app/leads': typeof AppLeadsRoute
+  '/_app/opportunities': typeof AppOpportunitiesRoute
+  '/_app/projects': typeof AppProjectsRoute
   '/_app/reports': typeof AppReportsRoute
+  '/_app/scoreboard': typeof AppScoreboardRoute
   '/_app/settings': typeof AppSettingsRoute
+  '/_app/team': typeof AppTeamRoute
   '/_app/tickets': typeof AppTicketsRoute
   '/_app/': typeof AppIndexRoute
-  '/_app/accounts/$accountId': typeof AppAccountsAccountIdRoute
-  '/_app/leads/$leadId': typeof AppLeadsLeadIdRoute
-  '/_app/opportunities/$oppId': typeof AppOpportunitiesOppIdRoute
-  '/_app/projects/$projectId': typeof AppProjectsProjectIdRoute
+  '/_app/accounts_/$accountId': typeof AppAccountsAccountIdRoute
+  '/_app/leads_/$leadId': typeof AppLeadsLeadIdRoute
+  '/_app/opportunities_/$oppId': typeof AppOpportunitiesOppIdRoute
+  '/_app/projects_/$projectId': typeof AppProjectsProjectIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
     | '/accounts'
+    | '/appointments'
     | '/calendar'
+    | '/conversations'
+    | '/crews'
+    | '/dispatch'
     | '/leaderboard'
     | '/leads'
     | '/opportunities'
     | '/projects'
     | '/reports'
+    | '/scoreboard'
     | '/settings'
+    | '/team'
     | '/tickets'
     | '/accounts/$accountId'
     | '/leads/$leadId'
@@ -170,13 +230,19 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/accounts'
+    | '/appointments'
     | '/calendar'
+    | '/conversations'
+    | '/crews'
+    | '/dispatch'
     | '/leaderboard'
     | '/leads'
     | '/opportunities'
     | '/projects'
     | '/reports'
+    | '/scoreboard'
     | '/settings'
+    | '/team'
     | '/tickets'
     | '/'
     | '/accounts/$accountId'
@@ -187,19 +253,25 @@ export interface FileRouteTypes {
     | '__root__'
     | '/_app'
     | '/_app/accounts'
+    | '/_app/appointments'
     | '/_app/calendar'
+    | '/_app/conversations'
+    | '/_app/crews'
+    | '/_app/dispatch'
     | '/_app/leaderboard'
     | '/_app/leads'
     | '/_app/opportunities'
     | '/_app/projects'
     | '/_app/reports'
+    | '/_app/scoreboard'
     | '/_app/settings'
+    | '/_app/team'
     | '/_app/tickets'
     | '/_app/'
-    | '/_app/accounts/$accountId'
-    | '/_app/leads/$leadId'
-    | '/_app/opportunities/$oppId'
-    | '/_app/projects/$projectId'
+    | '/_app/accounts_/$accountId'
+    | '/_app/leads_/$leadId'
+    | '/_app/opportunities_/$oppId'
+    | '/_app/projects_/$projectId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -229,11 +301,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAccountsRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/appointments': {
+      id: '/_app/appointments'
+      path: '/appointments'
+      fullPath: '/appointments'
+      preLoaderRoute: typeof AppAppointmentsRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/calendar': {
       id: '/_app/calendar'
       path: '/calendar'
       fullPath: '/calendar'
       preLoaderRoute: typeof AppCalendarRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/conversations': {
+      id: '/_app/conversations'
+      path: '/conversations'
+      fullPath: '/conversations'
+      preLoaderRoute: typeof AppConversationsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/crews': {
+      id: '/_app/crews'
+      path: '/crews'
+      fullPath: '/crews'
+      preLoaderRoute: typeof AppCrewsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/dispatch': {
+      id: '/_app/dispatch'
+      path: '/dispatch'
+      fullPath: '/dispatch'
+      preLoaderRoute: typeof AppDispatchRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/leaderboard': {
@@ -271,11 +371,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppReportsRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/scoreboard': {
+      id: '/_app/scoreboard'
+      path: '/scoreboard'
+      fullPath: '/scoreboard'
+      preLoaderRoute: typeof AppScoreboardRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/settings': {
       id: '/_app/settings'
       path: '/settings'
       fullPath: '/settings'
       preLoaderRoute: typeof AppSettingsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/team': {
+      id: '/_app/team'
+      path: '/team'
+      fullPath: '/team'
+      preLoaderRoute: typeof AppTeamRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/tickets': {
@@ -285,108 +399,81 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppTicketsRouteImport
       parentRoute: typeof AppRoute
     }
-    '/_app/accounts/$accountId': {
-      id: '/_app/accounts/$accountId'
-      path: '/$accountId'
+    '/_app/accounts_/$accountId': {
+      id: '/_app/accounts_/$accountId'
+      path: '/accounts/$accountId'
       fullPath: '/accounts/$accountId'
       preLoaderRoute: typeof AppAccountsAccountIdRouteImport
-      parentRoute: typeof AppAccountsRoute
+      parentRoute: typeof AppRoute
     }
-    '/_app/leads/$leadId': {
-      id: '/_app/leads/$leadId'
-      path: '/$leadId'
+    '/_app/leads_/$leadId': {
+      id: '/_app/leads_/$leadId'
+      path: '/leads/$leadId'
       fullPath: '/leads/$leadId'
       preLoaderRoute: typeof AppLeadsLeadIdRouteImport
-      parentRoute: typeof AppLeadsRoute
+      parentRoute: typeof AppRoute
     }
-    '/_app/opportunities/$oppId': {
-      id: '/_app/opportunities/$oppId'
-      path: '/$oppId'
+    '/_app/opportunities_/$oppId': {
+      id: '/_app/opportunities_/$oppId'
+      path: '/opportunities/$oppId'
       fullPath: '/opportunities/$oppId'
       preLoaderRoute: typeof AppOpportunitiesOppIdRouteImport
-      parentRoute: typeof AppOpportunitiesRoute
+      parentRoute: typeof AppRoute
     }
-    '/_app/projects/$projectId': {
-      id: '/_app/projects/$projectId'
-      path: '/$projectId'
+    '/_app/projects_/$projectId': {
+      id: '/_app/projects_/$projectId'
+      path: '/projects/$projectId'
       fullPath: '/projects/$projectId'
       preLoaderRoute: typeof AppProjectsProjectIdRouteImport
-      parentRoute: typeof AppProjectsRoute
+      parentRoute: typeof AppRoute
     }
   }
 }
 
-interface AppAccountsRouteChildren {
+interface AppRouteChildren {
+  AppAccountsRoute: typeof AppAccountsRoute
+  AppAppointmentsRoute: typeof AppAppointmentsRoute
+  AppCalendarRoute: typeof AppCalendarRoute
+  AppConversationsRoute: typeof AppConversationsRoute
+  AppCrewsRoute: typeof AppCrewsRoute
+  AppDispatchRoute: typeof AppDispatchRoute
+  AppLeaderboardRoute: typeof AppLeaderboardRoute
+  AppLeadsRoute: typeof AppLeadsRoute
+  AppOpportunitiesRoute: typeof AppOpportunitiesRoute
+  AppProjectsRoute: typeof AppProjectsRoute
+  AppReportsRoute: typeof AppReportsRoute
+  AppScoreboardRoute: typeof AppScoreboardRoute
+  AppSettingsRoute: typeof AppSettingsRoute
+  AppTeamRoute: typeof AppTeamRoute
+  AppTicketsRoute: typeof AppTicketsRoute
+  AppIndexRoute: typeof AppIndexRoute
   AppAccountsAccountIdRoute: typeof AppAccountsAccountIdRoute
-}
-
-const AppAccountsRouteChildren: AppAccountsRouteChildren = {
-  AppAccountsAccountIdRoute: AppAccountsAccountIdRoute,
-}
-
-const AppAccountsRouteWithChildren = AppAccountsRoute._addFileChildren(
-  AppAccountsRouteChildren,
-)
-
-interface AppLeadsRouteChildren {
   AppLeadsLeadIdRoute: typeof AppLeadsLeadIdRoute
-}
-
-const AppLeadsRouteChildren: AppLeadsRouteChildren = {
-  AppLeadsLeadIdRoute: AppLeadsLeadIdRoute,
-}
-
-const AppLeadsRouteWithChildren = AppLeadsRoute._addFileChildren(
-  AppLeadsRouteChildren,
-)
-
-interface AppOpportunitiesRouteChildren {
   AppOpportunitiesOppIdRoute: typeof AppOpportunitiesOppIdRoute
-}
-
-const AppOpportunitiesRouteChildren: AppOpportunitiesRouteChildren = {
-  AppOpportunitiesOppIdRoute: AppOpportunitiesOppIdRoute,
-}
-
-const AppOpportunitiesRouteWithChildren =
-  AppOpportunitiesRoute._addFileChildren(AppOpportunitiesRouteChildren)
-
-interface AppProjectsRouteChildren {
   AppProjectsProjectIdRoute: typeof AppProjectsProjectIdRoute
 }
 
-const AppProjectsRouteChildren: AppProjectsRouteChildren = {
-  AppProjectsProjectIdRoute: AppProjectsProjectIdRoute,
-}
-
-const AppProjectsRouteWithChildren = AppProjectsRoute._addFileChildren(
-  AppProjectsRouteChildren,
-)
-
-interface AppRouteChildren {
-  AppAccountsRoute: typeof AppAccountsRouteWithChildren
-  AppCalendarRoute: typeof AppCalendarRoute
-  AppLeaderboardRoute: typeof AppLeaderboardRoute
-  AppLeadsRoute: typeof AppLeadsRouteWithChildren
-  AppOpportunitiesRoute: typeof AppOpportunitiesRouteWithChildren
-  AppProjectsRoute: typeof AppProjectsRouteWithChildren
-  AppReportsRoute: typeof AppReportsRoute
-  AppSettingsRoute: typeof AppSettingsRoute
-  AppTicketsRoute: typeof AppTicketsRoute
-  AppIndexRoute: typeof AppIndexRoute
-}
-
 const AppRouteChildren: AppRouteChildren = {
-  AppAccountsRoute: AppAccountsRouteWithChildren,
+  AppAccountsRoute: AppAccountsRoute,
+  AppAppointmentsRoute: AppAppointmentsRoute,
   AppCalendarRoute: AppCalendarRoute,
+  AppConversationsRoute: AppConversationsRoute,
+  AppCrewsRoute: AppCrewsRoute,
+  AppDispatchRoute: AppDispatchRoute,
   AppLeaderboardRoute: AppLeaderboardRoute,
-  AppLeadsRoute: AppLeadsRouteWithChildren,
-  AppOpportunitiesRoute: AppOpportunitiesRouteWithChildren,
-  AppProjectsRoute: AppProjectsRouteWithChildren,
+  AppLeadsRoute: AppLeadsRoute,
+  AppOpportunitiesRoute: AppOpportunitiesRoute,
+  AppProjectsRoute: AppProjectsRoute,
   AppReportsRoute: AppReportsRoute,
+  AppScoreboardRoute: AppScoreboardRoute,
   AppSettingsRoute: AppSettingsRoute,
+  AppTeamRoute: AppTeamRoute,
   AppTicketsRoute: AppTicketsRoute,
   AppIndexRoute: AppIndexRoute,
+  AppAccountsAccountIdRoute: AppAccountsAccountIdRoute,
+  AppLeadsLeadIdRoute: AppLeadsLeadIdRoute,
+  AppOpportunitiesOppIdRoute: AppOpportunitiesOppIdRoute,
+  AppProjectsProjectIdRoute: AppProjectsProjectIdRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
