@@ -1,11 +1,11 @@
 import { useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Braces, FileText, Link, Paperclip, Phone, Plus, Smile } from "lucide-react";
+import { Braces, DollarSign, FileText, Link, Paperclip, Phone, Plus, Smile } from "lucide-react";
 import { addHistory, dndOn } from "@/features/ops/store";
 import { sendMessage, useThread } from "@/features/thread/store";
 import { kindFromFile } from "@/features/photos/store";
 import type { DndChannel } from "@/lib/crm-data";
-import { cannedFor, COMPOSE_EMOJI, CUSTOM_VALUES, TRIGGER_LINKS } from "@/lib/canned";
+import { cannedFor, COMPOSE_EMOJI, CUSTOM_VALUES, PAY_ASKS, TRIGGER_LINKS } from "@/lib/canned";
 import { Scrim } from "@/components/scrim";
 import { Tip } from "@/components/tip";
 import { TalkLine } from "./talk-line";
@@ -253,7 +253,7 @@ function ComposeExtras({
   const fileRef = useRef<HTMLInputElement>(null);
   const btnRef = useRef<HTMLButtonElement>(null);
   const [open, setOpen] = useState(false);
-  const [pane, setPane] = useState<"icons" | "templates" | "links" | "values" | "emoji">("icons");
+  const [pane, setPane] = useState<"icons" | "templates" | "links" | "values" | "emoji" | "pay">("icons");
   const [box, setBox] = useState<DOMRect | null>(null);
   const canned = cannedFor(channel);
 
@@ -307,24 +307,25 @@ function ComposeExtras({
             <>
               <button type="button" aria-label="Close" className="fixed inset-0 z-40 cursor-default bg-transparent" onClick={close} />
               <div
-                className="fixed z-50 w-56 rounded-md border border-line bg-card shadow-sm"
-                style={{ left: Math.max(8, box.right - 224), top: box.top - 8, transform: "translateY(-100%)" }}
+                className="fixed z-50 min-w-72 rounded-md border border-line bg-card shadow-sm"
+                style={{ left: Math.max(8, box.right - 320), top: box.top - 8, transform: "translateY(-100%)" }}
               >
               {pane === "icons" ? (
-                <div className="flex">
+                <div className="flex items-center gap-2 p-1.5">
                   {(
                     [
                       { id: "attach", label: files.length ? files.map((f) => f.name).join(", ") : "Attach", icon: Paperclip, run: () => fileRef.current?.click() },
                       { id: "templates", label: "Templates", icon: FileText, run: () => setPane("templates") },
                       { id: "links", label: "Trigger links", icon: Link, run: () => setPane("links") },
                       { id: "values", label: "Custom values", icon: Braces, run: () => setPane("values") },
+                      { id: "pay", label: "Request payment", icon: DollarSign, run: () => setPane("pay") },
                       { id: "emoji", label: "Emojis", icon: Smile, run: () => setPane("emoji") },
                     ] as const
                   ).map((item) => {
                     const Icon = item.icon;
                     return (
                       <Tip key={item.id} label={item.label} on side="top">
-                        <button type="button" aria-label={item.label} onClick={item.run} className="grid h-10 flex-1 place-items-center text-navy hover:bg-page">
+                        <button type="button" aria-label={item.label} onClick={item.run} className="grid size-11 place-items-center rounded-md text-navy hover:bg-page">
                           <Icon className="size-4" />
                         </button>
                       </Tip>
@@ -368,6 +369,21 @@ function ComposeExtras({
                     : null}
                   {pane === "values"
                     ? CUSTOM_VALUES.map((c) => (
+                        <button
+                          key={c.id}
+                          type="button"
+                          className="block w-full px-3 py-2 text-left text-sm hover:bg-page"
+                          onClick={() => {
+                            onInsert(c.insert);
+                            close();
+                          }}
+                        >
+                          {c.label}
+                        </button>
+                      ))
+                    : null}
+                  {pane === "pay"
+                    ? PAY_ASKS.map((c) => (
                         <button
                           key={c.id}
                           type="button"

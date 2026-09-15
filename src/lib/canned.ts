@@ -38,3 +38,9 @@ export const CUSTOM_VALUES = [
 ];
 
 export const COMPOSE_EMOJI = ["👍", "✅", "👀", "❗", "🎉", "🙏", "🏠", "🔧", "📅", "😊"];
+
+export const PAY_ASKS = [
+  { id: "pay", label: "Request payment", insert: "Pay here: https://cozy.to/pay" },
+  { id: "deposit", label: "Request deposit", insert: "Deposit: https://cozy.to/pay" },
+  { id: "balance", label: "Request balance", insert: "Balance due: https://cozy.to/pay" },
+];
