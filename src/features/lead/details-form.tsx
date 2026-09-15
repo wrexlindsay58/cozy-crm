@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ChevronDown } from "lucide-react";
+import { Check, ChevronDown } from "lucide-react";
 import type { LeadDraft } from "@/features/ops/store";
 import { useStaff } from "@/features/staff/store";
 import { Float } from "@/components/float";
@@ -81,7 +81,7 @@ export function DetailsForm({
           </label>
         </fieldset>
       ) : (
-        <button type="button" className="h-11 rounded-md border border-line text-sm font-semibold" onClick={() => setSecondOpen(true)}>
+        <button type="button" className="h-11 rounded-md border border-navy text-sm font-semibold text-navy hover:bg-info-bg" onClick={() => setSecondOpen(true)}>
           Add homeowner
         </button>
       )}
@@ -146,8 +146,8 @@ export function DetailsForm({
                   className="flex w-full min-w-56 items-center gap-2 px-3 py-2 text-left text-sm hover:bg-page"
                   onClick={() => set("interests", toggleInterest(picked, opt))}
                 >
-                  <span className={cn("grid size-4 place-items-center rounded-sm border", on ? "border-navy bg-navy text-card" : "border-line")}>
-                    {on ? "✓" : ""}
+                  <span className={cn("inline-flex size-4 shrink-0 items-center justify-center rounded-sm border", on ? "border-navy bg-navy text-card" : "border-line")}>
+                    {on ? <Check className="size-3" strokeWidth={3} /> : null}
                   </span>
                   {opt}
                 </button>
