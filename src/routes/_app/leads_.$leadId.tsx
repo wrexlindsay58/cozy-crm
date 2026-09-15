@@ -2,7 +2,6 @@ import { useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { assessmentForLead, startAssessment } from "@/features/assessment/store";
 import { BookWidget } from "@/features/lead/book-widget";
-import { CreateChore } from "@/features/lead/create-chore";
 import { DetailsForm } from "@/features/lead/details-form";
 import { DispositionControl } from "@/features/lead/disposition";
 import { RecordShell } from "@/features/record-shell/record-shell";
@@ -17,8 +16,6 @@ function LeadFile() {
   const { leads, appointments, tickets, history } = useOps();
   const lead = leads.find((l) => l.id === leadId);
   const [bookOpen, setBookOpen] = useState(false);
-  const [chore, setChore] = useState<"ticket" | "task" | null>(null);
-  const [openWork, setOpenWork] = useState(0);
   const navigate = useNavigate();
   const assessment = assessmentForLead(leadId);
   if (!lead) return <main className="p-6 text-sm text-muted">Lead not found.</main>;
@@ -32,6 +29,7 @@ function LeadFile() {
       title={lead.name}
       subtitle={`${lead.address} · ${lead.city}${second}`}
       stage={lead.status}
+      stageTone={lead.tone}
       owner={{ name: lead.closer, role: "Closer" }}
       followers={followersByPerson[lead.id] ?? [{ name: lead.setter, role: "Setter" }]}
       related={
@@ -44,18 +42,11 @@ function LeadFile() {
         { label: "Call" },
         { label: "Text", opens: "thread" },
         { label: "Book", onClick: () => setBookOpen((v) => !v) },
-        {
-          label: "Create",
-          menu: [
-            { label: "Ticket", onClick: () => { setOpenWork((n) => n + 1); setChore("ticket"); } },
-            { label: "Task", onClick: () => { setOpenWork((n) => n + 1); setChore("task"); } },
-          ],
-        },
+        { label: "Create", menu: [{ label: "Ticket" }, { label: "Task" }] },
       ]}
       history={history?.[lead.id] ?? []}
       tickets={(tickets ?? []).filter((t) => t.related === lead.id)}
       photos={photosByPerson[lead.id] ?? []}
-      openWork={openWork}
     >
       <div className="space-y-3">
         <DetailsForm initial={lead} submitLabel="Save details" onSubmit={(d) => updateLead(lead.id, d)} />
@@ -67,7 +58,6 @@ function LeadFile() {
             navigate({ to: "/assessments/$assessmentId", params: { assessmentId: next.id } });
           }}
         />
-        <CreateChore personId={lead.id} owner={lead.closer} kind={chore} onDone={() => setChore(null)} />
       </div>
     </RecordShell>
   );

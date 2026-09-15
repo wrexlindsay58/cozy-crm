@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import type { Activity, Ticket } from "@/lib/crm-data";
+import type { Activity, Ticket, Tone } from "@/lib/crm-data";
 import type { PersonRef, Photo } from "@/lib/file-data";
 
 export type RecordKind = "lead" | "assessment" | "opportunity" | "job" | "account";
@@ -23,6 +23,7 @@ export type RecordShellProps = {
   title: string;
   subtitle: string;
   stage: string;
+  stageTone?: Tone;
   moneyLabel?: string;
   owner: PersonRef;
   followers: PersonRef[];

@@ -24,7 +24,7 @@ export function TicketFile({ ticket, onBack }: { ticket: Ticket; onBack: () => v
   return (
     <div className="flex h-full min-h-0 flex-col overflow-auto p-3">
       <button type="button" className="h-10 self-start text-sm font-semibold text-muted" onClick={onBack}>
-        Tickets
+        Close
       </button>
       <h2 className="mt-1 text-base font-extrabold">{ticket.title}</h2>
       <p className="text-[12px] text-muted">

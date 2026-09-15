@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { Clock, MessageSquare, StickyNote, Ticket, Users } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { Tip } from "@/components/tip";
@@ -9,20 +9,24 @@ import { PhotoRail, HistoryList } from "./side-rails";
 import { PeopleRow } from "./people-row";
 import { ThreadPane } from "./thread-pane";
 import { TitleRow } from "./title-row";
+import { WorkDialog, type WorkTarget } from "./work-dialog";
 import { WorkTab } from "./work-tab";
 import type { RecordShellProps } from "./types";
 
 export type ConvLane = "customer" | "internal" | "notes" | "tickets" | "history";
 
-export function RecordShell(props: RecordShellProps & { openWork?: number }) {
+function dndChip(dnd?: string[]) {
+  if (!dnd?.length) return;
+  if (dnd.length === 3) return "DND all";
+  return `DND ${dnd.join(", ")}`;
+}
+
+export function RecordShell(props: RecordShellProps) {
   const [lane, setLane] = useState<ConvLane>("customer");
   const [callOpen, setCallOpen] = useState(false);
+  const [work, setWork] = useState<WorkTarget | null>(null);
   const { leads } = useOps();
   const lead = leads.find((l) => l.id === props.personId);
-
-  useEffect(() => {
-    if (props.openWork) setLane("tickets");
-  }, [props.openWork]);
 
   function openThread() {
     setLane("customer");
@@ -41,6 +45,15 @@ export function RecordShell(props: RecordShellProps & { openWork?: number }) {
     .filter((a) => a.label !== "Drop")
     .map((a) => {
       if (a.label === "Call" && !a.onClick) return { ...a, onClick: startCall };
+      if (a.label === "Create" && a.menu) {
+        return {
+          ...a,
+          menu: a.menu.map((item) => ({
+            ...item,
+            onClick: () => setWork({ kind: item.label === "Task" ? "task" : "ticket" }),
+          })),
+        };
+      }
       return a;
     });
 
@@ -50,7 +63,9 @@ export function RecordShell(props: RecordShellProps & { openWork?: number }) {
         kind={props.kind}
         title={props.title}
         subtitle={props.subtitle}
-        stage={(lead?.dnd?.length ?? 0) === 3 ? `${props.stage} · DND` : props.stage}
+        stage={props.stage}
+        stageTone={props.stageTone}
+        dndLabel={dndChip(lead?.dnd)}
         moneyLabel={props.moneyLabel}
         related={props.related}
         acts={acts}
@@ -81,7 +96,7 @@ export function RecordShell(props: RecordShellProps & { openWork?: number }) {
               </div>
             ) : null}
             {lane === "tickets" ? (
-              <WorkTab personId={props.personId} owner={props.owner.name} />
+              <WorkTab personId={props.personId} owner={props.owner.name} onOpen={setWork} />
             ) : lane === "history" ? (
               <div className="h-full overflow-auto p-3">
                 <HistoryList history={props.history} flush />
@@ -92,6 +107,9 @@ export function RecordShell(props: RecordShellProps & { openWork?: number }) {
           </div>
         </aside>
       </div>
+      {work ? (
+        <WorkDialog personId={props.personId} owner={props.owner.name} target={work} onClose={() => setWork(null)} />
+      ) : null}
     </div>
   );
 }
