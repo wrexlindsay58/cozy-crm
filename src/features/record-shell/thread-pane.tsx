@@ -6,6 +6,7 @@ import { sendMessage, useThread } from "@/features/thread/store";
 import { kindFromFile } from "@/features/photos/store";
 import type { DndChannel } from "@/lib/crm-data";
 import { cannedFor, COMPOSE_EMOJI, CUSTOM_VALUES, TRIGGER_LINKS } from "@/lib/canned";
+import { Scrim } from "@/components/scrim";
 import { Tip } from "@/components/tip";
 import { TalkLine } from "./talk-line";
 import { CommentBox } from "./comment-box";
@@ -303,10 +304,12 @@ function ComposeExtras({
       </Tip>
       {open && box
         ? createPortal(
-            <div
-              className="fixed z-50 w-56 rounded-md border border-line bg-card shadow-sm"
-              style={{ left: Math.max(8, box.right - 224), top: box.top - 8, transform: "translateY(-100%)" }}
-            >
+            <>
+              <button type="button" aria-label="Close" className="fixed inset-0 z-40 cursor-default bg-transparent" onClick={close} />
+              <div
+                className="fixed z-50 w-56 rounded-md border border-line bg-card shadow-sm"
+                style={{ left: Math.max(8, box.right - 224), top: box.top - 8, transform: "translateY(-100%)" }}
+              >
               {pane === "icons" ? (
                 <div className="flex">
                   {(
@@ -397,7 +400,8 @@ function ComposeExtras({
                   ) : null}
                 </div>
               )}
-            </div>,
+            </div>
+            </>,
             document.body,
           )
         : null}

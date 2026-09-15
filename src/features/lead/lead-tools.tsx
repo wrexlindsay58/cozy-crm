@@ -2,6 +2,7 @@ import { useState } from "react";
 import { addWorkflow, dndOn, stopWorkflow, toggleLeadDnd, toggleLeadTag } from "@/features/ops/store";
 import type { DndChannel, Lead } from "@/lib/crm-data";
 import { cn } from "@/lib/cn";
+import { Scrim } from "@/components/scrim";
 
 const TAGS = ["HOA", "Rebate", "Renter", "Spanish", "Veteran", "Callback", "Air seal"];
 const WORKFLOWS = ["New lead drip", "No-sit follow-up", "Ran, no decision", "Review ask"];
@@ -40,7 +41,9 @@ export function LeadTools({ lead }: { lead: Lead }) {
           {dndLabel(lead)}
         </button>
         {dndOpen ? (
-          <div className="absolute top-12 right-0 z-20 min-w-44 rounded-md border border-line bg-card py-1 shadow-sm">
+          <>
+            <Scrim onClose={() => setDndOpen(false)} />
+            <div className="absolute top-12 right-0 z-30 min-w-44 rounded-md border border-line bg-card py-1 shadow-sm">
             {DND_ROWS.map((row) => {
               const on = row.id === "all" ? allOn : dndOn(lead, row.id);
               return (
@@ -56,6 +59,7 @@ export function LeadTools({ lead }: { lead: Lead }) {
               );
             })}
           </div>
+          </>
         ) : null}
       </div>
 
