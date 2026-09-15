@@ -1,10 +1,10 @@
 import { useRef, useState } from "react";
-import { FileText, Paperclip, Phone } from "lucide-react";
+import { Braces, FileText, Link, Paperclip, Phone, Plus, Smile } from "lucide-react";
 import { addHistory, dndOn } from "@/features/ops/store";
 import { sendMessage, useThread } from "@/features/thread/store";
 import { kindFromFile } from "@/features/photos/store";
 import type { DndChannel } from "@/lib/crm-data";
-import { cannedFor } from "@/lib/canned";
+import { cannedFor, COMPOSE_EMOJI, CUSTOM_VALUES, TRIGGER_LINKS } from "@/lib/canned";
 import { Tip } from "@/components/tip";
 import { TalkLine } from "./talk-line";
 import { CommentBox } from "./comment-box";
@@ -153,25 +153,28 @@ export function ThreadPane({
           {placeholder}
         </label>
         <div className="flex gap-1">
-          {mode === "customer" ? (
-            <ComposeExtras
-              channel={channel}
-              files={files}
-              onFiles={setFiles}
-              onTemplate={(body, sub) => {
-                setDraft(body);
-                if (sub) setSubject(sub);
-              }}
+          <div className="flex h-11 min-w-0 flex-1 items-stretch overflow-hidden rounded-md border border-line bg-card focus-within:border-navy">
+            <input
+              id={`composer-${personId}-${mode}`}
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              placeholder={placeholder}
+              disabled={blocked}
+              className="h-11 min-w-0 flex-1 border-0 bg-transparent px-3 text-sm outline-none disabled:opacity-50"
             />
-          ) : null}
-          <input
-            id={`composer-${personId}-${mode}`}
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            placeholder={placeholder}
-            disabled={blocked}
-            className="h-11 min-w-0 flex-1 rounded-md border border-line bg-card px-3 text-sm outline-none focus:border-navy disabled:opacity-50"
-          />
+            {mode === "customer" ? (
+              <ComposeExtras
+                channel={channel}
+                files={files}
+                onFiles={setFiles}
+                onTemplate={(body, sub) => {
+                  setDraft(body);
+                  if (sub) setSubject(sub);
+                }}
+                onInsert={(bit) => setDraft((d) => (d ? `${d}${d.endsWith(" ") ? "" : " "}${bit}` : bit))}
+              />
+            ) : null}
+          </div>
           <button type="submit" className="h-11 rounded-md bg-navy px-3 text-sm font-semibold text-card">
             {sendLabel}
           </button>
@@ -237,15 +240,18 @@ function ComposeExtras({
   files,
   onFiles,
   onTemplate,
+  onInsert,
 }: {
   channel: "sms" | "email";
   files: { name: string; kind: FileKind; src?: string }[];
   onFiles: (rows: { name: string; kind: FileKind; src?: string }[]) => void;
   onTemplate: (body: string, subject?: string) => void;
+  onInsert: (bit: string) => void;
 }) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [open, setOpen] = useState(false);
-  const list = cannedFor(channel);
+  const [pane, setPane] = useState<"icons" | "templates" | "links" | "values" | "emoji">("icons");
+  const canned = cannedFor(channel);
 
   function addFile(file: File | undefined) {
     if (!file) return;
@@ -257,37 +263,122 @@ function ComposeExtras({
     reader.readAsDataURL(file);
   }
 
+  function close() {
+    setOpen(false);
+    setPane("icons");
+  }
+
   return (
-    <div className="relative flex shrink-0">
+    <div className="relative shrink-0">
       <input ref={fileRef} type="file" className="sr-only" accept="image/*,video/*,.pdf,.doc,.docx" onChange={(e) => addFile(e.target.files?.[0])} />
-      <Tip label={files.length ? files.map((f) => f.name).join(", ") : "Attach"} on side="top">
-        <button type="button" aria-label="Attach" onClick={() => fileRef.current?.click()} className="relative grid size-11 place-items-center rounded-md text-navy">
-          <Paperclip className="size-4" />
+      <Tip label="Insert" on={!open} side="top">
+        <button
+          type="button"
+          aria-label="Insert"
+          onClick={() => {
+            setOpen((v) => !v);
+            setPane("icons");
+          }}
+          className="relative grid h-11 w-10 place-items-center border-l border-line text-navy"
+        >
+          <Plus className="size-4" />
           {files.length ? (
-            <span className="absolute top-1 right-1 grid size-4 place-items-center rounded-full bg-navy text-[9px] font-bold text-card">{files.length}</span>
+            <span className="absolute top-1 right-1 grid size-3.5 place-items-center rounded-full bg-navy text-[8px] font-bold text-card">{files.length}</span>
           ) : null}
         </button>
       </Tip>
-      <Tip label="Templates" on={!open} side="top">
-        <button type="button" aria-label="Templates" onClick={() => setOpen((v) => !v)} className="grid size-11 place-items-center rounded-md text-navy">
-          <FileText className="size-4" />
-        </button>
-      </Tip>
       {open ? (
-        <div className="absolute bottom-12 left-0 z-30 min-w-56 rounded-md border border-line bg-card py-1 shadow-sm">
-          {list.map((c) => (
-            <button
-              key={c.id}
-              type="button"
-              className="block w-full px-3 py-2 text-left text-sm hover:bg-page"
-              onClick={() => {
-                onTemplate(c.body, c.subject);
-                setOpen(false);
-              }}
-            >
-              {c.label}
-            </button>
-          ))}
+        <div className="absolute right-0 bottom-12 z-30 w-56 rounded-md border border-line bg-card shadow-sm">
+          {pane === "icons" ? (
+            <div className="flex">
+              {(
+                [
+                  { id: "attach", label: files.length ? files.map((f) => f.name).join(", ") : "Attach", icon: Paperclip, run: () => fileRef.current?.click() },
+                  { id: "templates", label: "Templates", icon: FileText, run: () => setPane("templates") },
+                  { id: "links", label: "Trigger links", icon: Link, run: () => setPane("links") },
+                  { id: "values", label: "Custom values", icon: Braces, run: () => setPane("values") },
+                  { id: "emoji", label: "Emojis", icon: Smile, run: () => setPane("emoji") },
+                ] as const
+              ).map((item) => {
+                const Icon = item.icon;
+                return (
+                  <Tip key={item.id} label={item.label} on side="top">
+                    <button type="button" aria-label={item.label} onClick={item.run} className="grid h-10 flex-1 place-items-center text-navy hover:bg-page">
+                      <Icon className="size-4" />
+                    </button>
+                  </Tip>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="py-1">
+              <button type="button" className="px-3 py-1 text-[11px] font-semibold text-muted" onClick={() => setPane("icons")}>
+                Back
+              </button>
+              {pane === "templates"
+                ? canned.map((c) => (
+                    <button
+                      key={c.id}
+                      type="button"
+                      className="block w-full px-3 py-2 text-left text-sm hover:bg-page"
+                      onClick={() => {
+                        onTemplate(c.body, c.subject);
+                        close();
+                      }}
+                    >
+                      {c.label}
+                    </button>
+                  ))
+                : null}
+              {pane === "links"
+                ? TRIGGER_LINKS.map((c) => (
+                    <button
+                      key={c.id}
+                      type="button"
+                      className="block w-full px-3 py-2 text-left text-sm hover:bg-page"
+                      onClick={() => {
+                        onInsert(c.insert);
+                        close();
+                      }}
+                    >
+                      {c.label}
+                    </button>
+                  ))
+                : null}
+              {pane === "values"
+                ? CUSTOM_VALUES.map((c) => (
+                    <button
+                      key={c.id}
+                      type="button"
+                      className="block w-full px-3 py-2 text-left text-sm hover:bg-page"
+                      onClick={() => {
+                        onInsert(c.insert);
+                        close();
+                      }}
+                    >
+                      {c.label}
+                    </button>
+                  ))
+                : null}
+              {pane === "emoji" ? (
+                <div className="grid grid-cols-5 gap-0 px-1 pb-1">
+                  {COMPOSE_EMOJI.map((e) => (
+                    <button
+                      key={e}
+                      type="button"
+                      className="grid h-10 place-items-center text-base hover:bg-page"
+                      onClick={() => {
+                        onInsert(e);
+                        close();
+                      }}
+                    >
+                      {e}
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+          )}
         </div>
       ) : null}
     </div>

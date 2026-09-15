@@ -20,3 +20,21 @@ export const CANNED: Canned[] = [
 export function cannedFor(channel: "sms" | "email") {
   return CANNED.filter((c) => c.channel === channel || c.channel === "both");
 }
+
+export const TRIGGER_LINKS = [
+  { id: "book", label: "Book link", insert: "https://cozy.to/book" },
+  { id: "pay", label: "Pay link", insert: "https://cozy.to/pay" },
+  { id: "review", label: "Review link", insert: "https://cozy.to/review" },
+  { id: "file", label: "This file", insert: "https://cozy.to/file" },
+];
+
+export const CUSTOM_VALUES = [
+  { id: "first", label: "First name", insert: "{first_name}" },
+  { id: "address", label: "Address", insert: "{address}" },
+  { id: "appt", label: "Appt time", insert: "{appt}" },
+  { id: "closer", label: "Closer", insert: "{closer}" },
+  { id: "phone", label: "Our number", insert: "{office_phone}" },
+  { id: "company", label: "Company", insert: "{company}" },
+];
+
+export const COMPOSE_EMOJI = ["👍", "✅", "👀", "❗", "🎉", "🙏", "🏠", "🔧", "📅", "😊"];
