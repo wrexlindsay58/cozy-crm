@@ -1,43 +1,40 @@
-import { DISPOSITIONS, setDisposition, type Disposition } from "@/features/ops/store";
-import type { Appointment } from "@/lib/crm-data";
+import { DISPOSITIONS, setDisposition, setLeadStatus } from "@/features/ops/store";
+import type { Appointment, Lead } from "@/lib/crm-data";
+import { LEAD_STATUSES } from "@/lib/lead-status";
 import { cn } from "@/lib/cn";
 
 export function DispositionControl({
+  lead,
   appointment,
   onRan,
 }: {
+  lead: Lead;
   appointment?: Appointment;
   onRan?: () => void;
 }) {
-  if (!appointment) {
-    return (
-      <section className="rounded-md border border-line bg-card p-4">
-        <h2 className="text-[11px] font-bold tracking-[0.14em] text-muted uppercase">Disposition</h2>
-        <p className="mt-2 text-sm text-muted">Book the run first.</p>
-      </section>
-    );
-  }
-
   return (
     <section className="rounded-md border border-line bg-card p-4">
       <h2 className="mb-3 text-[11px] font-bold tracking-[0.14em] text-muted uppercase">Disposition</h2>
       <div className="flex flex-wrap gap-1.5">
-        {DISPOSITIONS.map((d) => {
-          const on = appointment.status === d;
+        {LEAD_STATUSES.map((d) => {
+          const on = lead.status === d.label;
           return (
             <button
-              key={d}
+              key={d.label}
               type="button"
               onClick={() => {
-                setDisposition(appointment.id, d as Disposition);
-                if (d === "Ran") onRan?.();
+                setLeadStatus(lead.id, d.label);
+                if (appointment && (DISPOSITIONS as readonly string[]).includes(d.label)) {
+                  setDisposition(appointment.id, d.label);
+                }
+                if (d.label === "Ran") onRan?.();
               }}
               className={cn(
-                "h-10 rounded-md px-3 text-sm font-semibold",
+                "h-7 rounded-md px-2 text-[11px] font-semibold",
                 on ? "bg-navy text-card" : "border border-line bg-card hover:border-navy",
               )}
             >
-              {d}
+              {d.label}
             </button>
           );
         })}

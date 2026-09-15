@@ -52,6 +52,7 @@ function LeadFile() {
         <DetailsForm initial={lead} submitLabel="Save details" onSubmit={(d) => updateLead(lead.id, d)} />
         <BookWidget leadId={lead.id} defaultCloser={lead.closer} open={bookOpen} />
         <DispositionControl
+          lead={lead}
           appointment={appt}
           onRan={() => {
             const next = startAssessment({ leadId: lead.id, name: lead.name, address: lead.address, closer: lead.closer });
