@@ -13,6 +13,7 @@ export function CreateChore({
   onDone: () => void;
 }) {
   const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
   const [due, setDue] = useState("");
   if (!kind) return null;
   return (
@@ -22,17 +23,22 @@ export function CreateChore({
         className="grid gap-3"
         onSubmit={(e) => {
           e.preventDefault();
-          if (kind === "ticket") createTicket({ personId, title, owner });
-          else createTask({ personId, title, owner, due });
+          if (kind === "ticket") createTicket({ personId, title, owner, description, due });
+          else createTask({ personId, title, owner, due, description });
           setTitle("");
+          setDescription("");
+          setDue("");
           onDone();
         }}
       >
-        <input autoFocus value={title} onChange={(e) => setTitle(e.target.value)} placeholder={kind === "ticket" ? "What is blocked?" : "What is due?"} className="h-11 rounded-md border border-line px-3 text-base md:text-sm outline-none focus:border-navy" />
-        {kind === "task" ? (
-          <input value={due} onChange={(e) => setDue(e.target.value)} placeholder="Due, Sep 15 5:00p" className="h-11 rounded-md border border-line px-3 text-base md:text-sm outline-none focus:border-navy" />
+        <input autoFocus value={title} onChange={(e) => setTitle(e.target.value)} placeholder={kind === "ticket" ? "Ticket name" : "Task name"} className="h-11 rounded-md border border-line px-3 text-base md:text-sm outline-none focus:border-navy" />
+        {kind === "ticket" ? (
+          <textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Ticket description" rows={3} className="rounded-md border border-line px-3 py-2 text-base md:text-sm outline-none focus:border-navy" />
         ) : null}
-        <button type="submit" className="h-11 rounded-md bg-navy text-sm font-semibold text-card">Save {kind}</button>
+        <input value={due} onChange={(e) => setDue(e.target.value)} placeholder={kind === "ticket" ? "Ticket due date" : "Due"} className="h-11 rounded-md border border-line px-3 text-base md:text-sm outline-none focus:border-navy" />
+        <button type="submit" className="h-11 rounded-md bg-navy text-sm font-semibold text-card">
+          Save {kind}
+        </button>
       </form>
     </section>
   );

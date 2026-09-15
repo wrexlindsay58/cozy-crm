@@ -26,6 +26,9 @@ export type Lead = {
   referrerName?: string;
   referrerPhone?: string;
   dropReason?: string;
+  tags?: string[];
+  dnc?: boolean;
+  workflows?: string[];
 };
 
 export type Opportunity = {
@@ -88,6 +91,9 @@ export type Ticket = {
   priority: "High" | "Normal" | "Low";
   status: "Open" | "Waiting" | "Done";
   age: string;
+  description?: string;
+  due?: string;
+  followers?: string[];
 };
 
 export type Activity = {
@@ -108,7 +114,7 @@ export const reps: { name: string; role: string; office: string; sold: number; r
 ];
 
 export const leads: Lead[] = [
-  { id: "L-4821", name: "Elena Vargas", phone: "(623) 555-0144", email: "elena.vargas@gmail.com", address: "18422 W Bell Rd", city: "Surprise, AZ", source: "Canvass", status: "Set, no run", tone: "alert", setter: "Priya Shah", closer: "Marco Velez", office: "Phoenix", created: "Sep 11", next: "Sep 14 6:00p", product: "Attic R-49 + air seal", value: 18420, notes: "Both spouses need to be home. Dog in backyard." },
+  { id: "L-4821", name: "Elena Vargas", phone: "(623) 555-0144", email: "elena.vargas@gmail.com", address: "18422 W Bell Rd", city: "Surprise, AZ", source: "Canvass", status: "Set, no run", tone: "alert", setter: "Priya Shah", closer: "Marco Velez", office: "Phoenix", created: "Sep 11", next: "Sep 14 6:00p", product: "Attic R-49 + air seal", value: 18420, notes: "Both spouses need to be home. Dog in backyard.", tags: ["HOA", "Air seal"] },
   { id: "L-4819", name: "Todd & Kim Hale", phone: "(480) 555-0198", email: "khale@cox.net", address: "7721 E Via de Ventura", city: "Scottsdale, AZ", source: "Google", status: "Ran", tone: "up", setter: "Amber Quinn", closer: "Dana Ortiz", office: "Scottsdale", created: "Sep 10", next: "Proposal out", product: "HVAC 4-ton + ducts", value: 28640, notes: "Existing 16-year Goodman. Interested in financing." },
   { id: "L-4814", name: "Marcus Bell", phone: "(214) 555-0112", email: "mbell@outlook.com", address: "4418 Swiss Ave", city: "Dallas, TX", source: "Referral", status: "Pending", tone: "muted", setter: "Priya Shah", closer: "Luis Haddad", office: "Dallas", created: "Sep 9", next: "Sep 15 5:30p", product: "Aeroseal + attic", value: 12480, notes: "Referred by the Whitakers. Utility rebate eligible.", referrerName: "The Whitakers", referrerPhone: "(480) 555-0121" },
   { id: "L-4808", name: "Sharon Nguyen", phone: "(623) 555-0177", email: "snguyen@yahoo.com", address: "14001 N Prasada Pkwy", city: "Surprise, AZ", source: "Website", status: "Unmarked", tone: "alert", setter: "Priya Shah", closer: "Marco Velez", office: "Phoenix", created: "Sep 8", next: "Needs disposition", product: "Insulation removal", value: 6400, notes: "Setter said run happened. No outcome logged." },
@@ -181,6 +187,7 @@ export const appointments: Appointment[] = [
 ];
 
 export const tickets: Ticket[] = [
+  { id: "T-91", title: "HOA baffle color", related: "L-4821", owner: "Marco Velez", priority: "Normal", status: "Open", age: "1d", description: "HOA wants baffle color to match the vents. Need a photo of the approved color.", due: "Sep 18", followers: ["Priya Shah"] },
   { id: "T-88", title: "Unmarked run, Sharon Nguyen", related: "L-4808", owner: "Marco Velez", priority: "High", status: "Open", age: "5d" },
   { id: "T-86", title: "HOA baffle color for Santos", related: "L-4718", owner: "Tasha Reed", priority: "High", status: "Waiting", age: "3d" },
   { id: "T-84", title: "Rebate packet, Rahman", related: "P-322", owner: "Evan Cole", priority: "Normal", status: "Open", age: "2d" },

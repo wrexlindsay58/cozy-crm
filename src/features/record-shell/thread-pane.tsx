@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Phone } from "lucide-react";
 import { addHistory } from "@/features/ops/store";
 import { sendMessage, useThread } from "@/features/thread/store";
 import { CallCard } from "./call-card";
@@ -8,9 +9,13 @@ import { cn } from "@/lib/cn";
 export function ThreadPane({
   personId,
   mode,
+  onCall,
+  dnc,
 }: {
   personId: string;
   mode: "customer" | "internal" | "notes";
+  onCall?: () => void;
+  dnc?: boolean;
 }) {
   const rows = useThread(personId, mode);
   const [draft, setDraft] = useState("");
@@ -28,6 +33,7 @@ export function ThreadPane({
       addHistory(personId, "Wrex Lindsay", `Email sent${subject.trim() ? `. ${subject.trim()}` : "."}`);
       setSubject("");
     } else {
+      if (dnc) return;
       sendMessage(personId, draft, "sms");
       addHistory(personId, "Wrex Lindsay", "Text sent.");
     }
@@ -35,7 +41,8 @@ export function ThreadPane({
   }
 
   const emptyCopy = mode === "internal" ? "None yet." : mode === "notes" ? "None yet." : "Nothing on this thread yet.";
-  const placeholder = mode === "internal" ? "Internal" : mode === "notes" ? "Note" : channel === "email" ? "Write the email" : "Text this house";
+  const placeholder =
+    mode === "internal" ? "Internal" : mode === "notes" ? "Note" : channel === "email" ? "Write the email" : dnc ? "DNC on this file" : "Send a text";
   const sendLabel = mode === "notes" ? "Add" : "Send";
 
   return (
@@ -78,6 +85,17 @@ export function ThreadPane({
                 {ch === "sms" ? "SMS" : "Email"}
               </button>
             ))}
+            {onCall ? (
+              <button
+                type="button"
+                aria-label="Call"
+                onClick={onCall}
+                disabled={dnc}
+                className="ml-auto grid size-10 place-items-center rounded-md text-navy disabled:opacity-40"
+              >
+                <Phone className="size-4" />
+              </button>
+            ) : null}
           </div>
         ) : null}
         {mode === "customer" && channel === "email" ? (
@@ -97,7 +115,8 @@ export function ThreadPane({
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             placeholder={placeholder}
-            className="h-11 min-w-0 flex-1 rounded-md border border-line bg-card px-3 text-sm outline-none focus:border-navy"
+            disabled={mode === "customer" && channel === "sms" && dnc}
+            className="h-11 min-w-0 flex-1 rounded-md border border-line bg-card px-3 text-sm outline-none focus:border-navy disabled:opacity-50"
           />
           <button type="submit" className="h-11 rounded-md bg-navy px-3 text-sm font-semibold text-card">
             {sendLabel}

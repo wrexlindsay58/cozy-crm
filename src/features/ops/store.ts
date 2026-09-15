@@ -25,7 +25,17 @@ export type LeadDraft = {
   referrerName?: string;
   referrerPhone?: string;
 };
-export type Task = { id: string; title: string; personId: string; owner: string; due: string; status: "Open" | "Done" };
+export type Task = {
+  id: string;
+  title: string;
+  personId: string;
+  owner: string;
+  due: string;
+  status: "Open" | "Done";
+  ticketId?: string;
+  description?: string;
+  followers?: string[];
+};
 export type CallInput = { direction: "Out" | "In"; result: "Answered" | "VM" | "No answer"; duration: string; note: string };
 
 const ACTOR = "Wrex Lindsay";
@@ -33,7 +43,9 @@ const ACTOR = "Wrex Lindsay";
 let leads: Lead[] = [...seedLeads];
 let appointments: Appointment[] = [...seedAppts];
 let tickets: Ticket[] = [...seedTickets];
-let tasks: Task[] = [];
+let tasks: Task[] = [
+  { id: "K-1", title: "Photo of approved baffle", personId: "L-4821", owner: "Priya Shah", due: "Sep 17", status: "Open", ticketId: "T-91", followers: [] },
+];
 let history: Record<string, { at: string; who: string; what: string }[]> = Object.fromEntries(
   Object.entries(activities).map(([id, rows]) => [id, rows.map((r) => ({ ...r }))]),
 );
@@ -89,29 +101,97 @@ export function bookAppointment(leadId: string, closer: string, day: number, hou
   ];
   addHistory(leadId, closer, `Booked Sep ${day} ${hour}.`);
 }
-export function createTicket(input: { personId: string; title: string; owner: string }) {
+export function createTicket(input: { personId: string; title: string; owner: string; description?: string; due?: string }) {
   if (!input.title.trim()) return;
-  tickets = [
-    {
-      id: `T-${60 + tickets.length}`,
-      title: input.title.trim(),
-      related: input.personId,
-      owner: input.owner,
-      priority: "Normal",
-      status: "Open",
-      age: "now",
-    } as Ticket,
-    ...tickets,
-  ];
+  const row: Ticket = {
+    id: `T-${60 + tickets.length}`,
+    title: input.title.trim(),
+    related: input.personId,
+    owner: input.owner,
+    priority: "Normal",
+    status: "Open",
+    age: "now",
+    description: input.description?.trim() || "",
+    due: input.due?.trim() || "",
+    followers: [],
+  };
+  tickets = [row, ...tickets];
   addHistory(input.personId, input.owner, `Ticket opened: ${input.title}.`);
+  return row;
 }
-export function createTask(input: { personId: string; title: string; owner: string; due: string }) {
+export function createTask(input: { personId: string; title: string; owner: string; due: string; ticketId?: string; description?: string }) {
   if (!input.title.trim()) return;
   tasks = [
-    { id: `K-${20 + tasks.length}`, title: input.title.trim(), personId: input.personId, owner: input.owner, due: input.due || "Today", status: "Open" },
+    {
+      id: `K-${20 + tasks.length}`,
+      title: input.title.trim(),
+      personId: input.personId,
+      owner: input.owner,
+      due: input.due || "Today",
+      status: "Open",
+      ticketId: input.ticketId,
+      description: input.description?.trim() || "",
+      followers: [],
+    },
     ...tasks,
   ];
-  addHistory(input.personId, input.owner, `Task opened: ${input.title}.`);
+  addHistory(input.personId, input.owner, input.ticketId ? `Task on ${input.ticketId}: ${input.title}.` : `Task opened: ${input.title}.`);
+}
+export function patchTicket(id: string, patch: Partial<Ticket>) {
+  const t = tickets.find((x) => x.id === id);
+  tickets = tickets.map((x) => (x.id === id ? { ...x, ...patch } : x));
+  if (t) addHistory(t.related, ACTOR, `Ticket ${id} updated.`);
+}
+export function addTicketFollower(id: string, name: string) {
+  tickets = tickets.map((t) => {
+    if (t.id !== id) return t;
+    if ((t.followers ?? []).includes(name)) return t;
+    return { ...t, followers: [...(t.followers ?? []), name] };
+  });
+  const t = tickets.find((x) => x.id === id);
+  if (t) addHistory(t.related, ACTOR, `Follow ticket ${id}: ${name}.`);
+}
+export function removeTicketFollower(id: string, name: string) {
+  tickets = tickets.map((t) => (t.id === id ? { ...t, followers: (t.followers ?? []).filter((n) => n !== name) } : t));
+  emit();
+}
+export function patchTask(id: string, patch: Partial<Task>) {
+  const k = tasks.find((x) => x.id === id);
+  tasks = tasks.map((x) => (x.id === id ? { ...x, ...patch } : x));
+  if (k) addHistory(k.personId, ACTOR, `Task updated: ${k.title}.`);
+}
+export function addTaskFollower(id: string, name: string) {
+  tasks = tasks.map((t) => {
+    if (t.id !== id) return t;
+    if ((t.followers ?? []).includes(name)) return t;
+    return { ...t, followers: [...(t.followers ?? []), name] };
+  });
+  emit();
+}
+export function toggleLeadTag(id: string, tag: string) {
+  leads = leads.map((l) => {
+    if (l.id !== id) return l;
+    const tags = l.tags ?? [];
+    return { ...l, tags: tags.includes(tag) ? tags.filter((t) => t !== tag) : [...tags, tag] };
+  });
+  addHistory(id, ACTOR, `Tag ${tag}.`);
+}
+export function setLeadDnc(id: string, on: boolean) {
+  leads = leads.map((l) => (l.id === id ? { ...l, dnc: on } : l));
+  addHistory(id, ACTOR, on ? "DNC on." : "DNC off.");
+}
+export function addWorkflow(id: string, name: string) {
+  leads = leads.map((l) => {
+    if (l.id !== id) return l;
+    const w = l.workflows ?? [];
+    if (w.includes(name)) return l;
+    return { ...l, workflows: [...w, name] };
+  });
+  addHistory(id, ACTOR, `Workflow on: ${name}.`);
+}
+export function stopWorkflow(id: string, name: string) {
+  leads = leads.map((l) => (l.id === id ? { ...l, workflows: (l.workflows ?? []).filter((n) => n !== name) } : l));
+  addHistory(id, ACTOR, `Workflow off: ${name}.`);
 }
 export function createLead(draft: LeadDraft) {
   if (!draft.name.trim() || !draft.phone.trim()) return null;
