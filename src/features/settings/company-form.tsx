@@ -45,13 +45,12 @@ export function CompanyForm() {
       {brand.logo ? <img src={brand.logo} alt="" className="h-16 w-auto bg-black p-2" /> : null}
 
       <h2 className="pt-2 text-[11px] font-bold tracking-wide text-muted uppercase">Proposal brand</h2>
-      <p className="text-[11px] text-muted">Colors and fonts on the customer proposal. This shop is Cozy: red, navy, black. Teko / Oswald / sans.</p>
-      <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
+      <p className="text-[11px] text-muted">Colors and fonts on the customer proposal. This shop is Cozy: red and navy. Teko / Oswald / sans. The mark is SVG, not a PNG.</p>
+      <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
         {(
           [
             ["red", "Red"],
             ["navy", "Navy"],
-            ["black", "Black"],
             ["gray", "Gray"],
             ["paper", "Paper"],
             ["ink", "Ink"],

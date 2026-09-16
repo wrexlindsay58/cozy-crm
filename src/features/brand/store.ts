@@ -12,7 +12,6 @@ export type Brand = {
   logo: string;
   red: string;
   navy: string;
-  black: string;
   gray: string;
   paper: string;
   ink: string;
@@ -30,13 +29,12 @@ const seed: Brand = {
   license: "ROC 312884",
   city: "Scottsdale, AZ",
   hours: "Mon–Sat 8a–6p",
-  logo: "/brand/cozy-logo.png",
-  red: "#C8102E",
-  navy: "#12344A",
-  black: "#0A0A0A",
-  gray: "#6E6E6E",
-  paper: "#FFFFFF",
-  ink: "#121212",
+  logo: "",
+  red: "#C2162E",
+  navy: "#0B3A4D",
+  gray: "#5C7380",
+  paper: "#F4F7F9",
+  ink: "#0B3A4D",
   fontHead: "Teko",
   fontSub: "Oswald",
   fontBody: "IBM Plex Sans",
@@ -68,7 +66,6 @@ export function brandVars(b: Brand = brand): CSSProperties {
   return {
     ["--p-red" as string]: b.red,
     ["--p-navy" as string]: b.navy,
-    ["--p-black" as string]: b.black,
     ["--p-gray" as string]: b.gray,
     ["--p-paper" as string]: b.paper,
     ["--p-ink" as string]: b.ink,

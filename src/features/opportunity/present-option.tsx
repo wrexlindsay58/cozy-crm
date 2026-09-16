@@ -26,7 +26,7 @@ export function PresentOption({
   const list = menu === "product" ? productsOf(catalog).filter((p) => !have.has(p.sku)) : menu === "adder" ? addersOf(catalog).filter((p) => !have.has(p.sku)) : discountsOf(catalog).filter((p) => !have.has(p.sku));
 
   return (
-    <article className={cn("rounded-sm border-2 p-5", selected ? "border-[var(--p-red)] bg-[var(--p-black)] text-white" : "border-black/10 bg-white")}>
+    <article className={cn("rounded-sm border-2 p-5", selected ? "border-[var(--p-red)] bg-[var(--p-navy)] text-white" : "border-[var(--p-navy)]/15 bg-white")}>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <button type="button" onClick={onPick} className="min-w-0 flex-1 text-left">
           <input
