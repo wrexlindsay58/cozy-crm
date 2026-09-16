@@ -2,6 +2,16 @@ export const STAGES = ["Sold", "Permit", "Materials", "Scheduled", "In progress"
 export type Stage = (typeof STAGES)[number];
 export const HOLDS = ["HOA", "permit", "rebate", "customer", "weather", "finance"] as const;
 export type Hold = (typeof HOLDS)[number];
+export type HoldRow = { kind: Hold; note: string; at: string };
+export type CrewAssign = {
+  id: string;
+  crew: string;
+  truck: string;
+  day: string;
+  start: string;
+  end: string;
+  scopes: string[];
+};
 export type ScopeLine = { label: string; amount: number };
 export type WorkOrder = {
   id: string;
@@ -59,7 +69,7 @@ export type JobFile = {
   pm: string;
   closer: string;
   stage: Stage;
-  holds: Hold[];
+  holds: HoldRow[];
   sold: number;
   labor: number;
   commission: number;
@@ -67,6 +77,7 @@ export type JobFile = {
   crew: string;
   truck: string;
   window: string;
+  assignments: CrewAssign[];
   scope: ScopeLine[];
   warranty: boolean;
   financeVendor: "GoodLeap" | "Cash" | "Card";
@@ -91,6 +102,28 @@ export function jobTone(job: Pick<JobFile, "stage" | "holds">): import("@/lib/cr
   if (job.stage === "Punch" || job.stage === "Test-out" || job.stage === "Permit") return "alert";
   if (job.stage === "Materials" || job.stage === "Sold") return "muted";
   return "navy";
+}
+
+export function inferStage(j: JobFile): Stage {
+  if (j.stage === "Closed") return "Closed";
+  const invoiced = j.invoices.some((i) => i.status === "Sent" || i.status === "Partial" || i.status === "Paid");
+  const punchOpen = j.punch.some((p) => p.status === "Open");
+  const test = j.appointments.some((a) => a.kind === "Test-out") || j.checks.some((c) => c.id === "test" && c.on);
+  const inField =
+    j.hours.length > 0 ||
+    j.packages.some((p) => p.status === "On truck" || p.status === "Done") ||
+    j.appointments.some((a) => a.status === "Dispatched" || a.status === "Done");
+  const scheduled = j.assignments.some((a) => a.day) || j.appointments.some((a) => a.status === "Set" || a.status === "Dispatched");
+  const materials = j.pos.some((p) => p.status !== "Draft") || j.equipment.some((e) => e.status === "Ordered" || e.status === "Received" || e.status === "Set");
+  const permit = j.holds.some((h) => h.kind === "permit") || j.checks.some((c) => c.id === "permit" && c.on);
+  if (invoiced) return "Invoiced";
+  if (punchOpen) return "Punch";
+  if (test) return "Test-out";
+  if (inField) return "In progress";
+  if (scheduled) return "Scheduled";
+  if (materials) return "Materials";
+  if (permit) return "Permit";
+  return "Sold";
 };
 
 export function defaultChecks(): CheckItem[] {

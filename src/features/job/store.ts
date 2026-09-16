@@ -1,10 +1,10 @@
 import { useSyncExternalStore } from "react";
 import { addHistory } from "@/features/ops/store";
 import { seedJobs } from "./seed";
-import type { ChangeOrder, CheckItem, EquipRow, Hold, JobAppt, JobFile, JobInvoice, LaborRow, PunchItem, PurchaseOrder, Stage, WorkOrder, WorkPackage } from "./types";
+import { inferStage, STAGES, type ChangeOrder, type CrewAssign, type EquipRow, type Hold, type JobAppt, type JobFile, type JobInvoice, type PunchItem, type PurchaseOrder, type Stage, type WorkOrder, type WorkPackage } from "./types";
 
-export type { ChangeOrder, CheckItem, EquipRow, Hold, JobAppt, JobFile, JobInvoice, LaborRow, PunchItem, PurchaseOrder, Stage, WorkOrder, WorkPackage } from "./types";
-export { HOLDS, STAGES, jobTone } from "./types";
+export type { ChangeOrder, CheckItem, CrewAssign, EquipRow, Hold, HoldRow, JobAppt, JobFile, JobInvoice, LaborRow, PunchItem, PurchaseOrder, Stage, WorkOrder, WorkPackage } from "./types";
+export { HOLDS, STAGES, inferStage, jobTone } from "./types";
 
 let jobs: Record<string, JobFile> = Object.fromEntries(seedJobs().map((j) => [j.jobId, j]));
 const listeners = new Set<() => void>();
@@ -46,10 +46,18 @@ export function tally(job: JobFile) {
   const cost = job.labor + job.commission + poReceived(job) + job.extras;
   return { revenue, cost, margin: revenue - cost, balance: invoiced(job) - paid(job), watch: poWatch(job) };
 }
-function patch(jobId: string, fn: (j: JobFile) => JobFile) {
+function patch(jobId: string, fn: (j: JobFile) => JobFile, opts?: { nudge?: boolean }) {
   const cur = jobs[jobId];
   if (!cur) return;
-  jobs = { ...jobs, [jobId]: fn(cur) };
+  let next = fn(cur);
+  if (opts?.nudge !== false && next.stage !== "Closed") {
+    const inferred = inferStage(next);
+    if (STAGES.indexOf(inferred) > STAGES.indexOf(next.stage)) {
+      addHistory(next.personId, next.pm, `Stage → ${inferred}.`);
+      next = { ...next, stage: inferred };
+    }
+  }
+  jobs = { ...jobs, [jobId]: next };
   emit();
 }
 export function applyCommissionPct(pct: number) {
@@ -61,13 +69,59 @@ export function setStage(jobId: string, stage: Stage) {
   patch(jobId, (j) => {
     addHistory(j.personId, j.pm, `Stage → ${stage}.`);
     return { ...j, stage };
+  }, { nudge: false });
+}
+export function toggleHold(jobId: string, kind: Hold) {
+  patch(jobId, (j) => {
+    const on = j.holds.some((h) => h.kind === kind);
+    addHistory(j.personId, j.pm, on ? `Hold cleared: ${kind}.` : `Hold set: ${kind}.`);
+    return { ...j, holds: on ? j.holds.filter((h) => h.kind !== kind) : [...j.holds, { kind, note: "", at: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric" }) }] };
   });
 }
-export function toggleHold(jobId: string, hold: Hold) {
+export function setHoldNote(jobId: string, kind: Hold, note: string) {
+  patch(jobId, (j) => ({ ...j, holds: j.holds.map((h) => (h.kind === kind ? { ...h, note } : h)) }), { nudge: false });
+}
+function syncCrew(j: JobFile): JobFile {
+  const first = j.assignments[0];
+  if (!first) return { ...j, crew: "", truck: "", window: "" };
+  const window = first.day ? `${first.day} · ${first.start}–${first.end}` : j.window;
+  return { ...j, crew: first.crew, truck: first.truck, window };
+}
+export function addAssign(jobId: string) {
   patch(jobId, (j) => {
-    const on = j.holds.includes(hold);
-    addHistory(j.personId, j.pm, on ? `Hold cleared: ${hold}.` : `Hold set: ${hold}.`);
-    return { ...j, holds: on ? j.holds.filter((h) => h !== hold) : [...j.holds, hold] };
+    const row: CrewAssign = {
+      id: `CA-${Date.now()}`,
+      crew: "Crew 2 — Tasha",
+      truck: "Truck 4",
+      day: "",
+      start: "07:00",
+      end: "15:00",
+      scopes: j.scope[0] ? [j.scope[0].label] : [],
+    };
+    addHistory(j.personId, j.pm, "Crew added.");
+    return syncCrew({ ...j, assignments: [...j.assignments, row] });
+  });
+}
+export function patchAssign(jobId: string, id: string, row: Partial<CrewAssign>) {
+  patch(jobId, (j) => {
+    const assignments = j.assignments.map((a) => (a.id === id ? { ...a, ...row } : a));
+    const next = syncCrew({ ...j, assignments });
+    const hit = assignments.find((a) => a.id === id);
+    if (hit?.day) addHistory(j.personId, j.pm, `${hit.crew} · ${hit.day} · ${hit.scopes.join(", ") || "no scope"}.`);
+    return next;
+  });
+}
+export function removeAssign(jobId: string, id: string) {
+  patch(jobId, (j) => syncCrew({ ...j, assignments: j.assignments.filter((a) => a.id !== id) }));
+}
+export function toggleAssignScope(jobId: string, id: string, scope: string) {
+  patch(jobId, (j) => {
+    const assignments = j.assignments.map((a) => {
+      if (a.id !== id) return a;
+      const on = a.scopes.includes(scope);
+      return { ...a, scopes: on ? a.scopes.filter((s) => s !== scope) : [...a.scopes, scope] };
+    });
+    return syncCrew({ ...j, assignments });
   });
 }
 export function assignCrew(jobId: string, crew: string, truck: string, window: string) {
@@ -129,7 +183,7 @@ export function completeJob(jobId: string) {
   patch(jobId, (j) => {
     addHistory(j.personId, j.pm, j.warranty ? "Job closed. Warranty opened." : "Job closed.");
     return { ...j, stage: "Closed" };
-  });
+  }, { nudge: false });
 }
 export function setPackageStatus(jobId: string, id: string, status: WorkPackage["status"]) {
   patch(jobId, (j) => {

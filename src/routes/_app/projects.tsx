@@ -35,7 +35,7 @@ function JobsPage() {
           return false;
         }
         if (!needle) return true;
-        return [j.lead?.name, j.name, j.product, j.pm, j.closer, j.crew, j.jobId, j.lead?.address, j.lead?.city, j.lead?.office, j.window, j.stage, j.holds.join(" ")].join(" ").toLowerCase().includes(needle);
+        return [j.lead?.name, j.name, j.product, j.pm, j.closer, j.crew, j.jobId, j.lead?.address, j.lead?.city, j.lead?.office, j.window, j.stage, j.holds.map((h) => `${h.kind} ${h.note}`).join(" ")].join(" ").toLowerCase().includes(needle);
       });
   }, [jobs, leads, view, query]);
 
@@ -70,7 +70,7 @@ function JobsPage() {
           {
             key: "stage",
             label: "Stage",
-            render: (r) => <StatusPill label={r.holds.length ? `${r.stage} · hold` : r.stage} tone={jobTone(r)} />,
+            render: (r) => <StatusPill label={r.holds.length ? `${r.stage} · ${r.holds.map((h) => h.kind).join(", ")}` : r.stage} tone={jobTone(r)} />,
           },
           {
             key: "next",
@@ -82,7 +82,7 @@ function JobsPage() {
             },
           },
           { key: "who", label: "Who", hide: "md", render: (r) => r.pm },
-          { key: "crew", label: "Crew", hide: "lg", render: (r) => <span className="text-muted">{r.crew}</span> },
+          { key: "crew", label: "Crew", hide: "lg", render: (r) => <span className="text-muted">{r.assignments.length > 1 ? `${r.assignments.length} crews` : r.crew || "—"}</span> },
           { key: "office", label: "Office", hide: "lg", render: (r) => r.lead?.office ?? "—" },
           { key: "amount", label: "$", render: (r) => <span className="font-semibold tabular-nums">{money(tally(r).revenue)}</span> },
         ]}

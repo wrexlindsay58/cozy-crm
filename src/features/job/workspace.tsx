@@ -1,5 +1,6 @@
+import { AssignCrew } from "./crew-assign";
 import { CostingBoard } from "./costing-board";
-import { CrewBlock, FinanceBlock, ScopeBlock } from "./crew-finance";
+import { FinanceBlock, ScopeBlock } from "./crew-finance";
 import { Documents } from "./documents";
 import { Production } from "./production";
 import { StageBar } from "./stage-bar";
@@ -15,10 +16,8 @@ export function JobWorkspace({ job, lead, focus }: { job: JobFile; lead?: Lead; 
       {lead ? <LeadCard lead={lead} locked /> : null}
       {lead ? <AssessSnap leadId={lead.id} /> : null}
       <StageBar job={job} />
-      <div className="grid gap-3 lg:grid-cols-2">
-        <ScopeBlock job={job} />
-        <CrewBlock job={job} />
-      </div>
+      <ScopeBlock job={job} />
+      <AssignCrew job={job} />
       <Production job={job} />
       <CostingBoard job={job} />
       <FinanceBlock job={job} />
