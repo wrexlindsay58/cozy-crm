@@ -29,6 +29,7 @@ import { Route as AppScoreboardRouteImport } from './routes/_app/scoreboard'
 import { Route as AppSettingsRouteImport } from './routes/_app/settings'
 import { Route as AppTeamRouteImport } from './routes/_app/team'
 import { Route as AppTicketsRouteImport } from './routes/_app/tickets'
+import { Route as ProposalOppIdRouteImport } from './routes/proposal.$oppId'
 import { Route as AppAccountsAccountIdRouteImport } from './routes/_app/accounts_.$accountId'
 import { Route as AppAssessmentsAssessmentIdRouteImport } from './routes/_app/assessments_.$assessmentId'
 import { Route as AppLeadsLeadIdRouteImport } from './routes/_app/leads_.$leadId'
@@ -177,6 +178,11 @@ const AppTicketsRoute = AppTicketsRouteImport.update({
   id: '/tickets',
   path: '/tickets',
   getParentRoute: () => AppRoute,
+} as any)
+const ProposalOppIdRoute = ProposalOppIdRouteImport.update({
+  id: '/proposal/$oppId',
+  path: '/proposal/$oppId',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AppAccountsAccountIdRoute = AppAccountsAccountIdRouteImport.update({
   id: '/accounts_/$accountId',
@@ -453,6 +459,7 @@ export interface FileRoutesByFullPath {
   '/settings': typeof AppSettingsRoute
   '/team': typeof AppTeamRoute
   '/tickets': typeof AppTicketsRoute
+  '/proposal/$oppId': typeof ProposalOppIdRoute
   '/accounts/$accountId': typeof AppAccountsAccountIdRoute
   '/assessments/$assessmentId': typeof AppAssessmentsAssessmentIdRoute
   '/leads/$leadId': typeof AppLeadsLeadIdRoute
@@ -522,6 +529,7 @@ export interface FileRoutesByTo {
   '/settings': typeof AppSettingsRoute
   '/team': typeof AppTeamRoute
   '/tickets': typeof AppTicketsRoute
+  '/proposal/$oppId': typeof ProposalOppIdRoute
   '/': typeof AppIndexRoute
   '/accounts/$accountId': typeof AppAccountsAccountIdRoute
   '/assessments/$assessmentId': typeof AppAssessmentsAssessmentIdRoute
@@ -594,6 +602,7 @@ export interface FileRoutesById {
   '/_app/settings': typeof AppSettingsRoute
   '/_app/team': typeof AppTeamRoute
   '/_app/tickets': typeof AppTicketsRoute
+  '/proposal/$oppId': typeof ProposalOppIdRoute
   '/_app/': typeof AppIndexRoute
   '/_app/accounts_/$accountId': typeof AppAccountsAccountIdRoute
   '/_app/assessments_/$assessmentId': typeof AppAssessmentsAssessmentIdRoute
@@ -667,6 +676,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/team'
     | '/tickets'
+    | '/proposal/$oppId'
     | '/accounts/$accountId'
     | '/assessments/$assessmentId'
     | '/leads/$leadId'
@@ -736,6 +746,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/team'
     | '/tickets'
+    | '/proposal/$oppId'
     | '/'
     | '/accounts/$accountId'
     | '/assessments/$assessmentId'
@@ -807,6 +818,7 @@ export interface FileRouteTypes {
     | '/_app/settings'
     | '/_app/team'
     | '/_app/tickets'
+    | '/proposal/$oppId'
     | '/_app/'
     | '/_app/accounts_/$accountId'
     | '/_app/assessments_/$assessmentId'
@@ -861,6 +873,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   AppRoute: typeof AppRouteWithChildren
+  ProposalOppIdRoute: typeof ProposalOppIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -1004,6 +1017,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/tickets'
       preLoaderRoute: typeof AppTicketsRouteImport
       parentRoute: typeof AppRoute
+    }
+    '/proposal/$oppId': {
+      id: '/proposal/$oppId'
+      path: '/proposal/$oppId'
+      fullPath: '/proposal/$oppId'
+      preLoaderRoute: typeof ProposalOppIdRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/_app/accounts_/$accountId': {
       id: '/_app/accounts_/$accountId'
@@ -1497,6 +1517,7 @@ const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   AppRoute: AppRouteWithChildren,
+  ProposalOppIdRoute: ProposalOppIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

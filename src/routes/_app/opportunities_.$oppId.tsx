@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { OppWorkspace } from "@/features/opportunity/workspace";
 import { assessmentForLead } from "@/features/assessment/store";
 import { applyGoodLeap, generateProposal, optionTotal, useProposal } from "@/features/opportunity/store";
@@ -12,6 +12,7 @@ export const Route = createFileRoute("/_app/opportunities_/$oppId")({ component:
 
 function OppFile() {
   const { oppId } = Route.useParams();
+  const navigate = useNavigate();
   const { tickets, history, leads } = useOps();
   const opp = byId(opportunities, oppId);
   const proposal = useProposal(oppId);
@@ -51,7 +52,7 @@ function OppFile() {
         { label: "Text", opens: "thread" },
         { label: "Book", onClick: () => document.getElementById("book-widget")?.scrollIntoView({ behavior: "smooth", block: "start" }) },
         { label: "Create", menu: [{ label: "Ticket" }, { label: "Task" }] },
-        { label: "Generate", onClick: () => generateProposal(opp.id) },
+        { label: "Generate", onClick: () => { generateProposal(opp.id); navigate({ to: "/proposal/$oppId", params: { oppId: opp.id } }); } },
         { label: "Card", onClick: () => applyGoodLeap(opp.id) },
       ]}
       history={history?.[opp.leadId] ?? []}
