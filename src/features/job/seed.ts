@@ -1,5 +1,18 @@
 import { accounts, leads, projects } from "@/lib/crm-data";
-import { defaultChecks, type JobFile, type Stage } from "./types";
+import {
+  cashLoan,
+  defaultChecks,
+  defaultPacket,
+  defaultPost,
+  defaultPre,
+  emptyPermit,
+  emptyRebate,
+  emptyTest,
+  type JobFile,
+  type Stage,
+} from "./types";
+
+const atticBefore = "/brand/slides/house.jpg";
 
 export function seedJobs(): JobFile[] {
   const cho: JobFile = {
@@ -21,43 +34,98 @@ export function seedJobs(): JobFile[] {
     truck: "Truck 4",
     window: "Sep 22 · 7a–3p",
     assignments: [
-      { id: "CA-1", crew: "Crew 2 — Tasha", truck: "Truck 4", day: "2026-09-22", start: "07:00", end: "15:00", scopes: ["Attic R-49", "Ducts"], kind: "internal", company: "" },
-      { id: "CA-2", crew: "Crew 1 — Evan", truck: "Truck 2", day: "2026-09-22", start: "08:00", end: "16:00", scopes: ["HVAC replacement"], kind: "internal", company: "" },
+      { id: "CA-1", crew: "Crew 2 — Tasha", truck: "Truck 4", day: "2026-09-22", start: "07:00", end: "15:00", scopes: ["SC-1", "SC-3"], kind: "internal", company: "", woId: "WO-14" },
+      { id: "CA-2", crew: "Crew 1 — Evan", truck: "Truck 2", day: "2026-09-22", start: "08:00", end: "16:00", scopes: ["SC-2"], kind: "internal", company: "" },
     ],
     soldNotes: "Both home. Hatch in the hall. Dumpster off the street for HOA.",
     scope: [
-      { id: "SC-1", label: "Attic R-49", amount: 8900, qty: 1, sqft: 1850, notes: "Blow R-49. Baffles at the eaves. Hatch weatherstrip." },
-      { id: "SC-2", label: "HVAC replacement", amount: 18600, qty: 1, sqft: 0, notes: "4-ton split. Goodman. Old pad is cracked — new pad in adders." },
-      { id: "SC-3", label: "Ducts", amount: 3750, qty: 1, sqft: 0, notes: "Replace the supply trunk in the garage. Seal boots." },
+      {
+        id: "SC-1",
+        label: "Attic R-49",
+        amount: 8900,
+        qty: 1850,
+        notes: "Blow R-49. Baffles at the eaves. Hatch weatherstrip.",
+        quotedCost: 2100,
+        estHours: 6,
+        media: [{ id: "M-1", cat: "Before", name: "Hatch", url: atticBefore, kind: "photo" }],
+      },
+      {
+        id: "SC-2",
+        label: "HVAC replacement",
+        amount: 18600,
+        qty: 1,
+        notes: "4-ton split. Goodman. Old pad is cracked — new pad in adders.",
+        quotedCost: 9800,
+        estHours: 8,
+        media: [],
+      },
+      {
+        id: "SC-3",
+        label: "Ducts",
+        amount: 3750,
+        qty: 1,
+        notes: "Replace the supply trunk in the garage. Seal boots.",
+        quotedCost: 900,
+        estHours: 4,
+        media: [],
+      },
     ],
     warranty: true,
-    financeVendor: "GoodLeap",
-    financeStatus: "Approved",
-    ntp: "Ready",
-    workOrders: [{ id: "WO-14", status: "Issued", day: "Sep 22", crew: "Crew 2 — Tasha", notes: "Pull R-49 + 4-ton." }],
+    loan: {
+      vendor: "GoodLeap",
+      amount: 31250,
+      dealerFee: 2188,
+      term: 144,
+      rate: 7.99,
+      status: "NTP",
+      notes: "Stip: proof of insurance. Alyssa is the borrower.",
+      fundedAmount: 0,
+    },
+    workOrders: [
+      {
+        id: "WO-14",
+        assignId: "CA-1",
+        status: "Sent",
+        day: "2026-09-22",
+        crew: "Crew 2 — Tasha",
+        notes: "Attic R-49 + ducts.",
+        file: { name: "WO-14.pdf", url: "#" },
+      },
+    ],
     pos: [
-      { id: "PO-88", vendor: "Carrier", amount: 9800, status: "Sent", what: "4-ton condenser + coil" },
-      { id: "PO-81", vendor: "GreenFiber", amount: 2100, status: "Received", what: "Cellulose" },
+      { id: "PO-88", vendor: "Carrier", amount: 9800, status: "Sent", what: "4-ton condenser + coil", scopeId: "SC-2", file: { name: "PO-88-Carrier.pdf", url: "#" } },
+      { id: "PO-81", vendor: "GreenFiber", amount: 2100, status: "Received", what: "Cellulose", scopeId: "SC-1", file: { name: "PO-81-GreenFiber.pdf", url: "#" } },
     ],
     changeOrders: [],
-    invoices: [{ id: "INV-41", kind: "Deposit", amount: 5000, paid: 0, status: "Sent" }],
-    packages: [
-      { id: "PKG-1", name: "Attic R-49", status: "On truck", crew: "Crew 2 — Tasha" },
-      { id: "PKG-2", name: "HVAC 4-ton", status: "On order", crew: "Crew 2 — Tasha" },
-      { id: "PKG-3", name: "Ducts", status: "Queued", crew: "Crew 2 — Tasha" },
+    invoices: [
+      {
+        id: "INV-41",
+        kind: "Deposit",
+        amount: 5000,
+        paid: 0,
+        status: "Sent",
+        file: { name: "INV-41.pdf", url: "#" },
+        payments: [],
+      },
     ],
-    appointments: [
-      { id: "JA-1", kind: "Install", day: "Sep 22", window: "7a–3p", crew: "Crew 2 — Tasha", status: "Set" },
-      { id: "JA-2", kind: "Test-out", day: "Sep 24", window: "2p–4p", crew: "Tasha Reed", status: "Set" },
+    events: [
+      { id: "EV-1", scopeId: "SC-1", process: "Attic blow", day: "2026-09-22", window: "07:00–15:00", crew: "Crew 2 — Tasha", assignId: "CA-1", status: "Set" },
+      { id: "EV-2", scopeId: "SC-3", process: "Ducts", day: "2026-09-22", window: "07:00–15:00", crew: "Crew 2 — Tasha", assignId: "CA-1", status: "Set" },
     ],
     punch: [{ id: "PU-1", item: "Seal hatch weatherstrip", owner: "Crew 2", status: "Open" }],
     equipment: [
-      { id: "EQ-1", name: "4-ton condenser", serial: "", eta: "Sep 19", status: "Ordered" },
-      { id: "EQ-2", name: "Coil", serial: "", eta: "Sep 19", status: "Ordered" },
+      { id: "EQ-1", name: "4-ton condenser", model: "24ACC636A003", serial: "", ahri: "207398123", eta: "Sep 19", status: "Ordered", oldRecovered: false, scopeId: "SC-2" },
+      { id: "EQ-2", name: "Coil", model: "CAPFA1818C6", serial: "", ahri: "", eta: "Sep 19", status: "Ordered", oldRecovered: false, scopeId: "SC-2" },
     ],
     checks: defaultChecks().map((c) => (c.id === "equip" ? { ...c, on: true } : c)),
-    hours: [{ id: "HR-1", who: "Tasha Reed", hours: 2, day: "Sep 12" }],
+    punches: [{ id: "HR-1", who: "Tasha Reed", day: "Sep 12", scopeId: "SC-1", leftYard: "06:40", onSite: "07:10", complete: "09:00", back: "09:25" }],
     access: "Side gate. Dogs in. HOA needs dumpster off the street.",
+    permit: { number: "MECH-4491", city: "Scottsdale", inspection: "2026-09-24", result: "Scheduled", file: { name: "permit-MECH-4491.pdf", url: "#" } },
+    rebate: { utility: "SRP", program: "Home Performance", amount: 800, status: "Reserved", reservation: "SRP-8821", file: undefined },
+    testOut: emptyTest(),
+    preCheck: { ...defaultPre(), items: defaultPre().items.map((i) => ({ ...i, on: true })), signedBy: "Alyssa Cho", signedAt: "Sep 8" },
+    postCheck: defaultPost(),
+    packet: defaultPacket(),
   };
   const rest = projects
     .filter((p) => p.id !== "P-331")
@@ -65,48 +133,52 @@ export function seedJobs(): JobFile[] {
       const account = accounts.find((a) => a.id === p.accountId);
       const lead = leads.find((l) => l.name === account?.name);
       const contact = lead?.id ?? p.accountId;
+      const sid = `SC-${p.id}`;
       return {
-      jobId: p.id,
-      personId: contact,
-      leadId: lead?.id ?? "",
-      accountId: p.accountId,
-      name: p.name,
-      product: p.product,
-      pm: p.pm,
-      closer: "Dana Ortiz",
-      stage: (p.status === "On hold" ? "Sold" : p.status) as Stage,
-      holds: p.status === "On hold" ? [{ kind: "HOA" as const, note: "Waiting on HOA. Need the written sign-off.", at: "Sep 10" }] : [],
-      sold: p.amount,
-      labor: Math.round(p.amount * 0.12),
-      commission: Math.round(p.amount * 0.1),
-      extras: 0,
-      crew: p.pm,
-      truck: "Truck 2",
-      window: p.install,
-      assignments: p.install
-        ? [{ id: `CA-${p.id}`, crew: p.pm, truck: "Truck 2", day: "", start: "07:00", end: "15:00", scopes: [p.product], kind: "internal" as const, company: "" }]
-        : [],
-      soldNotes: "",
-      scope: [{ id: `SC-${p.id}`, label: p.product, amount: p.amount, qty: 1, sqft: 0, notes: "" }],
-      warranty: p.product.toLowerCase().includes("attic"),
-      financeVendor: "Cash" as const,
-      financeStatus: "—",
-      ntp: "Not ready" as const,
-      workOrders: [],
-      pos: [],
-      changeOrders: [],
-      invoices:
-        p.status === "Closed"
-          ? [{ id: `INV-${p.id.slice(2)}`, kind: "Final" as const, amount: p.amount, paid: p.amount, status: "Paid" as const }]
+        jobId: p.id,
+        personId: contact,
+        leadId: lead?.id ?? "",
+        accountId: p.accountId,
+        name: p.name,
+        product: p.product,
+        pm: p.pm,
+        closer: "Dana Ortiz",
+        stage: (p.status === "On hold" ? "Sold" : p.status) as Stage,
+        holds: p.status === "On hold" ? [{ kind: "HOA" as const, note: "Waiting on HOA. Need the written sign-off.", at: "Sep 10" }] : [],
+        sold: p.amount,
+        labor: Math.round(p.amount * 0.12),
+        commission: Math.round(p.amount * 0.1),
+        extras: 0,
+        crew: p.pm,
+        truck: "Truck 2",
+        window: p.install,
+        assignments: p.install
+          ? [{ id: `CA-${p.id}`, crew: p.pm, truck: "Truck 2", day: "", start: "07:00", end: "15:00", scopes: [sid], kind: "internal" as const, company: "" }]
           : [],
-      packages: [{ id: `PKG-${p.id}`, name: p.product, status: p.status === "Closed" ? ("Done" as const) : ("Queued" as const), crew: p.pm }],
-      appointments: p.install ? [{ id: `JA-${p.id}`, kind: "Install" as const, day: p.install, window: "7a–3p", crew: p.pm, status: "Set" as const }] : [],
-      punch: [],
-      equipment: [],
-      checks: defaultChecks(),
-      hours: [],
-      access: "",
-    };
+        soldNotes: "",
+        scope: [{ id: sid, label: p.product, amount: p.amount, qty: 1, notes: "", quotedCost: Math.round(p.amount * 0.4), estHours: 8, media: [] }],
+        warranty: p.product.toLowerCase().includes("attic"),
+        loan: { ...cashLoan(), amount: p.amount },
+        workOrders: [],
+        pos: [],
+        changeOrders: [],
+        invoices:
+          p.status === "Closed"
+            ? [{ id: `INV-${p.id.slice(2)}`, kind: "Final" as const, amount: p.amount, paid: p.amount, status: "Paid" as const, payments: [{ id: `PY-${p.id}`, amount: p.amount, at: p.install, how: "Cash", status: "Paid" as const }] }]
+            : [],
+        events: p.install ? [{ id: `EV-${p.id}`, scopeId: sid, process: p.product, day: p.install, window: "07:00–15:00", crew: p.pm, status: "Set" as const }] : [],
+        punch: [],
+        equipment: [],
+        checks: defaultChecks(),
+        punches: [],
+        access: "",
+        permit: emptyPermit(),
+        rebate: emptyRebate(),
+        testOut: emptyTest(),
+        preCheck: defaultPre(),
+        postCheck: defaultPost(),
+        packet: defaultPacket(),
+      };
     });
   return [cho, ...rest];
 }

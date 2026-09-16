@@ -77,8 +77,8 @@ function JobsPage() {
             label: "Next",
             hide: "md",
             render: (r) => {
-              const next = r.appointments.find((a) => a.status !== "Done") ?? r.appointments[0];
-              return <span className="text-muted">{next ? `${next.kind} ${next.day}` : r.window}</span>;
+              const next = r.events.find((a) => a.status !== "Done") ?? r.events[0];
+              return <span className="text-muted">{next ? `${next.process} ${next.day}` : r.window}</span>;
             },
           },
           { key: "who", label: "Who", hide: "md", render: (r) => r.pm },
