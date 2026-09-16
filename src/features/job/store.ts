@@ -3,9 +3,12 @@ import { addHistory } from "@/features/ops/store";
 import { seedJobs } from "./seed";
 import {
   closeBlocks,
+  contractTotal,
   inferStage,
+  materialCost,
   processFor,
   punchHours,
+  quotedMaterials,
   STAGES,
   type ChangeOrder,
   type CrewAssign,
@@ -44,7 +47,7 @@ export type {
   Stage,
   WorkOrder,
 } from "./types";
-export { closeBlocks, HOLDS, inferStage, jobTone, MEDIA_CATS, PROCESSES, punchHours, STAGES } from "./types";
+export { CHAPTERS, closeBlocks, contractTotal, HOLDS, inferStage, jobTone, materialCost, MEDIA_CATS, PROCESSES, punchHours, quotedMaterials, STAGES } from "./types";
 
 let jobs: Record<string, JobFile> = Object.fromEntries(seedJobs().map((j) => [j.jobId, j]));
 const listeners = new Set<() => void>();
@@ -89,12 +92,32 @@ export function laborActual(job: JobFile) {
   return Math.round(hrs * 55);
 }
 export function tally(job: JobFile) {
-  const revenue = job.sold + approvedCos(job);
+  const revenue = contractTotal(job);
   const labor = laborActual(job);
   const fee = job.loan.vendor === "GoodLeap" ? job.loan.dealerFee : 0;
-  const cost = labor + job.commission + poReceived(job) + job.extras + fee;
+  const mats = materialCost(job);
   const quoted = quotedCost(job) + job.commission;
-  return { revenue, cost, quoted, labor, margin: revenue - cost, quotedMargin: revenue - quoted, balance: invoiced(job) - paid(job), watch: poWatch(job) };
+  const cost = labor + job.commission + mats + job.extras + fee;
+  const invoicedAmt = invoiced(job);
+  const paidAmt = paid(job);
+  const funded = job.loan.vendor === "GoodLeap" ? job.loan.fundedAmount : 0;
+  return {
+    revenue,
+    cost,
+    quoted,
+    labor,
+    mats,
+    quotedMats: quotedMaterials(job),
+    margin: revenue - cost,
+    quotedMargin: revenue - quoted,
+    invoiced: invoicedAmt,
+    paid: paidAmt,
+    funded,
+    collect: Math.max(0, revenue - paidAmt - funded),
+    overUnder: invoicedAmt - revenue,
+    watch: poWatch(job),
+    balance: invoicedAmt - paidAmt,
+  };
 }
 function patch(jobId: string, fn: (j: JobFile) => JobFile, opts?: { nudge?: boolean }) {
   const cur = jobs[jobId];
@@ -169,7 +192,6 @@ export function toggleAssignScope(jobId: string, id: string, scope: string) {
   });
 }
 function eventsFromAssign(j: JobFile, a: CrewAssign): JobEvent[] {
-  const window = `${a.start}–${a.end}`;
   const who = a.kind === "sub" ? a.company || a.crew : a.crew;
   return a.scopes.map((sid) => {
     const scope = j.scope.find((s) => s.id === sid);
@@ -178,7 +200,8 @@ function eventsFromAssign(j: JobFile, a: CrewAssign): JobEvent[] {
       scopeId: sid,
       process: processFor(scope?.label ?? sid),
       day: a.day,
-      window,
+      start: a.start,
+      end: a.end,
       crew: who,
       assignId: a.id,
       status: "Set" as const,
@@ -243,12 +266,19 @@ export function addChangeOrder(jobId: string, why: string, amount: number, cost:
       ...j,
       changeOrders: [row, ...j.changeOrders],
       extras: j.extras + cost,
-      scope: [...j.scope, { id: `SC-${Date.now()}`, label: why.trim(), amount, qty: 1, notes: "", quotedCost: cost, estHours: 2, media: [] }],
+      installRev: j.installRev + 1,
+      scope: [...j.scope, { id: `SC-${Date.now()}`, label: why.trim(), kind: "adder", categoryId: j.scope[0]?.categoryId ?? "attic", amount, qty: 1, notes: "", quotedCost: cost, estHours: 2, media: [], owner: "", promiseDone: false, bom: [] }],
     };
   });
 }
 export function signCo(jobId: string, id: string) {
-  patch(jobId, (j) => ({ ...j, changeOrders: j.changeOrders.map((c) => (c.id === id ? { ...c, signed: true, signedAt: "Now", status: "Approved" } : c)) }));
+  patch(jobId, (j) => ({
+    ...j,
+    changeOrders: j.changeOrders.map((c) => (c.id === id ? { ...c, signed: true, signedAt: "Now", status: "Approved" } : c)),
+  }));
+}
+export function signFinanceCo(jobId: string) {
+  patch(jobId, (j) => ({ ...j, financeRev: j.installRev }), { nudge: false });
 }
 export function addPurchaseOrder(jobId: string, vendor: string, what: string, amount: number, received: boolean) {
   if (!vendor.trim() || amount <= 0) return;
@@ -296,14 +326,17 @@ export function patchLoan(jobId: string, row: Partial<LoanFile>) {
 export function setEventStatus(jobId: string, id: string, status: JobEvent["status"]) {
   patch(jobId, (j) => ({ ...j, events: j.events.map((e) => (e.id === id ? { ...e, status } : e)) }));
 }
-export function addEvent(jobId: string, process: string, scopeId: string, day: string) {
+export function addEvent(jobId: string, process: string, scopeId: string, day: string, start = "07:00", end = "15:00") {
   if (!day.trim()) return;
   patch(jobId, (j) => {
     const scope = j.scope.find((s) => s.id === scopeId);
-    const row: JobEvent = { id: `EV-${Date.now()}`, scopeId, process, day: day.trim(), window: "07:00–15:00", crew: j.crew, status: "Set" };
+    const row: JobEvent = { id: `EV-${Date.now()}`, scopeId, process, day: day.trim(), start, end, crew: j.crew, status: "Set" };
     addHistory(j.personId, j.pm, `${process} · ${scope?.label ?? ""} ${day}.`);
     return { ...j, events: [...j.events, row] };
   });
+}
+export function patchEvent(jobId: string, id: string, row: Partial<JobEvent>) {
+  patch(jobId, (j) => ({ ...j, events: j.events.map((e) => (e.id === id ? { ...e, ...row } : e)) }));
 }
 export function addPunch(jobId: string, item: string) {
   if (!item.trim()) return;
@@ -374,11 +407,41 @@ export function sendPacket(jobId: string) {
 }
 export function sendFinalInvoice(jobId: string) {
   patch(jobId, (j) => {
-    const due = Math.max(0, j.sold + approvedCos(j) - paid(j));
+    const due = Math.max(0, contractTotal(j) - paid(j));
     if (due <= 0) return j;
     const row: JobInvoice = { id: `INV-${30 + j.invoices.length}`, kind: "Final", amount: due, paid: 0, status: "Sent", file: { name: "final-invoice.pdf", url: "#" }, payments: [] };
     addHistory(j.personId, j.pm, `Final invoice sent ${due}.`);
     return { ...j, invoices: [row, ...j.invoices] };
+  });
+}
+export function setPlan(jobId: string, scopeId: string, status: import("./types").PlanStatus) {
+  patch(jobId, (j) => ({
+    ...j,
+    scope: j.scope.map((s) => (s.id === scopeId ? { ...s, plan: { status, approvedBy: status === "Released" || status === "Approved" ? "Office" : s.plan?.approvedBy ?? "" } } : s)),
+  }));
+}
+export function togglePromise(jobId: string, scopeId: string) {
+  patch(jobId, (j) => ({ ...j, scope: j.scope.map((s) => (s.id === scopeId ? { ...s, promiseDone: !s.promiseDone } : s)) }), { nudge: false });
+}
+export function patchBom(jobId: string, scopeId: string, bomId: string, row: Partial<import("./types").BomLine>) {
+  patch(jobId, (j) => ({
+    ...j,
+    scope: j.scope.map((s) => (s.id === scopeId ? { ...s, bom: s.bom.map((b) => (b.id === bomId ? { ...b, ...row } : b)) } : s)),
+  }));
+}
+export function orderBom(jobId: string, scopeId: string) {
+  patch(jobId, (j) => {
+    const sc = j.scope.find((s) => s.id === scopeId);
+    if (!sc) return j;
+    const amount = sc.bom.reduce((n, b) => n + b.estQty * b.unitCost, 0);
+    const supplier = sc.bom[0]?.supplier || "Supplier";
+    addHistory(j.personId, j.pm, `PO ${supplier} ${amount}.`);
+    const po: PurchaseOrder = { id: `PO-${60 + j.pos.length}`, vendor: supplier, amount, status: "Sent", what: sc.label, scopeId, file: { name: `${supplier}.pdf`, url: "#" } };
+    return {
+      ...j,
+      pos: [po, ...j.pos],
+      scope: j.scope.map((s) => (s.id === scopeId ? { ...s, bom: s.bom.map((b) => ({ ...b, ordered: true })) } : s)),
+    };
   });
 }
 export function completeJob(jobId: string) {

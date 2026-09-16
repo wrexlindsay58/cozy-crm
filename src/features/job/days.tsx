@@ -19,7 +19,7 @@ export function InstallDays({ job }: { job: JobFile }) {
                 <div className="min-w-0">
                   <p className="text-sm font-semibold">{e.process}</p>
                   <p className="mt-0.5 text-[12px] text-muted">
-                    {scope?.label ?? "Scope"} · {e.day} · {e.window} · {e.crew}
+                    {scope?.label ?? "Scope"} · {e.day} · {e.start}–{e.end} · {e.crew}
                   </p>
                 </div>
                 <div className="flex shrink-0 gap-1">

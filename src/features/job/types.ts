@@ -12,9 +12,25 @@ export const MEDIA_CATS = ["Before", "During", "After", "Serial", "Permit", "Oth
 export type MediaCat = (typeof MEDIA_CATS)[number];
 export type FileLink = { name: string; url: string };
 export type ScopeMedia = { id: string; cat: MediaCat; name: string; url: string; kind: "photo" | "video" | "doc" };
+export type ScopeKind = "product" | "adder" | "promise";
+export type PlanStatus = "Draft" | "Sent" | "Approved" | "Released";
+export type ScopePlan = { status: PlanStatus; file?: FileLink; approvedBy: string };
+export type UtilityPack = { form: string; status: "None" | "Submitted" | "Approved" | "PTO"; file?: FileLink };
+export type BomLine = {
+  id: string;
+  name: string;
+  estQty: number;
+  usedQty: number;
+  unit: string;
+  unitCost: number;
+  supplier: string;
+  ordered: boolean;
+};
 export type ScopeLine = {
   id: string;
   label: string;
+  kind: ScopeKind;
+  categoryId: string;
   amount: number;
   qty: number;
   notes: string;
@@ -22,6 +38,11 @@ export type ScopeLine = {
   estHours: number;
   asBuiltQty?: number;
   media: ScopeMedia[];
+  owner: string;
+  promiseDone: boolean;
+  plan?: ScopePlan;
+  utility?: UtilityPack;
+  bom: BomLine[];
 };
 
 export type CrewAssign = {
@@ -57,7 +78,8 @@ export type JobEvent = {
   scopeId: string;
   process: string;
   day: string;
-  window: string;
+  start: string;
+  end: string;
   crew: string;
   assignId?: string;
   status: "Set" | "Dispatched" | "Done" | "No-show";
@@ -174,7 +196,33 @@ export type JobFile = {
   preCheck: SignedCheck;
   postCheck: SignedCheck;
   packet: ClosingPacket;
+  installRev: number;
+  financeRev: number;
 };
+
+export const CHAPTERS = ["sold", "ready", "crew", "run", "money", "close"] as const;
+export type Chapter = (typeof CHAPTERS)[number];
+export function chapterFor(stage: Stage): Chapter {
+  if (stage === "Sold") return "sold";
+  if (stage === "Permit" || stage === "Materials") return "ready";
+  if (stage === "Scheduled") return "crew";
+  if (stage === "In progress" || stage === "Test-out" || stage === "Punch") return "run";
+  if (stage === "Invoiced") return "money";
+  return "close";
+}
+
+export function materialCost(j: JobFile) {
+  return j.scope.reduce((s, sc) => s + sc.bom.reduce((b, l) => b + (l.usedQty || l.estQty) * l.unitCost, 0), 0);
+}
+export function quotedMaterials(j: JobFile) {
+  return j.scope.reduce((s, sc) => s + sc.bom.reduce((b, l) => b + l.estQty * l.unitCost, 0), 0);
+}
+export function contractTotal(j: JobFile) {
+  return j.sold + j.changeOrders.filter((c) => c.status === "Approved" && c.signed).reduce((s, c) => s + c.amount, 0);
+}
+export function agreementsSync(j: JobFile) {
+  return j.installRev === j.financeRev;
+}
 
 export function processFor(label: string): string {
   const t = label.toLowerCase();
@@ -212,7 +260,7 @@ export function inferStage(j: JobFile): Stage {
   const test = j.events.some((e) => e.process === "Test-out") || Number(j.testOut.blowerAfter) > 0;
   const inField = j.punches.some((p) => p.onSite) || j.events.some((e) => e.status === "Dispatched" || e.status === "Done");
   const scheduled = j.assignments.some((a) => a.day) || j.events.some((e) => e.status === "Set");
-  const materials = j.pos.some((p) => p.status !== "Draft") || j.equipment.some((e) => e.status === "Ordered" || e.status === "Received" || e.status === "Set");
+  const materials = j.pos.some((p) => p.status !== "Draft") || j.scope.some((s) => s.bom.some((b) => b.ordered));
   const permit = j.holds.some((h) => h.kind === "permit") || !!j.permit.number || j.checks.some((c) => c.id === "permit" && c.on);
   if (invoiced) return "Invoiced";
   if (punchOpen) return "Punch";
@@ -229,6 +277,8 @@ export function closeBlocks(j: JobFile): string[] {
   if (j.punch.some((p) => p.status === "Open")) out.push("Open punch");
   if (j.workOrders.some((w) => w.status !== "Signed" && w.status !== "Done" && w.status !== "On truck")) out.push("Work order not signed");
   if (j.loan.vendor === "GoodLeap" && j.loan.status !== "Funded") out.push("GoodLeap not funded");
+  if (j.installRev !== j.financeRev) out.push("Agreements out of sync");
+  if (j.scope.some((s) => s.plan && s.plan.status !== "Released" && s.kind === "product")) out.push("Plan not released");
   if (!j.preCheck.signedAt) out.push("Pre-install not signed");
   if (!j.postCheck.signedAt) out.push("Post-install not signed");
   return out;

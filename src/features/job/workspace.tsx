@@ -1,9 +1,4 @@
-import { AssignCrew } from "./crew-assign";
-import { CloseBlock } from "./close";
-import { InstallDays } from "./days";
-import { FieldBlock } from "./field";
-import { MoneyBlock } from "./money";
-import { ScopeCard } from "./scope-card";
+import { JobFlow } from "./flow";
 import { StageBar } from "./stage-bar";
 import type { JobFile } from "./store";
 import { LeadCard } from "@/features/lead/lead-card";
@@ -16,12 +11,7 @@ export function JobWorkspace({ job, lead }: { job: JobFile; lead?: Lead; focus?:
       {lead ? <LeadCard lead={lead} locked /> : null}
       {lead ? <AssessSnap leadId={lead.id} /> : null}
       <StageBar job={job} />
-      <ScopeCard job={job} />
-      <AssignCrew job={job} />
-      <InstallDays job={job} />
-      <FieldBlock job={job} />
-      <MoneyBlock job={job} />
-      <CloseBlock job={job} />
+      <JobFlow job={job} />
     </div>
   );
 }
