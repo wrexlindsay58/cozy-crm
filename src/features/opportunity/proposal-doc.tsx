@@ -5,13 +5,14 @@ import { useOps } from "@/features/ops/store";
 import { money } from "@/lib/crm-data";
 import { cityState, placeLine } from "@/lib/place";
 import { acceptOption, applyGoodLeap, demoMonthly, lineAmount, optionTotal, requestDeposit, sendToSign, type Proposal } from "./store";
-import { BRAND } from "./brand";
+import { useBrand } from "@/features/brand/store";
 import { picksOn, scopeLines, TERM_LABEL } from "./proposal-copy";
 import { cn } from "@/lib/cn";
 
 export function ProposalDoc({ proposal }: { proposal: Proposal }) {
   useCatalog();
   useAssessments();
+  const BRAND = useBrand();
   const { leads } = useOps();
   const lead = leads.find((l) => l.id === proposal.personId);
   const assess = assessmentForLead(proposal.personId);
@@ -25,7 +26,7 @@ export function ProposalDoc({ proposal }: { proposal: Proposal }) {
           <div>
             <p className="text-[11px] font-bold tracking-[0.18em] uppercase">{BRAND.license}</p>
             <h2 className="mt-1 text-2xl font-extrabold tracking-tight">{BRAND.name}</h2>
-            <p className="mt-0.5 text-sm text-card/80">{BRAND.line}</p>
+            <p className="mt-0.5 text-sm text-card/80">{BRAND.tagline}</p>
           </div>
           <div className="text-sm md:text-right">
             <p>{BRAND.phone}</p>
