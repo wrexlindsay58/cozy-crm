@@ -21,13 +21,14 @@ export function seedJobs(): JobFile[] {
     truck: "Truck 4",
     window: "Sep 22 · 7a–3p",
     assignments: [
-      { id: "CA-1", crew: "Crew 2 — Tasha", truck: "Truck 4", day: "2026-09-22", start: "07:00", end: "15:00", scopes: ["Attic R-49", "Ducts"] },
-      { id: "CA-2", crew: "Crew 1 — Evan", truck: "Truck 2", day: "2026-09-22", start: "08:00", end: "16:00", scopes: ["HVAC replacement"] },
+      { id: "CA-1", crew: "Crew 2 — Tasha", truck: "Truck 4", day: "2026-09-22", start: "07:00", end: "15:00", scopes: ["Attic R-49", "Ducts"], kind: "internal", company: "" },
+      { id: "CA-2", crew: "Crew 1 — Evan", truck: "Truck 2", day: "2026-09-22", start: "08:00", end: "16:00", scopes: ["HVAC replacement"], kind: "internal", company: "" },
     ],
+    soldNotes: "Both home. Hatch in the hall. Dumpster off the street for HOA.",
     scope: [
-      { label: "Attic R-49", amount: 8900 },
-      { label: "HVAC replacement", amount: 18600 },
-      { label: "Ducts", amount: 3750 },
+      { id: "SC-1", label: "Attic R-49", amount: 8900, qty: 1, sqft: 1850, notes: "Blow R-49. Baffles at the eaves. Hatch weatherstrip." },
+      { id: "SC-2", label: "HVAC replacement", amount: 18600, qty: 1, sqft: 0, notes: "4-ton split. Goodman. Old pad is cracked — new pad in adders." },
+      { id: "SC-3", label: "Ducts", amount: 3750, qty: 1, sqft: 0, notes: "Replace the supply trunk in the garage. Seal boots." },
     ],
     warranty: true,
     financeVendor: "GoodLeap",
@@ -83,9 +84,10 @@ export function seedJobs(): JobFile[] {
       truck: "Truck 2",
       window: p.install,
       assignments: p.install
-        ? [{ id: `CA-${p.id}`, crew: p.pm, truck: "Truck 2", day: "", start: "07:00", end: "15:00", scopes: [p.product] }]
+        ? [{ id: `CA-${p.id}`, crew: p.pm, truck: "Truck 2", day: "", start: "07:00", end: "15:00", scopes: [p.product], kind: "internal" as const, company: "" }]
         : [],
-      scope: [{ label: p.product, amount: p.amount }],
+      soldNotes: "",
+      scope: [{ id: `SC-${p.id}`, label: p.product, amount: p.amount, qty: 1, sqft: 0, notes: "" }],
       warranty: p.product.toLowerCase().includes("attic"),
       financeVendor: "Cash" as const,
       financeStatus: "—",

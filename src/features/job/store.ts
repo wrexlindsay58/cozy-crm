@@ -97,6 +97,8 @@ export function addAssign(jobId: string) {
       start: "07:00",
       end: "15:00",
       scopes: j.scope[0] ? [j.scope[0].label] : [],
+      kind: "internal",
+      company: "",
     };
     addHistory(j.personId, j.pm, "Crew added.");
     return syncCrew({ ...j, assignments: [...j.assignments, row] });
@@ -135,7 +137,7 @@ export function addChangeOrder(jobId: string, why: string, amount: number, cost:
   patch(jobId, (j) => {
     const row: ChangeOrder = { id: `CO-${j.changeOrders.length + 1}`, why: why.trim(), amount, cost, status: "Approved" };
     addHistory(j.personId, j.pm, `Change order approved ${why.trim()} +$${amount}.`);
-    return { ...j, changeOrders: [row, ...j.changeOrders], extras: j.extras + cost, scope: [...j.scope, { label: why.trim(), amount }] };
+    return { ...j, changeOrders: [row, ...j.changeOrders], extras: j.extras + cost, scope: [...j.scope, { id: `SC-${Date.now()}`, label: why.trim(), amount, qty: 1, sqft: 0, notes: "" }] };
   });
 }
 export function addPurchaseOrder(jobId: string, vendor: string, what: string, amount: number, received: boolean) {
@@ -167,11 +169,40 @@ export function payInvoice(jobId: string, invoiceId: string) {
   });
 }
 export function issueWo(jobId: string) {
+  const j = jobs[jobId];
+  if (!j) return;
+  const first = j.assignments[0];
+  if (first) sendAssignWo(jobId, first.id);
+  else {
+    patch(jobId, (cur) => {
+      const row: WorkOrder = { id: `WO-${10 + cur.workOrders.length}`, status: "Issued", day: cur.window, crew: cur.crew, notes: cur.scope.map((s) => s.label).join(", ") };
+      addHistory(cur.personId, cur.pm, `Work order ${row.id} issued.`);
+      return { ...cur, workOrders: [row, ...cur.workOrders] };
+    });
+  }
+}
+export function sendAssignWo(jobId: string, assignId: string) {
   patch(jobId, (j) => {
-    const row: WorkOrder = { id: `WO-${10 + j.workOrders.length}`, status: "Issued", day: j.window, crew: j.crew, notes: j.scope.map((s) => s.label).join(", ") };
-    addHistory(j.personId, j.pm, `Work order ${row.id} issued.`);
-    return { ...j, workOrders: [row, ...j.workOrders] };
+    const a = j.assignments.find((x) => x.id === assignId);
+    if (!a) return j;
+    const who = a.kind === "sub" ? a.company || a.crew : a.crew;
+    const row: WorkOrder = {
+      id: a.woId ?? `WO-${10 + j.workOrders.length}`,
+      status: "Issued",
+      day: a.day || j.window,
+      crew: who,
+      notes: a.scopes.join(", ") || j.scope.map((s) => s.label).join(", "),
+    };
+    addHistory(j.personId, j.pm, `Work order ${row.id} sent to ${who}.`);
+    const workOrders = a.woId ? j.workOrders.map((w) => (w.id === a.woId ? row : w)) : [row, ...j.workOrders];
+    return { ...j, workOrders, assignments: j.assignments.map((x) => (x.id === assignId ? { ...x, woId: row.id } : x)) };
   });
+}
+export function patchScope(jobId: string, id: string, row: Partial<import("./types").ScopeLine>) {
+  patch(jobId, (j) => ({ ...j, scope: j.scope.map((s) => (s.id === id ? { ...s, ...row } : s)) }), { nudge: false });
+}
+export function setSoldNotes(jobId: string, soldNotes: string) {
+  patch(jobId, (j) => ({ ...j, soldNotes }), { nudge: false });
 }
 export function setNtp(jobId: string, ntp: JobFile["ntp"]) {
   patch(jobId, (j) => {

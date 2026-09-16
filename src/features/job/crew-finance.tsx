@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { assignCrew, completeJob, setNtp, type JobFile } from "./store";
+import { assignCrew, completeJob, patchScope, setNtp, setSoldNotes, type JobFile } from "./store";
 import { money } from "@/lib/crm-data";
 
 const CREWS = ["Crew 2 — Tasha", "Crew 1 — Evan", "Crew 3 — Marco"];
@@ -68,14 +68,60 @@ export function FinanceBlock({ job }: { job: JobFile }) {
 }
 
 export function ScopeBlock({ job }: { job: JobFile }) {
+  const total = job.scope.reduce((s, r) => s + r.amount, 0);
   return (
     <section className="rounded-md border border-line bg-card p-4">
-      <h2 className="mb-3 text-[11px] font-bold tracking-wide text-muted uppercase">Sold scope</h2>
-      <ul className="space-y-2 text-sm">
+      <div className="mb-3 flex items-end justify-between gap-2">
+        <h2 className="text-[11px] font-bold tracking-wide text-muted uppercase">Sold scope</h2>
+        <p className="text-sm font-extrabold tabular-nums">{money(total)}</p>
+      </div>
+      <label className="mb-3 block text-[11px] font-bold tracking-wide text-muted uppercase">
+        Job notes
+        <textarea
+          value={job.soldNotes}
+          onChange={(e) => setSoldNotes(job.jobId, e.target.value)}
+          rows={2}
+          placeholder="What was sold. Access. Anything the crew has to know."
+          className="mt-1 w-full rounded-md border border-line px-3 py-2 text-sm font-normal normal-case tracking-normal"
+        />
+      </label>
+      <ul className="space-y-3">
         {job.scope.map((s) => (
-          <li key={s.label} className="flex justify-between gap-3">
-            <span>{s.label}</span>
-            <span className="font-semibold tabular-nums">{money(s.amount)}</span>
+          <li key={s.id} className="rounded-md border border-line p-3">
+            <div className="flex items-start justify-between gap-2">
+              <p className="text-sm font-semibold">{s.label}</p>
+              <span className="text-[12px] tabular-nums text-muted">{money(s.amount)}</span>
+            </div>
+            <div className="mt-2 grid gap-2 sm:grid-cols-2">
+              <label className="text-[11px] font-bold tracking-wide text-muted uppercase">
+                Qty
+                <input
+                  value={s.qty || ""}
+                  inputMode="numeric"
+                  onChange={(e) => patchScope(job.jobId, s.id, { qty: Number(e.target.value) || 0 })}
+                  className="mt-1 h-10 w-full rounded-md border border-line px-3 text-sm font-semibold normal-case tracking-normal"
+                />
+              </label>
+              <label className="text-[11px] font-bold tracking-wide text-muted uppercase">
+                Sq ft
+                <input
+                  value={s.sqft || ""}
+                  inputMode="numeric"
+                  onChange={(e) => patchScope(job.jobId, s.id, { sqft: Number(e.target.value) || 0 })}
+                  className="mt-1 h-10 w-full rounded-md border border-line px-3 text-sm font-semibold normal-case tracking-normal"
+                />
+              </label>
+            </div>
+            <label className="mt-2 block text-[11px] font-bold tracking-wide text-muted uppercase">
+              Scope notes
+              <textarea
+                value={s.notes}
+                onChange={(e) => patchScope(job.jobId, s.id, { notes: e.target.value })}
+                rows={2}
+                placeholder="Depth, brand, access, what they walk into."
+                className="mt-1 w-full rounded-md border border-line px-3 py-2 text-sm font-normal normal-case tracking-normal"
+              />
+            </label>
           </li>
         ))}
       </ul>

@@ -11,8 +11,11 @@ export type CrewAssign = {
   start: string;
   end: string;
   scopes: string[];
+  kind: "internal" | "sub";
+  company: string;
+  woId?: string;
 };
-export type ScopeLine = { label: string; amount: number };
+export type ScopeLine = { id: string; label: string; amount: number; qty: number; sqft: number; notes: string };
 export type WorkOrder = {
   id: string;
   status: "Draft" | "Issued" | "On truck" | "Done";
@@ -78,6 +81,7 @@ export type JobFile = {
   truck: string;
   window: string;
   assignments: CrewAssign[];
+  soldNotes: string;
   scope: ScopeLine[];
   warranty: boolean;
   financeVendor: "GoodLeap" | "Cash" | "Card";

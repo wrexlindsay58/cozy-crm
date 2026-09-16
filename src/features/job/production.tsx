@@ -68,20 +68,27 @@ export function Production({ job }: { job: JobFile }) {
         <h2 className="mb-3 text-[11px] font-bold tracking-wide text-muted uppercase">Install days</h2>
         <ul className="space-y-2">
           {job.appointments.map((a) => (
-            <li key={a.id} className="flex flex-wrap items-center gap-2 text-sm">
-              <span className="font-semibold">{a.kind}</span>
-              <span>{a.day} · {a.window}</span>
-              <span className="text-muted">{a.crew}</span>
-              {(["Set", "Dispatched", "Done", "No-show"] as const).map((s) => (
-                <button key={s} type="button" onClick={() => setApptStatus(job.jobId, a.id, s)} className={cn("h-8 rounded-md px-2 text-[11px] font-semibold", a.status === s ? "bg-navy text-card" : "border border-line")}>
-                  {s}
-                </button>
-              ))}
+            <li key={a.id} className="rounded-md border border-line p-3">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold">{a.kind}</p>
+                  <p className="mt-0.5 text-[12px] text-muted">
+                    {a.day} · {a.window} · {a.crew}
+                  </p>
+                </div>
+                <div className="flex shrink-0 gap-1">
+                  {(["Set", "Dispatched", "Done", "No-show"] as const).map((s) => (
+                    <button key={s} type="button" onClick={() => setApptStatus(job.jobId, a.id, s)} className={cn("h-8 rounded-md px-2.5 text-[11px] font-semibold", a.status === s ? "bg-navy text-card" : "border border-line")}>
+                      {s}
+                    </button>
+                  ))}
+                </div>
+              </div>
             </li>
           ))}
         </ul>
         <form
-          className="mt-3 flex flex-wrap gap-2"
+          className="mt-3 grid gap-2 sm:grid-cols-[1fr_10rem_auto]"
           onSubmit={(e) => {
             e.preventDefault();
             addAppt(job.jobId, kind, day);
@@ -93,7 +100,7 @@ export function Production({ job }: { job: JobFile }) {
               <option key={k}>{k}</option>
             ))}
           </select>
-          <input value={day} onChange={(e) => setDay(e.target.value)} placeholder="Sep 25" className="h-10 w-36 rounded-md border border-line px-3 text-sm" />
+          <input value={day} onChange={(e) => setDay(e.target.value)} placeholder="Sep 25" className="h-10 rounded-md border border-line px-3 text-sm" />
           <button type="submit" className="h-10 rounded-md bg-navy px-3 text-sm font-semibold text-card">
             Book day
           </button>

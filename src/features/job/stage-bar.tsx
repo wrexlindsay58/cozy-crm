@@ -6,27 +6,29 @@ export function StageBar({ job }: { job: JobFile }) {
   return (
     <section className="rounded-md border border-line bg-card p-4">
       <h2 className="mb-3 text-[11px] font-bold tracking-wide text-muted uppercase">Production</h2>
-      <ol className="flex flex-wrap items-center gap-y-2">
-        {STAGES.map((s, idx) => {
-          const on = job.stage === s;
-          const past = idx < i;
-          return (
-            <li key={s} className="flex items-center">
-              {idx > 0 ? <span className={cn("mx-1 h-px w-4 sm:w-6", past || on ? "bg-navy" : "bg-line")} /> : null}
-              <button
-                type="button"
-                onClick={() => setStage(job.jobId, s as Stage)}
-                className={cn(
-                  "h-8 rounded-full px-2.5 text-[11px] font-semibold",
-                  on ? "bg-navy text-card" : past ? "bg-navy/15 text-navy" : "border border-line text-muted",
-                )}
-              >
-                {s}
-              </button>
-            </li>
-          );
-        })}
-      </ol>
+      <div className="-mx-1 overflow-x-auto pb-1 [scrollbar-width:thin]">
+        <ol className="flex w-max min-w-full flex-nowrap items-center px-1">
+          {STAGES.map((s, idx) => {
+            const on = job.stage === s;
+            const past = idx < i;
+            return (
+              <li key={s} className="flex shrink-0 items-center">
+                {idx > 0 ? <span className={cn("mx-1 h-px w-5", past || on ? "bg-navy" : "bg-line")} /> : null}
+                <button
+                  type="button"
+                  onClick={() => setStage(job.jobId, s as Stage)}
+                  className={cn(
+                    "h-8 shrink-0 rounded-full px-2.5 text-[11px] font-semibold whitespace-nowrap",
+                    on ? "bg-navy text-card" : past ? "bg-navy/15 text-navy" : "border border-line text-muted",
+                  )}
+                >
+                  {s}
+                </button>
+              </li>
+            );
+          })}
+        </ol>
+      </div>
       <p className="mt-2 text-[11px] text-muted">Moves with the work. Permit, materials, crew date, hours, punch, invoice. Click to override.</p>
       <h3 className="mt-4 mb-2 text-[11px] font-bold tracking-wide text-muted uppercase">Holds</h3>
       <div className="flex flex-wrap gap-1.5">
