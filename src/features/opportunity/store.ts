@@ -402,4 +402,10 @@ export function sendToSign(oppId: string) {
   addHistory(p.personId, p.closer, "Agreement sent to sign.");
   emit();
 }
+export function requestDeposit(oppId: string) {
+  const p = proposals[oppId];
+  if (!p) return;
+  addHistory(p.personId, p.closer, "Deposit requested on the card.");
+  emit();
+}
 
