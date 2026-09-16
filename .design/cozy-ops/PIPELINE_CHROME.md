@@ -10,7 +10,7 @@ Same house. Same thread. Same people. Different work. Talk follows the contact t
 
 - Title, status, DND, Call / Text / Book / Create as icons with tooltips.
 - Owner, followers, Follow / Transfer / Merge / Drop.
-- Tight file column. Conversation takes the extra width.
+- Talk is 40–50% of the file. The rest is the work.
 - Tabs: Customer, Internal, Notes, Tags, Actions, History, Media, Form. Inbox also has Book.
 - Tags tab is where tags and workflows get added or pulled. Not a pile of chips in the header.
 - Book is history. Plus adds an event. Sales is the default on a lead. Set by is the user. Assigned and crew change with the event type. Notes and scope when the run needs them.

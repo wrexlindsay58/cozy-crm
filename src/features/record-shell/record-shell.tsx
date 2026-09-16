@@ -106,7 +106,7 @@ export function RecordShell(props: RecordShellProps) {
           </div>
         </div>
 
-        <aside className="flex h-[55vh] min-h-0 min-w-0 shrink-0 flex-col border-t border-line bg-card lg:h-auto lg:flex-[1.2] lg:border-t-0 lg:border-l">
+        <aside className="flex h-[55vh] min-h-0 min-w-0 shrink-0 flex-col border-t border-line bg-card lg:h-auto lg:w-[45%] lg:min-w-[40%] lg:max-w-[50%] lg:border-t-0 lg:border-l">
           <SideHead lane={lane} onLane={setLane} />
           <div className="min-h-0 flex-1 overflow-hidden">
             {callOpen && lead?.phone ? (
