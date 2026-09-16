@@ -11,6 +11,7 @@ import { MonthGrid } from "@/features/book/month";
 import { hoursFor, useRoster } from "@/features/book/roster";
 import { DaySpan } from "@/features/book/span";
 import { addHrs, durationHrs, hourOf, TODAY, toIso } from "@/features/book/time";
+import { BookPick } from "@/features/book/pick";
 import { familyOf } from "@/features/book/types";
 import { moveBook, useBook } from "@/features/book/store";
 
@@ -28,9 +29,8 @@ function CalendarPage() {
   const { viewAs } = useStaff();
   const [view, setView] = useState<View>("resource");
   const [office, setOffice] = useState<"all" | "PHX" | "DFW">("PHX");
-  const [group, setGroup] = useState<"all" | "sales" | "crews">(viewAs === "Closer" || viewAs === "Setter" ? "sales" : viewAs === "PM" || viewAs === "Crew" ? "crews" : "all");
+  const [group, setGroup] = useState<"all" | "sales" | "crews" | "mine">(viewAs === "Closer" || viewAs === "Setter" ? "sales" : viewAs === "PM" || viewAs === "Crew" ? "crews" : "all");
   const [family, setFamily] = useState<"all" | "sales" | "production">("all");
-  const [mine, setMine] = useState(false);
   const [cursor, setCursor] = useState(() => new Date(TODAY));
   const [picked, setPicked] = useState<string | null>(null);
   const [compose, setCompose] = useState<{ resourceId: string; start: string } | null>(null);
@@ -50,10 +50,10 @@ function CalendarPage() {
       if (office !== "all" && r.office !== office) return false;
       if (group === "sales" && r.kind !== "closer" && r.kind !== "setter") return false;
       if (group === "crews" && r.kind !== "crew") return false;
-      if (mine && viewAs !== "Owner" && !r.name.toLowerCase().includes(viewAs.toLowerCase()) && r.role !== viewAs) return false;
+      if (group === "mine" && viewAs !== "Owner" && !r.name.toLowerCase().includes(String(viewAs).toLowerCase()) && r.role !== viewAs) return false;
       return true;
     });
-  }, [roster, office, group, mine, viewAs]);
+  }, [roster, office, group, viewAs]);
 
   const dayKey = toIso(cursor).slice(0, 10);
   const shown = events.filter((e) => {
@@ -87,30 +87,34 @@ function CalendarPage() {
                   </button>
                 ))}
               </div>
-              <div className="flex rounded-md bg-page p-0.5">
-                {(["all", "PHX", "DFW"] as const).map((o) => (
-                  <button key={o} type="button" onClick={() => setOffice(o)} className={cn("h-8 px-2.5 text-[13px] font-semibold", office === o ? "bg-navy text-card" : "text-muted")}>
-                    {o === "all" ? "All" : o}
-                  </button>
-                ))}
-              </div>
-              <div className="flex rounded-md bg-page p-0.5">
-                {(["all", "sales", "crews"] as const).map((g) => (
-                  <button key={g} type="button" onClick={() => setGroup(g)} className={cn("h-8 px-2.5 text-[13px] font-semibold", group === g ? "bg-navy text-card" : "text-muted")}>
-                    {g === "all" ? "People" : g === "sales" ? "Closers" : "Crews"}
-                  </button>
-                ))}
-              </div>
-              <div className="flex rounded-md bg-page p-0.5">
-                {(["all", "sales", "production"] as const).map((f) => (
-                  <button key={f} type="button" onClick={() => setFamily(f)} className={cn("h-8 px-2.5 text-[13px] font-semibold", family === f ? "bg-navy text-card" : "text-muted")}>
-                    {f === "all" ? "Types" : f === "sales" ? "Sales" : "Production"}
-                  </button>
-                ))}
-              </div>
-              <button type="button" onClick={() => setMine((v) => !v)} className={cn("h-8 rounded-md px-2.5 text-[13px] font-semibold", mine ? "bg-navy text-card" : "border border-line")}>
-                Mine
-              </button>
+              <BookPick
+                value={office}
+                onChange={setOffice}
+                items={[
+                  { id: "all", label: "All markets" },
+                  { id: "PHX", label: "Phoenix" },
+                  { id: "DFW", label: "Dallas" },
+                ]}
+              />
+              <BookPick
+                value={group}
+                onChange={setGroup}
+                items={[
+                  { id: "all", label: "All people" },
+                  { id: "sales", label: "Closers" },
+                  { id: "crews", label: "Crews" },
+                  { id: "mine", label: "Mine" },
+                ]}
+              />
+              <BookPick
+                value={family}
+                onChange={setFamily}
+                items={[
+                  { id: "all", label: "All types" },
+                  { id: "sales", label: "Sales" },
+                  { id: "production", label: "Production" },
+                ]}
+              />
               <button
                 type="button"
                 className="inline-flex h-9 items-center gap-1 rounded-md bg-navy px-3 text-sm font-semibold text-card"

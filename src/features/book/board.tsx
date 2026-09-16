@@ -38,7 +38,7 @@ export function ResourceBoard({
 
   return (
     <div className="min-h-0 min-w-0 flex-1 overflow-auto">
-      <div className="flex min-w-max">
+      <div className="flex min-w-full">
         <div className="sticky left-0 z-20 w-12 shrink-0 bg-card">
           <div className="sticky top-0 z-30 h-12 border-b border-r border-line bg-card" />
           <div className="relative" style={{ height }}>
@@ -53,7 +53,7 @@ export function ResourceBoard({
           const mine = events.filter((e) => (e.resourceId || "") === u.id && e.start.slice(0, 10) === day);
           const load = loadHours(events, u.id, day);
           return (
-            <div key={u.id || "none"} className="w-40 shrink-0 border-r border-line">
+            <div key={u.id || "none"} className="min-w-40 flex-1 border-r border-line">
               <div className="sticky top-0 z-10 flex h-12 flex-col justify-center border-b border-line bg-card px-2">
                 <p className="truncate text-[12px] font-semibold">{u.name}</p>
                 <p className="text-[10px] text-muted">{load ? `${load.toFixed(1)}h` : "Open"}</p>
