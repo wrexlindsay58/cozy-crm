@@ -1,4 +1,4 @@
-export const STAGES = ["Sold", "Materials", "Scheduled", "In progress", "Punch", "Invoiced", "Closed"] as const;
+export const STAGES = ["Sold", "Permit", "Materials", "Scheduled", "In progress", "Test-out", "Punch", "Invoiced", "Closed"] as const;
 export type Stage = (typeof STAGES)[number];
 export const HOLDS = ["HOA", "permit", "rebate", "customer", "weather", "finance"] as const;
 export type Hold = (typeof HOLDS)[number];
@@ -31,6 +31,24 @@ export type JobInvoice = {
   paid: number;
   status: "Draft" | "Sent" | "Partial" | "Paid" | "Void";
 };
+export type WorkPackage = {
+  id: string;
+  name: string;
+  status: "Queued" | "On order" | "On truck" | "Done";
+  crew: string;
+};
+export type JobAppt = {
+  id: string;
+  kind: "Install" | "Rough" | "Final" | "Test-out" | "Callback";
+  day: string;
+  window: string;
+  crew: string;
+  status: "Set" | "Dispatched" | "Done" | "No-show";
+};
+export type PunchItem = { id: string; item: string; owner: string; status: "Open" | "Done" };
+export type EquipRow = { id: string; name: string; serial: string; eta: string; status: "Quoted" | "Ordered" | "Received" | "Set" };
+export type CheckItem = { id: string; label: string; on: boolean };
+export type LaborRow = { id: string; who: string; hours: number; day: string };
 export type JobFile = {
   jobId: string;
   personId: string;
@@ -56,4 +74,24 @@ export type JobFile = {
   pos: PurchaseOrder[];
   changeOrders: ChangeOrder[];
   invoices: JobInvoice[];
+  packages: WorkPackage[];
+  appointments: JobAppt[];
+  punch: PunchItem[];
+  equipment: EquipRow[];
+  checks: CheckItem[];
+  hours: LaborRow[];
+  access: string;
 };
+
+export function defaultChecks(): CheckItem[] {
+  return [
+    { id: "permit", label: "Permit pulled", on: false },
+    { id: "hoa", label: "HOA signed off", on: false },
+    { id: "equip", label: "Equipment confirmed", on: false },
+    { id: "dump", label: "Dump scheduled", on: false },
+    { id: "test", label: "Test-out booked", on: false },
+    { id: "photos", label: "Before/after photos in", on: false },
+    { id: "rebate", label: "Rebate packet out", on: false },
+    { id: "walk", label: "Homeowner walkthrough", on: false },
+  ];
+}

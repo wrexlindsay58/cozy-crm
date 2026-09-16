@@ -1,5 +1,5 @@
 import { projects } from "@/lib/crm-data";
-import type { Hold, JobFile, Stage } from "./types";
+import { defaultChecks, type Hold, type JobFile, type Stage } from "./types";
 
 export function seedJobs(): JobFile[] {
   const cho: JobFile = {
@@ -34,6 +34,23 @@ export function seedJobs(): JobFile[] {
     ],
     changeOrders: [],
     invoices: [{ id: "INV-41", kind: "Deposit", amount: 5000, paid: 0, status: "Sent" }],
+    packages: [
+      { id: "PKG-1", name: "Attic R-49", status: "On truck", crew: "Crew 2 — Tasha" },
+      { id: "PKG-2", name: "HVAC 4-ton", status: "On order", crew: "Crew 2 — Tasha" },
+      { id: "PKG-3", name: "Ducts", status: "Queued", crew: "Crew 2 — Tasha" },
+    ],
+    appointments: [
+      { id: "JA-1", kind: "Install", day: "Sep 22", window: "7a–3p", crew: "Crew 2 — Tasha", status: "Set" },
+      { id: "JA-2", kind: "Test-out", day: "Sep 24", window: "2p–4p", crew: "Tasha Reed", status: "Set" },
+    ],
+    punch: [{ id: "PU-1", item: "Seal hatch weatherstrip", owner: "Crew 2", status: "Open" }],
+    equipment: [
+      { id: "EQ-1", name: "4-ton condenser", serial: "", eta: "Sep 19", status: "Ordered" },
+      { id: "EQ-2", name: "Coil", serial: "", eta: "Sep 19", status: "Ordered" },
+    ],
+    checks: defaultChecks().map((c) => (c.id === "equip" ? { ...c, on: true } : c)),
+    hours: [{ id: "HR-1", who: "Tasha Reed", hours: 2, day: "Sep 12" }],
+    access: "Side gate. Dogs in. HOA needs dumpster off the street.",
   };
   const rest = projects
     .filter((p) => p.id !== "P-331")
@@ -65,6 +82,13 @@ export function seedJobs(): JobFile[] {
         p.status === "Closed"
           ? [{ id: `INV-${p.id.slice(2)}`, kind: "Final" as const, amount: p.amount, paid: p.amount, status: "Paid" as const }]
           : [],
+      packages: [{ id: `PKG-${p.id}`, name: p.product, status: p.status === "Closed" ? ("Done" as const) : ("Queued" as const), crew: p.pm }],
+      appointments: p.install ? [{ id: `JA-${p.id}`, kind: "Install" as const, day: p.install, window: "7a–3p", crew: p.pm, status: "Set" as const }] : [],
+      punch: [],
+      equipment: [],
+      checks: defaultChecks(),
+      hours: [],
+      access: "",
     }));
   return [cho, ...rest];
 }

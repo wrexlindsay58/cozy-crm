@@ -1,9 +1,9 @@
 import { useSyncExternalStore } from "react";
 import { addHistory } from "@/features/ops/store";
 import { seedJobs } from "./seed";
-import type { ChangeOrder, Hold, JobFile, JobInvoice, PurchaseOrder, Stage, WorkOrder } from "./types";
+import type { ChangeOrder, CheckItem, EquipRow, Hold, JobAppt, JobFile, JobInvoice, LaborRow, PunchItem, PurchaseOrder, Stage, WorkOrder, WorkPackage } from "./types";
 
-export type { ChangeOrder, Hold, JobFile, JobInvoice, PurchaseOrder, Stage, WorkOrder } from "./types";
+export type { ChangeOrder, CheckItem, EquipRow, Hold, JobAppt, JobFile, JobInvoice, LaborRow, PunchItem, PurchaseOrder, Stage, WorkOrder, WorkPackage } from "./types";
 export { HOLDS, STAGES } from "./types";
 
 let jobs: Record<string, JobFile> = Object.fromEntries(seedJobs().map((j) => [j.jobId, j]));
@@ -130,6 +130,67 @@ export function completeJob(jobId: string) {
     addHistory(j.personId, j.pm, j.warranty ? "Job closed. Warranty opened." : "Job closed.");
     return { ...j, stage: "Closed" };
   });
+}
+export function setPackageStatus(jobId: string, id: string, status: WorkPackage["status"]) {
+  patch(jobId, (j) => {
+    addHistory(j.personId, j.pm, `Package ${status}.`);
+    return { ...j, packages: j.packages.map((p) => (p.id === id ? { ...p, status } : p)) };
+  });
+}
+export function addPackage(jobId: string, name: string) {
+  if (!name.trim()) return;
+  patch(jobId, (j) => ({
+    ...j,
+    packages: [...j.packages, { id: `PKG-${Date.now()}`, name: name.trim(), status: "Queued", crew: j.crew }],
+  }));
+}
+export function addAppt(jobId: string, kind: JobAppt["kind"], day: string) {
+  if (!day.trim()) return;
+  patch(jobId, (j) => {
+    const row: JobAppt = { id: `JA-${Date.now()}`, kind, day: day.trim(), window: "7a–3p", crew: j.crew, status: "Set" };
+    addHistory(j.personId, j.pm, `${kind} set ${day}.`);
+    return { ...j, appointments: [...j.appointments, row] };
+  });
+}
+export function setApptStatus(jobId: string, id: string, status: JobAppt["status"]) {
+  patch(jobId, (j) => ({ ...j, appointments: j.appointments.map((a) => (a.id === id ? { ...a, status } : a)) }));
+}
+export function addPunch(jobId: string, item: string) {
+  if (!item.trim()) return;
+  patch(jobId, (j) => ({
+    ...j,
+    punch: [{ id: `PU-${Date.now()}`, item: item.trim(), owner: j.crew, status: "Open" }, ...j.punch],
+  }));
+}
+export function togglePunch(jobId: string, id: string) {
+  patch(jobId, (j) => ({
+    ...j,
+    punch: j.punch.map((p) => (p.id === id ? { ...p, status: p.status === "Open" ? "Done" : "Open" } : p)),
+  }));
+}
+export function addEquip(jobId: string, name: string, eta: string) {
+  if (!name.trim()) return;
+  patch(jobId, (j) => ({
+    ...j,
+    equipment: [...j.equipment, { id: `EQ-${Date.now()}`, name: name.trim(), serial: "", eta: eta.trim() || "TBD", status: "Ordered" }],
+  }));
+}
+export function setEquip(jobId: string, id: string, patchRow: Partial<EquipRow>) {
+  patch(jobId, (j) => ({ ...j, equipment: j.equipment.map((e) => (e.id === id ? { ...e, ...patchRow } : e)) }));
+}
+export function toggleCheck(jobId: string, id: string) {
+  patch(jobId, (j) => ({ ...j, checks: j.checks.map((c) => (c.id === id ? { ...c, on: !c.on } : c)) }));
+}
+export function addHours(jobId: string, who: string, hours: number, day: string) {
+  if (!who.trim() || hours <= 0) return;
+  patch(jobId, (j) => ({
+    ...j,
+    hours: [{ id: `HR-${Date.now()}`, who: who.trim(), hours, day: day.trim() || "Today" }, ...j.hours],
+    labor: j.labor + Math.round(hours * 55),
+  }));
+}
+export function setAccess(jobId: string, access: string) {
+  patch(jobId, (j) => ({ ...j, access }));
 }
 export function allInvoices() {
   return Object.values(jobs).flatMap((j) => j.invoices.map((i) => ({ ...i, jobId: j.jobId, name: j.name, personId: j.personId })));

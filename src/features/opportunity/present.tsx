@@ -282,14 +282,16 @@ export function Present({ proposal }: { proposal: Proposal }) {
                 />
               ))}
           </div>
-          {picked && proposal.options.length > 1 ? (
-            <button type="button" className="mt-4 h-11 text-sm font-semibold text-[var(--p-gray)]" onClick={() => setShowAllOpts((v) => !v)}>
-              {showAllOpts ? "Hide the others" : "See other options"}
+          <div className="mt-8 flex flex-wrap items-center gap-3">
+            {picked && proposal.options.length > 1 ? (
+              <button type="button" className="h-12 border border-[var(--p-trim)] bg-white px-5 text-sm font-semibold text-[var(--p-navy)]" onClick={() => setShowAllOpts((v) => !v)}>
+                {showAllOpts ? "Hide the others" : "See other options"}
+              </button>
+            ) : null}
+            <button type="button" disabled={!picked} className="h-12 bg-[var(--p-navy)] px-8 text-sm font-semibold text-white disabled:opacity-40" onClick={() => go("pay")}>
+              Price {opt?.name}
             </button>
-          ) : null}
-          <button type="button" disabled={!picked} className="mt-8 h-12 bg-[var(--p-navy)] px-8 text-sm font-semibold text-white disabled:opacity-40" onClick={() => go("pay")}>
-            Price {opt?.name}
-          </button>
+          </div>
         </section>
       ) : null}
 
