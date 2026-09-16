@@ -1,10 +1,12 @@
-import { projects } from "@/lib/crm-data";
+import { accounts, leads, projects } from "@/lib/crm-data";
 import { defaultChecks, type Hold, type JobFile, type Stage } from "./types";
 
 export function seedJobs(): JobFile[] {
   const cho: JobFile = {
     jobId: "P-331",
-    personId: "A-204",
+    personId: "L-4788",
+    leadId: "L-4788",
+    accountId: "A-204",
     name: "Cho — attic + HVAC",
     product: "Attic + HVAC",
     pm: "Tasha Reed",
@@ -54,9 +56,15 @@ export function seedJobs(): JobFile[] {
   };
   const rest = projects
     .filter((p) => p.id !== "P-331")
-    .map((p) => ({
+    .map((p) => {
+      const account = accounts.find((a) => a.id === p.accountId);
+      const lead = leads.find((l) => l.name === account?.name);
+      const contact = lead?.id ?? p.accountId;
+      return {
       jobId: p.id,
-      personId: p.accountId,
+      personId: contact,
+      leadId: lead?.id ?? "",
+      accountId: p.accountId,
       name: p.name,
       product: p.product,
       pm: p.pm,
@@ -89,6 +97,7 @@ export function seedJobs(): JobFile[] {
       checks: defaultChecks(),
       hours: [],
       access: "",
-    }));
+    };
+    });
   return [cho, ...rest];
 }

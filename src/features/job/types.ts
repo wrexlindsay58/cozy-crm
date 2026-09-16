@@ -52,6 +52,8 @@ export type LaborRow = { id: string; who: string; hours: number; day: string };
 export type JobFile = {
   jobId: string;
   personId: string;
+  leadId: string;
+  accountId: string;
   name: string;
   product: string;
   pm: string;
@@ -81,6 +83,14 @@ export type JobFile = {
   checks: CheckItem[];
   hours: LaborRow[];
   access: string;
+};
+
+export function jobTone(job: Pick<JobFile, "stage" | "holds">): import("@/lib/crm-data").Tone {
+  if (job.holds.length) return "alert";
+  if (job.stage === "Closed" || job.stage === "In progress") return "up";
+  if (job.stage === "Punch" || job.stage === "Test-out" || job.stage === "Permit") return "alert";
+  if (job.stage === "Materials" || job.stage === "Sold") return "muted";
+  return "navy";
 };
 
 export function defaultChecks(): CheckItem[] {

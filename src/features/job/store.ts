@@ -4,7 +4,7 @@ import { seedJobs } from "./seed";
 import type { ChangeOrder, CheckItem, EquipRow, Hold, JobAppt, JobFile, JobInvoice, LaborRow, PunchItem, PurchaseOrder, Stage, WorkOrder, WorkPackage } from "./types";
 
 export type { ChangeOrder, CheckItem, EquipRow, Hold, JobAppt, JobFile, JobInvoice, LaborRow, PunchItem, PurchaseOrder, Stage, WorkOrder, WorkPackage } from "./types";
-export { HOLDS, STAGES } from "./types";
+export { HOLDS, STAGES, jobTone } from "./types";
 
 let jobs: Record<string, JobFile> = Object.fromEntries(seedJobs().map((j) => [j.jobId, j]));
 const listeners = new Set<() => void>();

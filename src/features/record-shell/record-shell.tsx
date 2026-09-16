@@ -62,13 +62,16 @@ export function RecordShell(props: RecordShellProps) {
       if (a.label === "Create" && a.menu) {
         return {
           ...a,
-          menu: a.menu.map((item) => ({
-            ...item,
-            onClick: () => {
-              setLane("actions");
-              setDraft(item.label === "Task" ? "task" : "ticket");
-            },
-          })),
+          menu: a.menu.map((item) => {
+            if (item.label !== "Ticket" && item.label !== "Task") return item;
+            return {
+              ...item,
+              onClick: () => {
+                setLane("actions");
+                setDraft(item.label === "Task" ? "task" : "ticket");
+              },
+            };
+          }),
         };
       }
       return a;
@@ -80,8 +83,8 @@ export function RecordShell(props: RecordShellProps) {
         kind={props.kind}
         title={props.title}
         subtitle={props.subtitle}
-        stage={lead?.status ?? props.stage}
-        stageTone={lead?.tone ?? props.stageTone}
+        stage={props.kind === "lead" ? (lead?.status ?? props.stage) : props.stage}
+        stageTone={props.kind === "lead" ? (lead?.tone ?? props.stageTone) : props.stageTone}
         dndLabel={dndChip(lead?.dnd)}
         moneyLabel={props.moneyLabel}
         related={props.related}
