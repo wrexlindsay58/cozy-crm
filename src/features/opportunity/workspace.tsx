@@ -16,6 +16,7 @@ export function OppWorkspace({ proposal }: { proposal: Proposal }) {
   const lead = leads.find((l) => l.id === proposal.personId);
   const [pkgOpen, setPkgOpen] = useState(false);
   const [anchor, setAnchor] = useState<DOMRect | null>(null);
+  const [showAllOpts, setShowAllOpts] = useState(false);
   return (
     <div className="space-y-3">
       {lead ? <LeadCard lead={lead} locked /> : null}
@@ -60,9 +61,16 @@ export function OppWorkspace({ proposal }: { proposal: Proposal }) {
         ) : null}
       </div>
       <div className="space-y-3">
-        {proposal.options.map((opt) => (
-          <OptionCard key={opt.id} proposal={proposal} option={opt} />
-        ))}
+        {proposal.options
+          .filter((opt) => showAllOpts || !proposal.accepted || opt.id === proposal.accepted)
+          .map((opt) => (
+            <OptionCard key={opt.id} proposal={proposal} option={opt} />
+          ))}
+        {proposal.accepted && proposal.options.length > 1 ? (
+          <button type="button" className="h-10 text-sm font-semibold text-navy" onClick={() => setShowAllOpts((v) => !v)}>
+            {showAllOpts ? "Hide the others" : "See other options"}
+          </button>
+        ) : null}
       </div>
       <PayTiles proposal={proposal} />
       <ProposalPanel proposal={proposal} />

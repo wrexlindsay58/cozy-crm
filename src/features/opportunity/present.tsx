@@ -33,6 +33,7 @@ export function Present({ proposal }: { proposal: Proposal }) {
   const [picked, setPicked] = useState(proposal.accepted ?? proposal.options[0]?.id ?? "");
   const [name, setName] = useState(lead?.name ?? "");
   const [copied, setCopied] = useState("");
+  const [showAllOpts, setShowAllOpts] = useState(false);
   const opt = proposal.options.find((o) => o.id === picked) ?? proposal.options[0];
   const total = opt ? optionTotal(opt) : 0;
   const i = STEPS.indexOf(step);
@@ -249,12 +250,32 @@ export function Present({ proposal }: { proposal: Proposal }) {
         <section className="mx-auto max-w-3xl px-5 py-10 md:px-8 md:py-16 print-break">
           <p className="p-sub text-[11px] text-[var(--p-red)]">Options</p>
           <h2 className="p-head mt-3 text-5xl text-[var(--p-navy)]">Pick a path.</h2>
-          <p className="mt-3 text-sm text-[var(--p-gray)]">White cards. Red means the pick. Undo and send another if the first one is wrong.</p>
+          <p className="mt-3 text-sm text-[var(--p-gray)]">Pick one. The others step aside. See other options if you want them back.</p>
           <div className="mt-8 space-y-4">
-            {proposal.options.map((o) => (
-              <PresentOption key={o.id} proposal={proposal} option={o} selected={picked === o.id} onPick={() => setPicked(o.id)} />
-            ))}
+            {proposal.options
+              .filter((o) => showAllOpts || !picked || o.id === picked)
+              .map((o) => (
+                <PresentOption
+                  key={o.id}
+                  proposal={proposal}
+                  option={o}
+                  selected={picked === o.id}
+                  onPick={() => {
+                    setPicked(o.id);
+                    setShowAllOpts(false);
+                  }}
+                />
+              ))}
           </div>
+          {picked && proposal.options.length > 1 ? (
+            <button
+              type="button"
+              className="mt-4 h-11 text-sm font-semibold text-[var(--p-navy)] underline-offset-4 hover:underline"
+              onClick={() => setShowAllOpts((v) => !v)}
+            >
+              {showAllOpts ? "Hide the others" : "See other options"}
+            </button>
+          ) : null}
           <button type="button" disabled={!picked} className="mt-10 h-12 bg-[var(--p-red)] px-7 text-sm font-semibold text-white disabled:opacity-40" onClick={() => go("pay")}>
             Price {opt?.name}
           </button>
