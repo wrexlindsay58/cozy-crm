@@ -16,7 +16,10 @@ export function PricebookEditor() {
         <ul className="space-y-2 text-sm">
           {catalog.items.map((item) => (
             <li key={item.sku} className="flex flex-wrap items-center justify-between gap-2 border-b border-line py-2">
-              <span className="font-semibold">{item.label} <span className="text-muted">· {item.sku}</span></span>
+              <span className="font-semibold">
+                {item.label} <span className="text-muted">· {item.sku}</span>
+                {item.choices?.length ? <span className="ml-2 font-normal text-muted">{item.choices.map((c) => c.label).join(" · ")}</span> : null}
+              </span>
               <span className="tabular-nums">{money(item.sell)}</span>
               <button type="button" onClick={() => patchItem(item.sku, { active: !item.active })} className="h-9 rounded-md border border-line px-2 text-xs font-semibold">{item.active ? "On" : "Off"}</button>
             </li>

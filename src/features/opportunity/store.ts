@@ -1,11 +1,21 @@
 import { useSyncExternalStore } from "react";
 import { addHistory } from "@/features/ops/store";
-import { defaultSkus, PRICEBOOK } from "@/lib/pricebook";
-import { buildOption, itemBySku } from "@/features/catalog/store";
+import { defaultSkus } from "@/lib/pricebook";
+import { buildOption, defaultPicks, itemBySku, unitFor, type CatalogKind } from "@/features/catalog/store";
 import { getDealerFeePct } from "@/features/money-settings/store";
 import { money, opportunities } from "@/lib/crm-data";
 
-export type OptLine = { sku: string; label: string; unit: number; qty: number; on: boolean; adder?: boolean };
+export type OptLine = {
+  sku: string;
+  label: string;
+  unit: number;
+  qty: number;
+  on: boolean;
+  adder?: boolean;
+  kind?: CatalogKind;
+  picks?: Record<string, string>;
+  pct?: number;
+};
 export type OptCard = { id: string; name: string; lines: OptLine[] };
 export type DocStub = {
   id: string;
@@ -30,13 +40,39 @@ export type Proposal = {
   documents: DocStub[];
 };
 
-function linesFrom(skus: string[]): OptLine[] {
-  return buildOption(skus).map((l) => ({ sku: l.sku, label: l.label, unit: l.sell, qty: 1, on: l.on, adder: l.source !== "selected" }));
-}
 function lineFromSku(sku: string): OptLine | null {
   const item = itemBySku(sku);
   if (!item) return null;
-  return { sku: item.sku, label: item.label, unit: item.sell, qty: 1, on: true, adder: item.kind === "adder" };
+  const picks = defaultPicks(item);
+  return {
+    sku: item.sku,
+    label: item.label,
+    unit: unitFor(item, picks),
+    qty: 1,
+    on: true,
+    adder: item.kind === "adder",
+    kind: item.kind,
+    picks,
+    pct: item.pct,
+  };
+}
+function linesFrom(skus: string[]): OptLine[] {
+  return buildOption(skus).map((l) => lineFromSku(l.sku)).filter(Boolean) as OptLine[];
+}
+export function lineAmount(line: OptLine) {
+  const item = itemBySku(line.sku);
+  const unit = item ? unitFor(item, line.picks) : line.unit;
+  if (line.kind === "discount" && line.pct) return 0;
+  return unit * line.qty;
+}
+export function optionTotal(opt: OptCard) {
+  const goods = opt.lines.filter((l) => l.kind !== "discount");
+  let sub = goods.reduce((sum, l) => sum + lineAmount(l), 0);
+  for (const d of opt.lines.filter((l) => l.kind === "discount")) {
+    if (d.pct) sub -= Math.round(sub * (d.pct / 100));
+    else sub += d.unit * d.qty;
+  }
+  return Math.max(0, sub);
 }
 function seedFor(oppId: string, personId: string, closer: string, product: string): Proposal {
   const products = defaultSkus(product);
@@ -77,9 +113,6 @@ export function useProposal(oppId: string) {
     snap,
   );
   return all[oppId];
-}
-export function optionTotal(opt: OptCard) {
-  return opt.lines.reduce((sum, l) => sum + l.unit * l.qty, 0);
 }
 export function dealerFee(total: number) {
   return Math.round(total * (getDealerFeePct() / 100));
@@ -135,6 +168,49 @@ export function addLine(oppId: string, optId: string, sku: string) {
   };
   emit();
 }
+export function addCustom(oppId: string, optId: string, input: { label: string; unit: number; kind: "adder" | "discount"; pct?: number }) {
+  const p = proposals[oppId];
+  if (!p || p.accepted || !input.label.trim()) return;
+  const line: OptLine = {
+    sku: `${input.kind}-${Date.now()}`,
+    label: input.label.trim(),
+    unit: input.kind === "discount" && !input.pct ? -Math.abs(input.unit) : input.unit,
+    qty: 1,
+    on: true,
+    adder: input.kind === "adder",
+    kind: input.kind,
+    pct: input.pct,
+  };
+  proposals = {
+    ...proposals,
+    [oppId]: { ...p, options: p.options.map((o) => (o.id === optId ? { ...o, lines: [...o.lines, line] } : o)) },
+  };
+  emit();
+}
+export function setPick(oppId: string, optId: string, sku: string, choiceId: string, pickId: string) {
+  const p = proposals[oppId];
+  if (!p || p.accepted) return;
+  proposals = {
+    ...proposals,
+    [oppId]: {
+      ...p,
+      options: p.options.map((o) =>
+        o.id !== optId
+          ? o
+          : {
+              ...o,
+              lines: o.lines.map((l) => {
+                if (l.sku !== sku) return l;
+                const picks = { ...l.picks, [choiceId]: pickId };
+                const item = itemBySku(sku);
+                return { ...l, picks, unit: item ? unitFor(item, picks) : l.unit };
+              }),
+            },
+      ),
+    },
+  };
+  emit();
+}
 export function removeLine(oppId: string, optId: string, sku: string) {
   const p = proposals[oppId];
   if (!p || p.accepted) return;
@@ -184,7 +260,7 @@ export function toggleLine(oppId: string, optId: string, sku: string) {
 export function setQty(oppId: string, optId: string, sku: string, qty: number) {
   const p = proposals[oppId];
   if (!p || p.accepted) return;
-  const next = Math.max(1, Math.min(9, qty));
+  const next = Math.max(1, Math.min(99, qty));
   proposals = {
     ...proposals,
     [oppId]: {
@@ -264,4 +340,4 @@ export function sendToSign(oppId: string) {
   addHistory(p.personId, p.closer, "Agreement sent to sign.");
   emit();
 }
-export { PRICEBOOK };
+
