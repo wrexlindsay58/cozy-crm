@@ -3,7 +3,7 @@ import { Plus, X } from "lucide-react";
 import { money } from "@/lib/crm-data";
 import { addersOf, discountsOf, itemBySku, productsOf, useCatalog } from "@/features/catalog/store";
 import { Float } from "@/components/float";
-import { acceptOption, addCustom, addLine, lineAmount, optionTotal, removeLine, removeOption, renameOption, setPick, setQty, type OptCard, type OptLine, type Proposal } from "./store";
+import { acceptOption, addCustom, addLine, lineAmount, optionTotal, removeLine, removeOption, renameOption, setPick, setQty, unacceptOption, type OptCard, type OptLine, type Proposal } from "./store";
 import { cn } from "@/lib/cn";
 
 type Menu = "product" | "adder" | "discount" | null;
@@ -31,7 +31,7 @@ export function OptionCard({ proposal, option }: { proposal: Proposal; option: O
   const discs = discountsOf(catalog).filter((p) => !have.has(p.sku));
 
   return (
-    <article className={cn("flex flex-col rounded-md border p-4", accepted ? "border-navy bg-navy text-card" : "border-line bg-card")}>
+    <article className={cn("flex flex-col rounded-md border bg-card p-4", accepted ? "border-navy ring-1 ring-navy" : "border-line")}>
       <div className="mb-3 flex items-start justify-between gap-2">
         <label className="min-w-0 flex-1 text-[11px] font-bold tracking-wide text-muted uppercase">
           Option name
@@ -39,7 +39,7 @@ export function OptionCard({ proposal, option }: { proposal: Proposal; option: O
             value={option.name}
             disabled={locked}
             onChange={(e) => renameOption(proposal.oppId, option.id, e.target.value)}
-            className={cn("mt-1 h-10 w-full rounded-md border px-3 text-sm font-semibold normal-case tracking-normal outline-none", accepted ? "border-card/40 bg-navy text-card" : "border-line bg-card text-ink")}
+            className="mt-1 h-10 w-full rounded-md border border-line bg-card px-3 text-sm font-semibold normal-case tracking-normal text-ink outline-none"
           />
         </label>
         <p className="text-lg font-extrabold tabular-nums">{money(total)}</p>
@@ -109,11 +109,10 @@ export function OptionCard({ proposal, option }: { proposal: Proposal; option: O
       ) : null}
       <button
         type="button"
-        disabled={locked}
-        onClick={() => acceptOption(proposal.oppId, option.id)}
-        className={cn("mt-4 h-11 rounded-md text-sm font-semibold", accepted ? "bg-card text-navy" : "border border-line hover:border-navy")}
+        onClick={() => (accepted ? unacceptOption(proposal.oppId) : acceptOption(proposal.oppId, option.id))}
+        className={cn("mt-4 h-11 rounded-md text-sm font-semibold", accepted ? "bg-navy text-card" : "border border-line hover:border-navy")}
       >
-        {accepted ? "Accepted / job scope" : "Accept this option"}
+        {accepted ? "Undo this pick" : "Accept this option"}
       </button>
     </article>
   );
@@ -136,7 +135,7 @@ function LineRow({
   const choices = item?.choices ?? [];
   const amount = line.kind === "discount" && line.pct ? `-${line.pct}%` : money(lineAmount(line) || line.unit * line.qty);
   return (
-    <li className={cn("rounded-md px-2 py-2", accepted ? "bg-navy/40" : "bg-page")}>
+    <li className="rounded-md bg-page px-2 py-2">
       <div className="flex items-center gap-2 text-sm">
         <span className="min-w-0 flex-1">
           {line.label}

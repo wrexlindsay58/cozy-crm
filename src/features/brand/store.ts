@@ -18,6 +18,9 @@ export type Brand = {
   fontHead: string;
   fontSub: string;
   fontBody: string;
+  why: string;
+  proof: string[];
+  different: string[];
 };
 
 const seed: Brand = {
@@ -38,6 +41,13 @@ const seed: Brand = {
   fontHead: "Teko",
   fontSub: "Oswald",
   fontBody: "IBM Plex Sans",
+  why: "We fix the envelope and the system together. Not a box on the pad and a hope.",
+  proof: ["12,400 houses", "ROC 312884", "APS trade ally", "Oncor trade ally"],
+  different: [
+    "One crew owns the walk through the install.",
+    "Photos live on the file, not in a text thread.",
+    "You pick an option on the kitchen table. You can undo it.",
+  ],
 };
 
 let brand: Brand = { ...seed };

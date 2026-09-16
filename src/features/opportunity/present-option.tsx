@@ -3,7 +3,7 @@ import { Plus, X } from "lucide-react";
 import { money } from "@/lib/crm-data";
 import { addersOf, discountsOf, itemBySku, productsOf, useCatalog } from "@/features/catalog/store";
 import { Float } from "@/components/float";
-import { addCustom, addLine, lineAmount, optionTotal, removeLine, renameOption, setPick, setQty, type OptCard, type Proposal } from "./store";
+import { acceptOption, addCustom, addLine, lineAmount, optionTotal, removeLine, renameOption, setPick, setQty, unacceptOption, type OptCard, type Proposal } from "./store";
 import { picksOn } from "./proposal-copy";
 import { cn } from "@/lib/cn";
 
@@ -26,7 +26,7 @@ export function PresentOption({
   const list = menu === "product" ? productsOf(catalog).filter((p) => !have.has(p.sku)) : menu === "adder" ? addersOf(catalog).filter((p) => !have.has(p.sku)) : discountsOf(catalog).filter((p) => !have.has(p.sku));
 
   return (
-    <article className={cn("rounded-sm border-2 p-5", selected ? "border-[var(--p-red)] bg-[var(--p-navy)] text-white" : "border-[var(--p-navy)]/15 bg-white")}>
+    <article className={cn("rounded-sm border-2 bg-white p-5 text-[var(--p-navy)]", selected ? "border-[var(--p-red)] shadow-[0_0_0_1px_var(--p-red)]" : "border-[var(--p-navy)]/15")}>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <button type="button" onClick={onPick} className="min-w-0 flex-1 text-left">
           <input
@@ -34,7 +34,7 @@ export function PresentOption({
             disabled={locked}
             onClick={(e) => e.stopPropagation()}
             onChange={(e) => renameOption(proposal.oppId, option.id, e.target.value)}
-            className={cn("h-10 w-full bg-transparent text-3xl uppercase outline-none", selected ? "text-white" : "text-[var(--p-navy)]")}
+            className="h-10 w-full bg-transparent text-3xl uppercase text-[var(--p-navy)] outline-none"
             style={{ fontFamily: "var(--p-head)" }}
           />
         </button>
@@ -61,7 +61,7 @@ export function PresentOption({
                     disabled={locked}
                     value={l.qty}
                     onChange={(e) => setQty(proposal.oppId, option.id, l.sku, Number(e.target.value))}
-                    className={cn("h-9 w-12 rounded-sm border px-1 text-center text-sm", selected ? "border-white/30 bg-transparent" : "border-black/15")}
+                    className="h-9 w-12 rounded-sm border border-[var(--p-navy)]/20 bg-white px-1 text-center text-sm"
                   />
                 ) : null}
                 <span className="w-20 text-right tabular-nums">{l.pct ? `-${l.pct}%` : money(lineAmount(l) || l.unit * l.qty)}</span>
@@ -80,7 +80,7 @@ export function PresentOption({
                         disabled={locked}
                         value={l.picks?.[ch.id] ?? ch.picks[0]?.id}
                         onChange={(e) => setPick(proposal.oppId, option.id, l.sku, ch.id, e.target.value)}
-                        className={cn("mt-1 h-10 w-full rounded-sm border px-2 text-sm font-semibold normal-case tracking-normal", selected ? "border-white/30 bg-black text-white" : "border-black/15 bg-white text-ink")}
+                        className="mt-1 h-10 w-full rounded-sm border border-[var(--p-navy)]/20 bg-white px-2 text-sm font-semibold normal-case tracking-normal text-[var(--p-navy)]"
                       >
                         {ch.picks.map((pk) => (
                           <option key={pk.id} value={pk.id}>
@@ -102,7 +102,7 @@ export function PresentOption({
             <button
               key={kind}
               type="button"
-              className={cn("inline-flex h-10 items-center gap-1 rounded-sm border px-3 text-xs font-semibold uppercase tracking-wider", selected ? "border-white/30" : "border-black/15")}
+              className="inline-flex h-10 items-center gap-1 rounded-sm border border-[var(--p-navy)]/20 px-3 text-xs font-semibold uppercase tracking-wider"
               style={{ fontFamily: "var(--p-sub)" }}
               onClick={(e) => {
                 setAnchor(e.currentTarget.getBoundingClientRect());
@@ -145,6 +145,24 @@ export function PresentOption({
           ) : null}
         </div>
       ) : null}
+      <div className="mt-4 flex flex-wrap gap-2">
+        {proposal.accepted === option.id ? (
+          <button type="button" className="h-11 flex-1 rounded-sm border-2 border-[var(--p-navy)] text-sm font-semibold" onClick={() => unacceptOption(proposal.oppId)}>
+            Undo this pick
+          </button>
+        ) : (
+          <button
+            type="button"
+            className="h-11 flex-1 bg-[var(--p-red)] text-sm font-semibold text-white"
+            onClick={() => {
+              if (proposal.accepted && proposal.accepted !== option.id) unacceptOption(proposal.oppId);
+              onPick();
+            }}
+          >
+            {proposal.accepted && proposal.accepted !== option.id ? "Use this instead" : selected ? "This is the pick" : "Select this option"}
+          </button>
+        )}
+      </div>
     </article>
   );
 }

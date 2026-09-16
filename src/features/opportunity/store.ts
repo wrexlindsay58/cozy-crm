@@ -33,6 +33,7 @@ export type PayOffer = {
   financer?: string;
   terms: number[];
 };
+export type PayPick = { offerId: string; term?: number };
 export type Proposal = {
   oppId: string;
   personId: string;
@@ -42,6 +43,7 @@ export type Proposal = {
   accepted?: string;
   pay: "cash" | "12mo" | "goodleap";
   payOffers: PayOffer[];
+  payPick?: PayPick;
   goodleapTerm: "10yr" | "12yr";
   goodleapStatus: GoodLeapStatus;
   proposalStatus: "Draft" | "Generated" | "Sent";
@@ -305,6 +307,13 @@ export function acceptOption(oppId: string, optId: string) {
   addHistory(p.personId, p.closer, `Accepted ${opt.name} at ${money(optionTotal(opt))}.`);
   emit();
 }
+export function unacceptOption(oppId: string) {
+  const p = proposals[oppId];
+  if (!p || !p.accepted) return;
+  proposals = { ...proposals, [oppId]: { ...p, accepted: undefined, signStatus: "—" } };
+  addHistory(p.personId, p.closer, "Undid the accepted option.");
+  emit();
+}
 export function setPay(oppId: string, pay: Proposal["pay"]) {
   const p = proposals[oppId];
   if (!p) return;
@@ -329,13 +338,22 @@ export function addPayOffer(oppId: string, kind: PayKind) {
   if (!p) return;
   if (kind !== "finance" && p.payOffers.some((o) => o.kind === kind)) return;
   const offer: PayOffer = { id: `PAY-${Date.now()}`, kind, financer: kind === "finance" ? "GoodLeap" : undefined, terms: kind === "finance" ? [120] : [] };
-  proposals = { ...proposals, [oppId]: { ...p, payOffers: [...p.payOffers, offer] } };
+  const payPick = p.payPick ?? { offerId: offer.id, term: offer.terms[0] };
+  proposals = { ...proposals, [oppId]: { ...p, payOffers: [...p.payOffers, offer], payPick } };
   emit();
 }
 export function removePayOffer(oppId: string, id: string) {
   const p = proposals[oppId];
   if (!p) return;
-  proposals = { ...proposals, [oppId]: { ...p, payOffers: p.payOffers.filter((o) => o.id !== id) } };
+  const payOffers = p.payOffers.filter((o) => o.id !== id);
+  const payPick = p.payPick?.offerId === id ? (payOffers[0] ? { offerId: payOffers[0].id, term: payOffers[0].terms[0] } : undefined) : p.payPick;
+  proposals = { ...proposals, [oppId]: { ...p, payOffers, payPick } };
+  emit();
+}
+export function setPayPick(oppId: string, offerId: string, term?: number) {
+  const p = proposals[oppId];
+  if (!p) return;
+  proposals = { ...proposals, [oppId]: { ...p, payPick: { offerId, term } } };
   emit();
 }
 export function setPayFinancer(oppId: string, id: string, financer: string) {
@@ -362,7 +380,8 @@ export function togglePayTerm(oppId: string, id: string, months: number) {
 }
 export function generateProposal(oppId: string) {
   const p = proposals[oppId];
-  if (!p) return;
+  if (!p) return false;
+  if (!p.payOffers.length) return false;
   const doc: DocStub = {
     id: `D-${p.documents.length + 1}`,
     kind: "proposal",
@@ -376,6 +395,7 @@ export function generateProposal(oppId: string) {
   };
   addHistory(p.personId, p.closer, `Proposal generated. ${p.options.map((o) => `${o.name} ${money(optionTotal(o))}`).join(" · ")}.`);
   emit();
+  return true;
 }
 export function sendProposal(oppId: string) {
   const p = proposals[oppId];

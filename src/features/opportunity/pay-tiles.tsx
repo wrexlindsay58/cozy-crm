@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Plus, X } from "lucide-react";
 import { money } from "@/lib/crm-data";
-import { addPayOffer, demoMonthly, optionTotal, removePayOffer, setPayFinancer, togglePayTerm, type PayKind, type Proposal } from "./store";
+import { addPayOffer, demoMonthly, optionTotal, removePayOffer, setPayFinancer, setPayPick, togglePayTerm, type PayKind, type Proposal } from "./store";
 import { cn } from "@/lib/cn";
 import { useMoneySettings } from "@/features/money-settings/store";
 import { Float } from "@/components/float";
@@ -78,12 +78,18 @@ export function PayTiles({ proposal }: { proposal: Proposal }) {
           const shop = shops.find((f) => f.name === offer.financer) ?? shops[0];
           const feePct = offer.kind === "finance" ? (shop?.feePct ?? 0) / 100 : 0;
           return (
-            <article key={offer.id} className="rounded-md border border-line p-3">
+            <article key={offer.id} className={cn("rounded-md border p-3", proposal.payPick?.offerId === offer.id ? "border-navy ring-1 ring-navy" : "border-line")}>
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0 flex-1">
                   <p className="text-[11px] font-bold tracking-wide text-muted uppercase">
                     {offer.kind === "cash" ? "Cash" : offer.kind === "card" ? "Credit card" : "Financing"}
+                    {proposal.payPick?.offerId === offer.id ? " · on the proposal" : ""}
                   </p>
+                  {proposal.payPick?.offerId !== offer.id ? (
+                    <button type="button" className="mt-1 text-xs font-semibold text-navy" onClick={() => setPayPick(proposal.oppId, offer.id, offer.terms[0])}>
+                      Use this on the proposal
+                    </button>
+                  ) : null}
                   {offer.kind !== "finance" ? <OptionPrices proposal={proposal} format={money} /> : null}
                   {offer.kind === "finance" ? (
                     <div className="mt-2 space-y-3">

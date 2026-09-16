@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { ChevronLeft, Link2, Printer, X } from "lucide-react";
 import { CozyHouse, CozyWordmark } from "@/components/cozy-mark";
-import { useCatalog } from "@/features/catalog/store";
+import { useCatalog, itemBySku } from "@/features/catalog/store";
 import { assessmentForLead, useAssessments } from "@/features/assessment/store";
 import { useAssessCategories } from "@/features/assessment/categories";
 import { useOps } from "@/features/ops/store";
@@ -10,13 +10,13 @@ import { usePhotos } from "@/features/photos/store";
 import { brandVars, useBrand } from "@/features/brand/store";
 import { money } from "@/lib/crm-data";
 import { cityState, placeLine } from "@/lib/place";
-import { interestsLabel, inferInterests } from "@/features/lead/interests";
-import { acceptOption, applyGoodLeap, demoMonthly, lineAmount, optionTotal, requestDeposit, sendProposal, sendToSign, type PayKind, type Proposal } from "./store";
+import { addPayOffer, applyGoodLeap, demoMonthly, lineAmount, optionTotal, requestDeposit, sendProposal, sendToSign, setPayPick, acceptOption, type PayKind, type Proposal } from "./store";
 import { PresentOption } from "./present-option";
 import { picksOn, scopeLines, TERM_LABEL } from "./proposal-copy";
+import { storyFor } from "./product-story";
 import { cn } from "@/lib/cn";
 
-const STEPS = ["cover", "house", "find", "options", "pay", "sign", "done"] as const;
+const STEPS = ["cover", "why", "find", "work", "options", "pay", "sign", "done"] as const;
 type Step = (typeof STEPS)[number];
 
 export function Present({ proposal }: { proposal: Proposal }) {
@@ -31,8 +31,6 @@ export function Present({ proposal }: { proposal: Proposal }) {
   const photos = usePhotos(proposal.personId);
   const [step, setStep] = useState<Step>("cover");
   const [picked, setPicked] = useState(proposal.accepted ?? proposal.options[0]?.id ?? "");
-  const [pay, setPay] = useState<PayKind>(proposal.payOffers[0]?.kind ?? "cash");
-  const [term, setTerm] = useState(proposal.payOffers.find((o) => o.kind === "finance")?.terms[0] ?? 120);
   const [name, setName] = useState(lead?.name ?? "");
   const [copied, setCopied] = useState("");
   const opt = proposal.options.find((o) => o.id === picked) ?? proposal.options[0];
@@ -40,6 +38,9 @@ export function Present({ proposal }: { proposal: Proposal }) {
   const i = STEPS.indexOf(step);
   const fileTo = { to: "/opportunities/$oppId" as const, params: { oppId: proposal.oppId } };
   const today = new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+  const payOffer = proposal.payOffers.find((o) => o.id === proposal.payPick?.offerId) ?? proposal.payOffers[0];
+  const term = proposal.payPick?.term ?? payOffer?.terms[0] ?? 120;
+  const products = uniqueProducts(proposal);
 
   function go(next: Step) {
     setStep(next);
@@ -47,11 +48,11 @@ export function Present({ proposal }: { proposal: Proposal }) {
   }
 
   function sign() {
-    if (!opt) return;
+    if (!opt || !payOffer) return;
     acceptOption(proposal.oppId, opt.id);
     sendToSign(proposal.oppId);
-    if (pay === "finance") applyGoodLeap(proposal.oppId);
-    if (pay === "card" || pay === "cash") requestDeposit(proposal.oppId);
+    if (payOffer.kind === "finance") applyGoodLeap(proposal.oppId);
+    else requestDeposit(proposal.oppId);
     go("done");
   }
 
@@ -68,11 +69,7 @@ export function Present({ proposal }: { proposal: Proposal }) {
       <style>{`
         .p-head { font-family: var(--p-head); letter-spacing: 0.02em; line-height: 0.95; text-transform: uppercase; }
         .p-sub { font-family: var(--p-sub); letter-spacing: 0.18em; text-transform: uppercase; font-weight: 500; }
-        @media print {
-          .no-print { display: none !important; }
-          .present-root { background: white !important; }
-          .print-break { break-inside: avoid; }
-        }
+        @media print { .no-print { display: none !important; } .print-break { break-inside: avoid; } }
       `}</style>
 
       <div className="no-print sticky top-0 z-20 flex items-center gap-2 bg-[var(--p-navy)] px-3 py-2 text-white md:px-6">
@@ -119,44 +116,48 @@ export function Present({ proposal }: { proposal: Proposal }) {
             <p className="p-sub text-[11px] text-white/50">
               {brand.phone} · {brand.email}
             </p>
-            <button type="button" className="h-12 bg-[var(--p-red)] px-7 text-sm font-semibold text-white" onClick={() => go("house")}>
+            <button type="button" className="h-12 bg-[var(--p-red)] px-7 text-sm font-semibold text-white" onClick={() => go("why")}>
               Open the plan
             </button>
           </div>
         </section>
       ) : null}
 
-      {step === "house" ? (
+      {step === "why" ? (
         <section className="relative mx-auto max-w-3xl px-5 py-10 md:px-8 md:py-16 print-break">
           <CozyHouse className="pointer-events-none absolute right-4 top-6 w-36 opacity-10" color={brand.red} />
-          <p className="p-sub text-[11px] text-[var(--p-red)]">The house</p>
-          <h2 className="p-head mt-3 text-5xl text-[var(--p-navy)]">{lead?.name}</h2>
-          <p className="mt-3 text-lg text-[var(--p-gray)]">{lead ? placeLine(lead.address, lead.city, lead.office) : ""}</p>
-          <dl className="mt-8 grid gap-4 sm:grid-cols-2">
-            <Fact k="Phone" v={lead?.phone} />
-            <Fact k="Email" v={lead?.email} />
-            {lead?.secondaryName ? <Fact k="Second" v={`${lead.secondaryName}${lead.secondaryPhone ? ` · ${lead.secondaryPhone}` : ""}`} /> : null}
-            <Fact k="Source" v={lead?.source} />
-            <Fact k="Interests" v={lead ? interestsLabel(lead.interests ?? inferInterests(lead.product), lead.otherInterest) : ""} />
-            <Fact k="Closer" v={proposal.closer} />
-            <Fact k="File" v={`${proposal.oppId} · ${lead?.id ?? ""}`} />
-          </dl>
-          {lead?.notes ? (
-            <div className="mt-8 border-l-4 border-[var(--p-red)] pl-4">
-              <p className="p-sub text-[11px] text-[var(--p-red)]">On the file</p>
-              <p className="mt-2 text-base">{lead.notes}</p>
-            </div>
-          ) : null}
+          <p className="p-sub text-[11px] text-[var(--p-red)]">Why {brand.name.split(" ")[0]}</p>
+          <h2 className="p-head mt-3 text-5xl text-[var(--p-navy)]">{brand.tagline}.</h2>
+          <p className="mt-5 text-lg">{brand.why}</p>
+          <ul className="mt-8 grid gap-3 sm:grid-cols-2">
+            {brand.proof.map((p) => (
+              <li key={p} className="border border-[var(--p-navy)]/10 bg-white px-4 py-3">
+                <p className="p-head text-3xl text-[var(--p-navy)]">{p}</p>
+              </li>
+            ))}
+          </ul>
+          <p className="p-sub mt-10 text-[11px] text-[var(--p-red)]">How we run</p>
+          <ul className="mt-4 space-y-3">
+            {brand.different.map((d) => (
+              <li key={d} className="flex gap-3 border-t-2 border-[var(--p-red)] pt-3">
+                <CozyHouse className="size-8 shrink-0" color={brand.red} />
+                <p className="text-base">{d}</p>
+              </li>
+            ))}
+          </ul>
           <button type="button" className="mt-10 h-12 bg-[var(--p-red)] px-7 text-sm font-semibold text-white" onClick={() => go("find")}>
-            What we found
+            Your house
           </button>
         </section>
       ) : null}
 
       {step === "find" ? (
         <section className="relative mx-auto max-w-3xl px-5 py-10 md:px-8 md:py-16 print-break">
-          <p className="p-sub text-[11px] text-[var(--p-red)]">What we found</p>
-          <h2 className="p-head mt-3 text-5xl text-[var(--p-navy)]">The house is talking.</h2>
+          <p className="p-sub text-[11px] text-[var(--p-red)]">Assessment</p>
+          <h2 className="p-head mt-3 text-5xl text-[var(--p-navy)]">What we found.</h2>
+          <p className="mt-3 text-sm text-[var(--p-gray)]">
+            {lead ? placeLine(lead.address, lead.city, lead.office) : ""} · {proposal.closer} on the walk
+          </p>
           <div className="mt-8 grid grid-cols-3 gap-3">
             {assess?.property.yearBuilt ? <Stat n={assess.property.yearBuilt} l="Built" /> : null}
             {assess?.property.sqft ? <Stat n={assess.property.sqft} l="Sq ft" /> : null}
@@ -165,8 +166,12 @@ export function Present({ proposal }: { proposal: Proposal }) {
             {assess?.property.occupancy ? <Stat n={assess.property.occupancy} l="Occupancy" /> : null}
             {assess?.property.electrical ? <Stat n={assess.property.electrical} l="Electrical" /> : null}
           </div>
-          {assess?.property.notes ? <p className="mt-6 text-lg">{assess.property.notes}</p> : null}
-          {assess?.property.access ? <p className="mt-2 text-sm text-[var(--p-gray)]">Access: {assess.property.access}</p> : null}
+          {assess?.property.notes ? (
+            <div className="mt-6 border-l-4 border-[var(--p-red)] pl-4">
+              <p className="p-sub text-[11px] text-[var(--p-red)]">Walk notes</p>
+              <p className="mt-2 text-base">{assess.property.notes}</p>
+            </div>
+          ) : null}
           <ul className="mt-10 space-y-0">
             {(assess?.packets ?? [])
               .filter((p) => Object.keys(p.fields).length || p.notes || p.photos.length)
@@ -194,14 +199,46 @@ export function Present({ proposal }: { proposal: Proposal }) {
               <p className="p-sub text-[11px] text-[var(--p-red)]">From the walk</p>
               <ul className="mt-3 grid grid-cols-2 gap-2 md:grid-cols-3">
                 {photos.map((ph) => (
-                  <li key={ph.id} className="overflow-hidden bg-[var(--p-navy)]/5">
-                    {ph.src ? <img src={ph.src} alt={ph.caption} className="aspect-[4/3] w-full object-cover" /> : <div className="aspect-[4/3] grid place-items-center text-xs text-[var(--p-gray)]">{ph.caption}</div>}
-                    <p className="px-2 py-1.5 text-[11px] text-[var(--p-gray)]">{ph.caption}</p>
+                  <li key={ph.id} className="overflow-hidden bg-white">
+                    {ph.src ? <img src={ph.src} alt={ph.caption} className="aspect-[4/3] w-full object-cover" /> : <div className="aspect-[4/3] grid place-items-center bg-[var(--p-navy)]/5 text-xs text-[var(--p-gray)]">Photo</div>}
+                    <p className="px-2 py-2 text-[12px]">{ph.caption}</p>
                   </li>
                 ))}
               </ul>
             </div>
           ) : null}
+          <button type="button" className="mt-10 h-12 bg-[var(--p-red)] px-7 text-sm font-semibold text-white" onClick={() => go("work")}>
+            The work
+          </button>
+        </section>
+      ) : null}
+
+      {step === "work" ? (
+        <section className="mx-auto max-w-3xl px-5 py-10 md:px-8 md:py-16 print-break">
+          <p className="p-sub text-[11px] text-[var(--p-red)]">The work</p>
+          <h2 className="p-head mt-3 text-5xl text-[var(--p-navy)]">What it solves. What we do.</h2>
+          <p className="mt-3 text-sm text-[var(--p-gray)]">Each product on these options. Benefits, the problem, the scope.</p>
+          <ul className="mt-10 space-y-8">
+            {products.map((sku) => {
+              const item = itemBySku(sku);
+              const story = storyFor(sku);
+              const inOpts = proposal.options.filter((o) => o.lines.some((l) => l.sku === sku)).map((o) => o.name);
+              return (
+                <li key={sku} className="border-t-2 border-[var(--p-red)] pt-6">
+                  <p className="p-sub text-[11px] text-[var(--p-gray)]">{inOpts.join(" · ")}</p>
+                  <h3 className="p-head mt-1 text-4xl text-[var(--p-navy)]">{item?.label ?? sku}</h3>
+                  <p className="mt-3 text-base">{story.solves}</p>
+                  <ul className="mt-3 space-y-1 text-sm">
+                    {story.benefits.map((b) => (
+                      <li key={b}>— {b}</li>
+                    ))}
+                  </ul>
+                  <p className="p-sub mt-4 text-[11px] text-[var(--p-red)]">Scope</p>
+                  <p className="mt-1 text-sm">{story.sow}</p>
+                </li>
+              );
+            })}
+          </ul>
           <button type="button" className="mt-10 h-12 bg-[var(--p-red)] px-7 text-sm font-semibold text-white" onClick={() => go("options")}>
             See the options
           </button>
@@ -210,53 +247,26 @@ export function Present({ proposal }: { proposal: Proposal }) {
 
       {step === "options" ? (
         <section className="mx-auto max-w-3xl px-5 py-10 md:px-8 md:py-16 print-break">
-          <p className="p-sub text-[11px] text-[var(--p-red)]">Proposal options</p>
-          <h2 className="p-head mt-3 text-5xl text-[var(--p-navy)]">Pick a path. Edit it here.</h2>
-          <p className="mt-3 text-sm text-[var(--p-gray)]">Tap an option to select it. Change the mix, the name, the subs. What you see is what they sign.</p>
-          <div className="mt-6 overflow-x-auto border border-[var(--p-navy)]/15">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="bg-[var(--p-navy)] text-left text-white">
-                  <th className="p-sub px-3 py-2 text-[10px] font-medium">Option</th>
-                  <th className="p-sub px-3 py-2 text-[10px] font-medium">What’s in it</th>
-                  <th className="p-sub px-3 py-2 text-right text-[10px] font-medium">Investment</th>
-                </tr>
-              </thead>
-              <tbody>
-                {proposal.options.map((o) => (
-                  <tr key={o.id} className={picked === o.id ? "bg-[var(--p-red)]/8" : "border-t border-[var(--p-navy)]/10"}>
-                    <td className="px-3 py-3 font-semibold">{o.name}</td>
-                    <td className="px-3 py-3 text-[var(--p-gray)]">
-                      {o.lines
-                        .filter((l) => l.kind !== "discount")
-                        .map((l) => `${l.label}${picksOn(l) ? ` (${picksOn(l)})` : ""}`)
-                        .join(" · ")}
-                    </td>
-                    <td className="px-3 py-3 text-right font-extrabold tabular-nums">{money(optionTotal(o))}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <p className="p-sub text-[11px] text-[var(--p-red)]">Options</p>
+          <h2 className="p-head mt-3 text-5xl text-[var(--p-navy)]">Pick a path.</h2>
+          <p className="mt-3 text-sm text-[var(--p-gray)]">White cards. Red means the pick. Undo and send another if the first one is wrong.</p>
           <div className="mt-8 space-y-4">
             {proposal.options.map((o) => (
               <PresentOption key={o.id} proposal={proposal} option={o} selected={picked === o.id} onPick={() => setPicked(o.id)} />
             ))}
           </div>
           <button type="button" disabled={!picked} className="mt-10 h-12 bg-[var(--p-red)] px-7 text-sm font-semibold text-white disabled:opacity-40" onClick={() => go("pay")}>
-            Continue with {opt?.name}
+            Price {opt?.name}
           </button>
         </section>
       ) : null}
 
       {step === "pay" ? (
         <section className="mx-auto max-w-3xl px-5 py-10 md:px-8 md:py-16 print-break">
-          <p className="p-sub text-[11px] text-[var(--p-red)]">
-            {opt?.name} · {money(total)}
-          </p>
-          <h2 className="p-head mt-3 text-5xl text-[var(--p-navy)]">How do you want to pay?</h2>
-          <p className="mt-3 text-sm text-[var(--p-gray)]">Every option priced. Cash and card are the number. Financing shows the monthly.</p>
-          <div className="mt-8 overflow-x-auto border border-[var(--p-navy)]/15">
+          <p className="p-sub text-[11px] text-[var(--p-red)]">Investment</p>
+          <h2 className="p-head mt-3 text-5xl text-[var(--p-navy)]">The number.</h2>
+          <p className="mt-3 text-sm text-[var(--p-gray)]">How you pay was set on the file. You can still add or switch here.</p>
+          <div className="mt-8 overflow-x-auto border border-[var(--p-navy)]/15 bg-white">
             <table className="w-full min-w-[28rem] text-sm">
               <thead>
                 <tr className="bg-[var(--p-navy)] text-white">
@@ -284,53 +294,60 @@ export function Present({ proposal }: { proposal: Proposal }) {
               </tbody>
             </table>
           </div>
-          <div className="mt-8 grid gap-3">
-            {(["cash", "card", "finance"] as PayKind[]).map((k) => {
-              const offer = proposal.payOffers.find((o) => o.kind === k);
-              const label = k === "cash" ? "Cash" : k === "card" ? "Credit card" : "Financing";
+          <div className="mt-6 flex flex-wrap gap-2">
+            {(["cash", "card", "finance"] as PayKind[]).map((k) => (
+              <button
+                key={k}
+                type="button"
+                className="h-10 border border-[var(--p-navy)]/20 px-3 text-xs font-semibold uppercase tracking-wider"
+                onClick={() => addPayOffer(proposal.oppId, k)}
+              >
+                Add {k === "card" ? "card" : k}
+              </button>
+            ))}
+          </div>
+          <div className="mt-4 grid gap-3">
+            {proposal.payOffers.map((offer) => {
+              const on = payOffer?.id === offer.id;
               return (
                 <button
-                  key={k}
+                  key={offer.id}
                   type="button"
-                  onClick={() => setPay(k)}
-                  className={cn("border-2 px-5 py-4 text-left", pay === k ? "border-[var(--p-red)] bg-[var(--p-navy)] text-white" : "border-[var(--p-navy)]/15 bg-white")}
+                  onClick={() => setPayPick(proposal.oppId, offer.id, offer.terms[0])}
+                  className={cn("border-2 bg-white px-5 py-4 text-left", on ? "border-[var(--p-red)]" : "border-[var(--p-navy)]/15")}
                 >
-                  <p className="p-sub text-[11px]">{label}</p>
-                  {k !== "finance" ? <p className="p-head mt-1 text-4xl">{money(total)}</p> : <p className="mt-1 text-sm opacity-80">{offer?.financer ?? "GoodLeap"}</p>}
+                  <p className="p-sub text-[11px]">{offer.kind === "cash" ? "Cash" : offer.kind === "card" ? "Credit card" : `Financing · ${offer.financer ?? "GoodLeap"}`}</p>
+                  {offer.kind !== "finance" ? <p className="p-head mt-1 text-4xl">{money(total)}</p> : <p className="p-head mt-1 text-4xl">{money(demoMonthly(total, term))}/mo</p>}
                 </button>
               );
             })}
           </div>
-          {pay === "finance" ? (
-            <div className="mt-6 flex flex-wrap gap-2">
-              {(proposal.payOffers.find((o) => o.kind === "finance")?.terms.length
-                ? proposal.payOffers.find((o) => o.kind === "finance")!.terms
-                : [60, 120, 144, 180]
-              ).map((m) => (
+          {payOffer?.kind === "finance" ? (
+            <div className="mt-4 flex flex-wrap gap-2">
+              {(payOffer.terms.length ? payOffer.terms : [120, 144, 180]).map((m) => (
                 <button
                   key={m}
                   type="button"
-                  onClick={() => setTerm(m)}
-                  className={cn("h-12 px-4 text-sm font-semibold", term === m ? "bg-[var(--p-red)] text-white" : "border border-[var(--p-navy)]/20")}
+                  onClick={() => setPayPick(proposal.oppId, payOffer.id, m)}
+                  className={cn("h-12 px-4 text-sm font-semibold", term === m ? "bg-[var(--p-red)] text-white" : "border border-[var(--p-navy)]/20 bg-white")}
                 >
                   {TERM_LABEL[m]} · {money(demoMonthly(total, m))}/mo
                 </button>
               ))}
             </div>
           ) : null}
-          <button type="button" className="mt-10 h-12 bg-[var(--p-red)] px-7 text-sm font-semibold text-white" onClick={() => go("sign")}>
-            Review and sign
+          <button type="button" disabled={!payOffer} className="mt-10 h-12 bg-[var(--p-red)] px-7 text-sm font-semibold text-white disabled:opacity-40" onClick={() => go("sign")}>
+            Next steps
           </button>
         </section>
       ) : null}
 
       {step === "sign" ? (
         <section className="mx-auto max-w-3xl px-5 py-10 md:px-8 md:py-16 print-break">
-          <p className="p-sub text-[11px] text-[var(--p-red)]">Agreement</p>
+          <p className="p-sub text-[11px] text-[var(--p-red)]">Next</p>
           <h2 className="p-head mt-3 text-5xl text-[var(--p-navy)]">Lock it in.</h2>
-          <div className="mt-8 border-l-4 border-[var(--p-red)] bg-[var(--p-navy)]/5 p-5">
-            <p className="p-sub text-[11px] text-[var(--p-gray)]">Scope</p>
-            <p className="p-head mt-1 text-3xl text-[var(--p-navy)]">
+          <div className="mt-8 border-l-4 border-[var(--p-red)] bg-white p-5">
+            <p className="p-head text-3xl text-[var(--p-navy)]">
               {opt?.name} · {money(total)}
             </p>
             <ul className="mt-3 space-y-1 text-sm">
@@ -339,21 +356,20 @@ export function Present({ proposal }: { proposal: Proposal }) {
                 .map((l) => (
                   <li key={l.sku}>
                     {l.label}
-                    {picksOn(l) ? ` · ${picksOn(l)}` : ""}
-                    {l.qty > 1 ? ` × ${l.qty}` : ""} — {money(lineAmount(l) || l.unit * l.qty)}
+                    {picksOn(l) ? ` · ${picksOn(l)}` : ""} — {money(lineAmount(l) || l.unit * l.qty)}
                   </li>
                 ))}
             </ul>
             <p className="mt-3 text-sm text-[var(--p-gray)]">We will {opt ? scopeLines(opt).join("; ").toLowerCase() : ""}.</p>
             <p className="mt-4 text-sm">
-              Pay: {pay === "cash" ? `Cash ${money(total)}` : pay === "card" ? `Credit card ${money(total)}` : `Financing · ${TERM_LABEL[term]} · ${money(demoMonthly(total, term))}/mo`}
+              Pay: {payOffer?.kind === "finance" ? `Financing · ${TERM_LABEL[term]} · ${money(demoMonthly(total, term))}/mo` : payOffer?.kind === "card" ? `Credit card ${money(total)}` : `Cash ${money(total)}`}
             </p>
           </div>
           <ol className="mt-8 list-decimal space-y-2 pl-5 text-sm">
             <li>Sign this agreement.</li>
-            <li>{pay === "finance" ? "Apply for financing." : "Put a deposit on the card to hold the date."}</li>
+            <li>{payOffer?.kind === "finance" ? "Apply for financing." : "Put a deposit on the card to hold the date."}</li>
             <li>We confirm the install and send the crew the scope and photos.</li>
-            <li>Work starts after sign and deposit or financing approval. This proposal is good 14 days from {today}.</li>
+            <li>Work starts after sign and deposit or financing approval. Good 14 days from {today}.</li>
           </ol>
           <label className="mt-6 block text-[11px] font-bold tracking-wide uppercase text-[var(--p-gray)]">
             Full name
@@ -366,17 +382,6 @@ export function Present({ proposal }: { proposal: Proposal }) {
           <button type="button" disabled={name.trim().length < 3} className="mt-8 h-12 w-full bg-[var(--p-red)] text-sm font-semibold text-white disabled:opacity-40" onClick={sign}>
             Sign agreement
           </button>
-          <div className="mt-3 flex flex-wrap gap-2">
-            {pay === "finance" ? (
-              <button type="button" className="h-12 flex-1 border-2 border-[var(--p-navy)] px-4 text-sm font-semibold text-[var(--p-navy)]" onClick={() => applyGoodLeap(proposal.oppId)}>
-                Apply for financing
-              </button>
-            ) : (
-              <button type="button" className="h-12 flex-1 border-2 border-[var(--p-navy)] px-4 text-sm font-semibold text-[var(--p-navy)]" onClick={() => requestDeposit(proposal.oppId)}>
-                Put a deposit on the card
-              </button>
-            )}
-          </div>
         </section>
       ) : null}
 
@@ -387,11 +392,7 @@ export function Present({ proposal }: { proposal: Proposal }) {
           <p className="p-sub relative mt-8 text-[11px] text-[var(--p-red)]">You’re in</p>
           <h2 className="p-head relative mt-3 max-w-2xl text-6xl">We’ll take it from here.</h2>
           <p className="relative mt-5 max-w-lg text-lg text-white/75">
-            {opt?.name} is on the book at {money(total)}. {pay === "finance" ? "Financing is in. " : "Deposit is next. "}
-            {proposal.closer} will confirm the install date.
-          </p>
-          <p className="p-sub relative mt-10 text-[11px] text-white/50">
-            {brand.name} · {brand.license} · {brand.phone} · {brand.email}
+            {opt?.name} is on the book at {money(total)}. {proposal.closer} will confirm the install date.
           </p>
           <button type="button" className="no-print relative mt-8 h-12 w-fit bg-[var(--p-red)] px-7 text-sm font-semibold" onClick={() => navigate(fileTo)}>
             Back to the file
@@ -400,6 +401,19 @@ export function Present({ proposal }: { proposal: Proposal }) {
       ) : null}
     </div>
   );
+}
+
+function uniqueProducts(proposal: Proposal) {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const o of proposal.options) {
+    for (const l of o.lines) {
+      if (l.kind === "discount" || seen.has(l.sku)) continue;
+      seen.add(l.sku);
+      out.push(l.sku);
+    }
+  }
+  return out;
 }
 
 function Fact({ k, v }: { k: string; v?: string }) {

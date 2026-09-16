@@ -1,4 +1,5 @@
 import { FileText } from "lucide-react";
+import { useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { money } from "@/lib/crm-data";
 import { generateProposal, sendProposal, type Proposal } from "./store";
@@ -6,9 +7,15 @@ import { generateProposal, sendProposal, type Proposal } from "./store";
 export function ProposalPanel({ proposal }: { proposal: Proposal }) {
   const navigate = useNavigate();
   const docs = proposal.documents.filter((d) => d.kind === "proposal");
+  const [needPay, setNeedPay] = useState(false);
 
   function present() {
-    generateProposal(proposal.oppId);
+    const ok = generateProposal(proposal.oppId);
+    if (!ok) {
+      setNeedPay(true);
+      return;
+    }
+    setNeedPay(false);
     navigate({ to: "/proposal/$oppId", params: { oppId: proposal.oppId } });
   }
 
@@ -25,7 +32,8 @@ export function ProposalPanel({ proposal }: { proposal: Proposal }) {
           </button>
         </div>
       </div>
-      <p className="mt-2 text-sm text-muted">Opens a customer page. They pick an option, choose how to pay, and sign.</p>
+      <p className="mt-2 text-sm text-muted">Add at least one payment option first. Then generate. They walk cover → why us → the walk → the work → options → pay → sign.</p>
+      {needPay ? <p className="mt-2 text-sm text-alert">Add cash, card, or financing before you generate.</p> : null}
       {docs.length ? (
         <ul className="mt-3 space-y-1">
           {docs.map((d) => (
