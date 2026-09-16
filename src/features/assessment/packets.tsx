@@ -77,7 +77,7 @@ function PacketCard({
             onSubmit={(e) => {
               e.preventDefault();
               const file = fileRef.current?.files?.[0];
-              const ok = addPacketPhoto(assessmentId, def.id, caption, file);
+              const ok = addPacketPhoto(assessmentId, def.id, caption, file, def.label);
               if (!ok) return;
               setCaption("");
               if (fileRef.current) fileRef.current.value = "";

@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from "react";
 import { addHistory } from "@/features/ops/store";
-import { addPhoto, kindFromFile } from "@/features/photos/store";
+import { kindFromFile, putPhoto } from "@/features/photos/store";
 import { activeCategories } from "./categories";
 import { emptyProperty, type Assessment, type Packet, type Property } from "./types";
 
@@ -41,6 +41,20 @@ const hale: Assessment = {
 };
 
 let rows: Record<string, Assessment> = { "AS-19": hale };
+for (const p of hale.packets) {
+  for (const ph of p.photos) {
+    const cat = p.id === "hvac" ? "HVAC" : p.id === "attic" ? "Attic" : p.id;
+    putPhoto(hale.leadId, {
+      id: ph.id,
+      personId: hale.leadId,
+      caption: `${cat} · ${ph.caption}`,
+      tone: "info",
+      src: ph.src,
+      kind: ph.kind,
+      name: ph.name,
+    });
+  }
+}
 const listeners = new Set<() => void>();
 function emit() {
   listeners.forEach((l) => l());
@@ -99,7 +113,7 @@ export function setProperty(id: string, patch: Partial<Property>) {
   rows = { ...rows, [id]: { ...cur, property: { ...cur.property, ...patch } } };
   emit();
 }
-export function addPacketPhoto(id: string, packet: string, caption: string, file?: File) {
+export function addPacketPhoto(id: string, packet: string, caption: string, file?: File, category = packet) {
   const cur = rows[id];
   if (!cur) return false;
   const label = caption.trim() || file?.name || "";
@@ -119,8 +133,16 @@ export function addPacketPhoto(id: string, packet: string, caption: string, file
       ...rows,
       [id]: { ...row, packets: packets.map((p) => (p.id === packet ? { ...p, photos: [photo, ...p.photos] } : p)) },
     };
-    addPhoto(row.leadId, photo.caption, src, photo.kind, file?.name);
-    addHistory(row.leadId, row.closer, `Photo on ${packet}: ${photo.caption}.`);
+    putPhoto(row.leadId, {
+      id: photo.id,
+      personId: row.leadId,
+      caption: `${category} · ${photo.caption}`,
+      tone: "info",
+      src: photo.src,
+      kind: photo.kind,
+      name: photo.name,
+    });
+    addHistory(row.leadId, row.closer, `${category} file: ${photo.caption}.`);
     emit();
   };
   if (file) {

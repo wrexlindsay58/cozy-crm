@@ -23,34 +23,57 @@ export function LeadCard({
   locked?: boolean;
 }) {
   const [edit, setEdit] = useState(!locked);
+  const [open, setOpen] = useState(!locked);
   const interests = interestsLabel(lead.interests ?? inferInterests(lead.product), lead.otherInterest);
+  const line = [lead.name, lead.phone, lead.city || lead.address].filter(Boolean).join(" · ");
 
   function save(d: LeadDraft) {
     updateLead(lead.id, d);
-    if (locked) setEdit(false);
+    if (locked) {
+      setEdit(false);
+      setOpen(false);
+    }
   }
 
   return (
     <section className="rounded-md border border-line bg-card p-4">
-      <div className="mb-3 flex items-center justify-between gap-2">
-        <h2 className="text-[11px] font-bold tracking-wide text-muted uppercase">{locked ? `Lead ${lead.id}` : "Details"}</h2>
-          {locked && !edit ? (
-            <button type="button" aria-label="Edit lead" className="grid size-8 place-items-center text-muted hover:text-navy" onClick={() => setEdit(true)}>
-              <Pencil className="size-4" />
-            </button>
-          ) : null}
+      <div className="flex items-start justify-between gap-2">
+        <button type="button" className="min-w-0 flex-1 text-left" onClick={() => locked && !edit && setOpen((v) => !v)} disabled={!locked || edit}>
+          <h2 className="text-[11px] font-bold tracking-wide text-muted uppercase">{locked ? `Lead ${lead.id}` : "Details"}</h2>
+          {locked && !open && !edit ? <p className="mt-1 truncate text-sm">{line}</p> : null}
+        </button>
+        {locked && !edit ? (
+          <button
+            type="button"
+            aria-label="Edit lead"
+            className="grid size-8 shrink-0 place-items-center text-muted hover:text-navy"
+            onClick={() => {
+              setEdit(true);
+              setOpen(true);
+            }}
+          >
+            <Pencil className="size-4" />
+          </button>
+        ) : null}
       </div>
       {edit ? (
-        <div>
+        <div className="mt-3">
           <DetailsForm key={lead.id} initial={lead} submitLabel="Save lead" onSubmit={save} />
           {locked ? (
-            <button type="button" className="mt-2 h-11 text-sm font-semibold text-muted" onClick={() => setEdit(false)}>
+            <button
+              type="button"
+              className="mt-2 h-11 text-sm font-semibold text-muted"
+              onClick={() => {
+                setEdit(false);
+                setOpen(false);
+              }}
+            >
               Cancel
             </button>
           ) : null}
         </div>
-      ) : (
-        <dl>
+      ) : open ? (
+        <dl className="mt-3">
           <Row k="Name" v={lead.name} />
           <Row k="Phone" v={lead.phone} />
           <Row k="Email" v={lead.email} />
@@ -73,7 +96,7 @@ export function LeadCard({
           <Row k="Interests" v={interests} />
           <Row k="Notes" v={lead.notes} />
         </dl>
-      )}
+      ) : null}
     </section>
   );
 }

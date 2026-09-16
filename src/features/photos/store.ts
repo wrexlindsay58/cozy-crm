@@ -37,6 +37,13 @@ export function usePhotos(personId: string) {
   return all[personId] ?? [];
 }
 
+export function putPhoto(personId: string, row: Photo) {
+  const list = photos[personId] ?? [];
+  if (list.some((p) => p.id === row.id)) return;
+  photos = { ...photos, [personId]: [{ ...row, personId }, ...list] };
+  emit();
+}
+
 export function addPhoto(personId: string, caption: string, src?: string, kind: FileKind = "photo", name?: string) {
   const label = caption.trim() || name || kindWord(kind);
   const row: Photo = {
@@ -48,8 +55,7 @@ export function addPhoto(personId: string, caption: string, src?: string, kind: 
     kind,
     name,
   };
-  photos = { ...photos, [personId]: [row, ...(photos[personId] ?? [])] };
+  putPhoto(personId, row);
   addHistory(personId, "Wrex Lindsay", `${kindWord(kind)} added. ${label}.`);
-  emit();
   return row;
 }

@@ -15,7 +15,6 @@ export function AssessmentWorkspace({ file }: { file: File }) {
 
       <PropertyCard file={file} />
       <PacketList file={file} />
-      <BookWidget leadId={file.leadId} defaultCloser={file.closer} defaultKind="Assessment" />
 
       <section className="rounded-md border border-line bg-card p-4">
         {file.status === "Open" ? (
@@ -30,6 +29,8 @@ export function AssessmentWorkspace({ file }: { file: File }) {
           <p className="text-sm font-semibold text-up">Complete · Opportunity {file.oppId}</p>
         )}
       </section>
+
+      <BookWidget leadId={file.leadId} defaultCloser={file.closer} defaultKind="Assessment" />
     </div>
   );
 }
