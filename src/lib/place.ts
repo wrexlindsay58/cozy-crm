@@ -6,6 +6,7 @@ export function stateOf(city: string, office?: string) {
 
 export function cityState(city: string, office?: string) {
   if (!city) return "";
+  if (/,\s*[A-Z]{2}\s*$/i.test(city.trim())) return city.trim();
   return `${city}, ${stateOf(city, office)}`;
 }
 
