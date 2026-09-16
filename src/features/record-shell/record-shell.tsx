@@ -98,7 +98,7 @@ export function RecordShell(props: RecordShellProps) {
       />
 
       <div className="flex min-h-0 min-w-0 flex-1 flex-col lg:flex-row">
-        <div className="min-h-0 min-w-0 flex-[3] overflow-auto p-4 md:p-5">
+        <div className="min-h-0 min-w-0 flex-1 overflow-auto p-2 md:p-2.5">
           <div className="space-y-3">
             {props.children}
             <PhotoRail personId={props.personId} photos={props.photos} />
@@ -106,7 +106,7 @@ export function RecordShell(props: RecordShellProps) {
           </div>
         </div>
 
-        <aside className="flex h-[55vh] min-h-0 min-w-0 shrink-0 flex-col border-t border-line bg-card lg:h-auto lg:flex-[2] lg:border-t-0 lg:border-l">
+        <aside className="flex h-[55vh] min-h-0 min-w-0 shrink-0 flex-col border-t border-line bg-card lg:h-auto lg:flex-[1.2] lg:border-t-0 lg:border-l">
           <SideHead lane={lane} onLane={setLane} />
           <div className="min-h-0 flex-1 overflow-hidden">
             {callOpen && lead?.phone ? (

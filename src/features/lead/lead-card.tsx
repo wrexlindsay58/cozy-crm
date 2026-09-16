@@ -34,18 +34,11 @@ export function LeadCard({
     <section className="rounded-md border border-line bg-card p-4">
       <div className="mb-3 flex items-center justify-between gap-2">
         <h2 className="text-[11px] font-bold tracking-wide text-muted uppercase">{locked ? `Lead ${lead.id}` : "Details"}</h2>
-        <div className="flex items-center gap-2">
-          {locked ? (
-            <a href={`/leads/${lead.id}`} className="text-sm font-semibold text-navy">
-              Open lead
-            </a>
-          ) : null}
           {locked && !edit ? (
-            <button type="button" aria-label="Edit lead" className="grid size-9 place-items-center rounded-md border border-line text-muted hover:text-navy" onClick={() => setEdit(true)}>
+            <button type="button" aria-label="Edit lead" className="grid size-8 place-items-center text-muted hover:text-navy" onClick={() => setEdit(true)}>
               <Pencil className="size-4" />
             </button>
           ) : null}
-        </div>
       </div>
       {edit ? (
         <div>
