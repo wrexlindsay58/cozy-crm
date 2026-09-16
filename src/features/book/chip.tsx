@@ -1,6 +1,7 @@
 import { cn } from "@/lib/cn";
 import { isWatch, type BookEvent } from "./types";
 import { labelTime } from "./time";
+import { TYPE_TONE } from "./tone";
 
 export function EventChip({
   e,
@@ -14,6 +15,7 @@ export function EventChip({
   compact?: boolean;
 }) {
   const watch = isWatch(e);
+  const tone = TYPE_TONE[e.type] ?? TYPE_TONE.Office;
   return (
     <button
       type="button"
@@ -23,9 +25,15 @@ export function EventChip({
         ev.dataTransfer.effectAllowed = "move";
       }}
       onClick={onClick}
+      style={
+        selected
+          ? { background: "var(--color-navy)", color: "var(--color-card)", borderColor: "var(--color-navy)", borderLeftColor: "var(--color-navy)" }
+          : { background: tone.bg, borderColor: tone.bar, borderLeftColor: tone.bar, color: "var(--color-ink)" }
+      }
       className={cn(
-        "w-full overflow-hidden rounded-md border px-1.5 py-1 text-left",
-        selected ? "border-navy bg-navy text-card" : e.blank ? "border-dashed border-line bg-page" : watch ? "border-alert bg-alert/10" : "border-line bg-card",
+        "h-full w-full overflow-hidden rounded-md border border-l-[3px] px-1.5 py-0.5 text-left shadow-sm",
+        e.blank && !selected ? "border-dashed" : "",
+        watch && !selected ? "ring-1 ring-alert/40" : "",
       )}
     >
       <p className="truncate text-[10px] font-bold tracking-wide uppercase opacity-70">{e.type}</p>

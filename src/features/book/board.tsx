@@ -1,7 +1,8 @@
 import type { DragEvent } from "react";
 import { EventChip } from "./chip";
+import { pack, packStyle } from "./layout";
 import { hoursFor, type Resource } from "./roster";
-import { loadHours, overlaps } from "./store";
+import { loadHours } from "./store";
 import { hourOf } from "./time";
 import { assignedIds, type BookEvent as E } from "./types";
 
@@ -58,7 +59,7 @@ export function ResourceBoard({
                 <p className="truncate text-[12px] font-semibold">{u.name}</p>
                 <p className="text-[10px] text-muted">{load ? `${load.toFixed(1)}h` : "Open"}</p>
               </div>
-              <div className="relative bg-page/40" style={{ height }}>
+              <div className="relative bg-page" style={{ height }}>
                 {hours.map((h, i) => (
                   <button
                     key={h}
@@ -74,14 +75,12 @@ export function ResourceBoard({
                     aria-label={`${u.name} ${h}`}
                   />
                 ))}
-                {mine.map((b) => {
-                  const top = (hourOf(b.start) - startH) * ROW + 3;
-                  const hrs = Math.max(0.5, hourOf(b.end) - hourOf(b.start));
-                  const clash = mine.some((o) => overlaps(b, o));
+                {pack(mine).map((p) => {
+                  const top = Math.max(0, (hourOf(p.e.start) - startH) * ROW + 2);
+                  const hrs = Math.max(0.45, hourOf(p.e.end) - hourOf(p.e.start));
                   return (
-                    <div key={b.id} className="absolute right-1 left-1 z-10" style={{ top, height: hrs * ROW - 6 }}>
-                      <EventChip e={b} selected={selectedId === b.id} onClick={() => onSelect(b.id)} />
-                      {clash && selectedId !== b.id ? <span className="sr-only">Overlap</span> : null}
+                    <div key={p.e.id} style={packStyle(p, top, hrs * ROW - 4)}>
+                      <EventChip e={p.e} selected={selectedId === p.e.id} onClick={() => onSelect(p.e.id)} />
                     </div>
                   );
                 })}

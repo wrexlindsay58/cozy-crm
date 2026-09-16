@@ -1,4 +1,5 @@
 import { EventChip } from "./chip";
+import { pack, packStyle } from "./layout";
 import { addDays, hourOf, isoFromDateHour, toIso } from "./time";
 import type { BookEvent } from "./types";
 
@@ -44,12 +45,12 @@ export function DaySpan({
           const key = toIso(d).slice(0, 10);
           const mine = events.filter((e) => e.start.slice(0, 10) === key);
           return (
-            <div key={key} className="min-w-40 flex-1 border-r border-line">
+            <div key={key} className="min-w-48 flex-1 border-r border-line">
               <div className="sticky top-0 z-10 flex h-12 flex-col justify-center border-b border-line bg-card px-2">
                 <p className="text-[12px] font-semibold">{d.toLocaleDateString("en-US", { weekday: "short" })}</p>
                 <p className="text-[11px] text-muted">{d.getDate()}</p>
               </div>
-              <div className="relative" style={{ height }}>
+              <div className="relative bg-page" style={{ height }}>
                 {hours.map((h, i) => (
                   <button
                     key={h}
@@ -66,12 +67,12 @@ export function DaySpan({
                     aria-label={key}
                   />
                 ))}
-                {mine.map((b) => {
-                  const top = (hourOf(b.start) - startH) * ROW + 2;
-                  const hrs = Math.max(0.5, hourOf(b.end) - hourOf(b.start));
+                {pack(mine).map((p) => {
+                  const top = Math.max(0, (hourOf(p.e.start) - startH) * ROW + 2);
+                  const hrs = Math.max(0.45, hourOf(p.e.end) - hourOf(p.e.start));
                   return (
-                    <div key={b.id} className="absolute right-1 left-1 z-10" style={{ top, height: hrs * ROW - 4 }}>
-                      <EventChip e={b} selected={selectedId === b.id} onClick={() => onSelect(b.id)} />
+                    <div key={p.e.id} style={packStyle(p, top, hrs * ROW - 4)}>
+                      <EventChip e={p.e} selected={selectedId === p.e.id} onClick={() => onSelect(p.e.id)} />
                     </div>
                   );
                 })}

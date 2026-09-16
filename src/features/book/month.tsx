@@ -1,5 +1,6 @@
 import { cn } from "@/lib/cn";
 import { monthGrid } from "./time";
+import { TYPE_TONE } from "./tone";
 import type { BookEvent } from "./types";
 
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -37,7 +38,11 @@ export function MonthGrid({
               <span className="text-[13px] font-bold">{d}</span>
               <div className="mt-1 space-y-0.5">
                 {marks.slice(0, 3).map((m) => (
-                  <p key={m.id} className={cn("truncate text-[11px]", d === selectedDay ? "text-card/80" : "text-muted")}>
+                  <p
+                    key={m.id}
+                    className={cn("truncate rounded-sm px-1 text-[11px] leading-5", d === selectedDay ? "bg-card/20 text-card" : "text-ink")}
+                    style={d === selectedDay ? undefined : { background: TYPE_TONE[m.type]?.bg, borderLeft: `3px solid ${TYPE_TONE[m.type]?.bar}` }}
+                  >
                     {m.title.split(" ")[0]} · {m.type}
                   </p>
                 ))}

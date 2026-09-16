@@ -53,18 +53,11 @@ export function resourceIdFor(name: string, roster: Resource[]) {
 
 export function hoursFor(rows: Resource[]) {
   const crew = rows.some((r) => r.kind === "crew");
-  const sales = rows.some((r) => r.kind === "closer" || r.kind === "setter");
-  if (crew && !sales) {
-    const out: number[] = [];
-    for (let h = 6; h < 17; h += 1) out.push(h);
-    return out;
-  }
-  if (sales && !crew) {
-    const out: number[] = [];
-    for (let h = 11; h < 21; h += 1) out.push(h);
-    return out;
-  }
   const out: number[] = [];
-  for (let h = 7; h < 21; h += 1) out.push(h);
+  if (crew) {
+    for (let h = 6; h < 21; h += 1) out.push(h);
+    return out;
+  }
+  for (let h = 8; h < 21; h += 1) out.push(h);
   return out;
 }
