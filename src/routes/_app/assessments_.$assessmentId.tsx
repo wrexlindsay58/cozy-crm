@@ -4,6 +4,7 @@ import { completeAssessment, useAssessment } from "@/features/assessment/store";
 import { RecordShell } from "@/features/record-shell/record-shell";
 import { useOps } from "@/features/ops/store";
 import { followersByPerson, photosByPerson } from "@/lib/file-data";
+import { placeLine } from "@/lib/place";
 
 export const Route = createFileRoute("/_app/assessments_/$assessmentId")({
   component: AssessmentFile,
@@ -12,15 +13,16 @@ export const Route = createFileRoute("/_app/assessments_/$assessmentId")({
 function AssessmentFile() {
   const { assessmentId } = Route.useParams();
   const file = useAssessment(assessmentId);
-  const { tickets, history } = useOps();
+  const { tickets, history, leads } = useOps();
   const navigate = useNavigate();
   if (!file) return <main className="p-6 text-sm text-muted">Assessment not found.</main>;
+  const lead = leads.find((l) => l.id === file.leadId);
   return (
     <RecordShell
       kind="assessment"
       personId={file.leadId}
       title={file.name}
-      subtitle={file.address}
+      subtitle={placeLine(lead?.address ?? file.address, lead?.city ?? "", lead?.office)}
       stage={file.status}
       owner={{ name: file.closer, role: "Closer" }}
       followers={followersByPerson[file.leadId] ?? []}

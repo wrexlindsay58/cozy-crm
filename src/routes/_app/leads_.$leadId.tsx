@@ -5,6 +5,7 @@ import { LeadCard } from "@/features/lead/lead-card";
 import { DispositionControl } from "@/features/lead/disposition";
 import { RecordShell } from "@/features/record-shell/record-shell";
 import { useOps } from "@/features/ops/store";
+import { placeLine } from "@/lib/place";
 import { opportunities } from "@/lib/crm-data";
 import { followersByPerson, photosByPerson } from "@/lib/file-data";
 
@@ -19,13 +20,13 @@ function LeadFile() {
   if (!lead) return <main className="p-6 text-sm text-muted">Lead not found.</main>;
   const opp = opportunities.find((o) => o.leadId === lead.id);
   const appt = appointments.find((a) => a.leadId === lead.id);
-  const second = lead.secondaryName ? ` · ${lead.secondaryName}` : "";
+  const second = lead.secondaryName ? lead.secondaryName : "";
   return (
     <RecordShell
       kind="lead"
       personId={lead.id}
       title={lead.name}
-      subtitle={`${lead.address} · ${lead.city}${second}`}
+      subtitle={placeLine(lead.address, lead.city, lead.office, second)}
       stage={lead.status}
       stageTone={lead.tone}
       owner={{ name: lead.closer, role: "Closer" }}

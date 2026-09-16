@@ -3,6 +3,7 @@ import { Pencil } from "lucide-react";
 import { DetailsForm } from "./details-form";
 import { interestsLabel, inferInterests } from "./interests";
 import { updateLead, type LeadDraft } from "@/features/ops/store";
+import { cityState } from "@/lib/place";
 import type { Lead } from "@/lib/crm-data";
 
 function Row({ k, v }: { k: string; v?: string }) {
@@ -25,7 +26,7 @@ export function LeadCard({
   const [edit, setEdit] = useState(!locked);
   const [open, setOpen] = useState(!locked);
   const interests = interestsLabel(lead.interests ?? inferInterests(lead.product), lead.otherInterest);
-  const line = [lead.name, lead.phone, lead.city || lead.address].filter(Boolean).join(" · ");
+  const line = [lead.name, lead.phone, lead.email].filter(Boolean).join(" · ");
 
   function save(d: LeadDraft) {
     updateLead(lead.id, d);
@@ -85,7 +86,7 @@ export function LeadCard({
             </>
           ) : null}
           <Row k="Address" v={lead.address} />
-          <Row k="City" v={lead.city} />
+          <Row k="City" v={cityState(lead.city, lead.office)} />
           <Row k="Source" v={lead.source} />
           {lead.source === "Referral" ? (
             <>
