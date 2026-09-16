@@ -1,4 +1,24 @@
-export const BOOK_TYPES = ["Sales", "Assessment", "Callback", "Install", "Service", "Warranty", "Go-back", "Test-out", "Punch", "Dump", "Office"] as const;
+export const BOOK_TYPES = [
+  "Sales",
+  "Assessment",
+  "Callback",
+  "Ride-along",
+  "Install",
+  "Pre-install",
+  "Service",
+  "Warranty",
+  "Go-back",
+  "Test-out",
+  "Punch",
+  "Dump",
+  "Permit",
+  "Inspection",
+  "Materials",
+  "Membership",
+  "Office",
+  "Training",
+  "Time-off",
+] as const;
 export type BookType = (typeof BOOK_TYPES)[number];
 export const BOOK_STATUSES = ["Set", "Confirmed", "Dispatched", "Done", "No-sit", "No-show"] as const;
 export type BookStatus = (typeof BOOK_STATUSES)[number];
@@ -28,8 +48,8 @@ export type BookEvent = {
 };
 
 export function familyOf(t: BookType): BookFamily {
-  if (t === "Office") return "shop";
-  if (t === "Sales" || t === "Assessment" || t === "Callback") return "sales";
+  if (t === "Sales" || t === "Assessment" || t === "Callback" || t === "Ride-along") return "sales";
+  if (t === "Office" || t === "Training" || t === "Time-off" || t === "Materials") return "shop";
   return "production";
 }
 
@@ -53,6 +73,6 @@ export function mapType(raw?: string): BookType {
   if (!raw) return "Sales";
   if ((BOOK_TYPES as readonly string[]).includes(raw)) return raw as BookType;
   if (raw === "Attic blow" || raw === "Attic removal" || raw === "HVAC set" || raw === "Ducts" || raw === "Solar set") return "Install";
-  if (raw === "HVAC start-up" || raw === "Final inspection") return "Test-out";
+  if (raw === "HVAC start-up" || raw === "Final inspection") return "Inspection";
   return "Install";
 }

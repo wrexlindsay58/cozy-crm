@@ -2,6 +2,7 @@ import { useSyncExternalStore } from "react";
 import { appointments as seedAppts } from "@/lib/crm-data";
 import { addHrs, durationHrs, isoOn } from "./time";
 import { CREW_RESOURCES, resourceIdFor, type Resource } from "./roster";
+import { extraBook } from "./seed";
 import { familyOf, mapStatus, mapType, type BookEvent, type BookStatus, type BookType } from "./types";
 
 const ROSTER_SEED: Resource[] = [
@@ -52,78 +53,9 @@ function fromAppt(a: (typeof seedAppts)[number]): BookEvent {
   };
 }
 
-const choDays: BookEvent[] = [
-  {
-    id: "BK-CHO-1",
-    type: "Install",
-    status: "Set",
-    title: "Cho · Attic blow",
-    personId: "L-4788",
-    jobId: "P-331",
-    href: "/projects/P-331",
-    resourceId: "crew-tasha",
-    office: "PHX",
-    start: "2026-09-22T07:00",
-    end: "2026-09-22T15:00",
-    city: "Scottsdale",
-    notes: "Hatch in the hall.",
-    setBy: "Tasha Reed",
-    scope: "Attic R-49",
-    internal: false,
-    woSigned: false,
-    hold: false,
-    source: "job",
-    sourceId: "EV-1",
-  },
-  {
-    id: "BK-CHO-2",
-    type: "Install",
-    status: "Set",
-    title: "Cho · Ducts",
-    personId: "L-4788",
-    jobId: "P-331",
-    href: "/projects/P-331",
-    resourceId: "crew-tasha",
-    office: "PHX",
-    start: "2026-09-22T07:00",
-    end: "2026-09-22T15:00",
-    city: "Scottsdale",
-    notes: "",
-    setBy: "Tasha Reed",
-    scope: "Ducts",
-    internal: false,
-    woSigned: false,
-    hold: false,
-    source: "job",
-    sourceId: "EV-2",
-  },
-  {
-    id: "BK-SHOP",
-    type: "Office",
-    status: "Confirmed",
-    title: "Dumpster — Cho HOA",
-    personId: "",
-    jobId: "P-331",
-    href: "/projects/P-331",
-    resourceId: "priya",
-    office: "PHX",
-    start: "2026-09-21T09:00",
-    end: "2026-09-21T09:30",
-    city: "Scottsdale",
-    notes: "Off the street.",
-    setBy: "Tasha Reed",
-    scope: "",
-    internal: true,
-    woSigned: true,
-    hold: false,
-    source: "shop",
-    sourceId: "SHOP-1",
-  },
-];
-
 let events: BookEvent[] = [
   ...seedAppts.filter((a) => a.kind !== "Install" || a.leadId !== "L-4788").map(fromAppt),
-  ...choDays,
+  ...extraBook,
 ];
 
 const listeners = new Set<() => void>();

@@ -30,7 +30,7 @@ function CalendarPage() {
   const [view, setView] = useState<View>("resource");
   const [office, setOffice] = useState<"all" | "PHX" | "DFW">("PHX");
   const [group, setGroup] = useState<"all" | "sales" | "crews" | "mine">(viewAs === "Closer" || viewAs === "Setter" ? "sales" : viewAs === "PM" || viewAs === "Crew" ? "crews" : "all");
-  const [family, setFamily] = useState<"all" | "sales" | "production">("all");
+  const [family, setFamily] = useState<"all" | "sales" | "production" | "shop">("all");
   const [cursor, setCursor] = useState(() => new Date(TODAY));
   const [picked, setPicked] = useState<string | null>(null);
   const [compose, setCompose] = useState<{ resourceId: string; start: string } | null>(null);
@@ -113,6 +113,7 @@ function CalendarPage() {
                   { id: "all", label: "All types" },
                   { id: "sales", label: "Sales" },
                   { id: "production", label: "Production" },
+                  { id: "shop", label: "Shop" },
                 ]}
               />
               <button
