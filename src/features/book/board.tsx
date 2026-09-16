@@ -3,7 +3,7 @@ import { EventChip } from "./chip";
 import { hoursFor, type Resource } from "./roster";
 import { loadHours, overlaps } from "./store";
 import { hourOf } from "./time";
-import type { BookEvent as E } from "./types";
+import { assignedIds, type BookEvent as E } from "./types";
 
 const ROW = 52;
 
@@ -50,7 +50,7 @@ export function ResourceBoard({
           </div>
         </div>
         {cols.map((u) => {
-          const mine = events.filter((e) => (e.resourceId || "") === u.id && e.start.slice(0, 10) === day);
+          const mine = events.filter((e) => assignedIds(e).includes(u.id) && e.start.slice(0, 10) === day);
           const load = loadHours(events, u.id, day);
           return (
             <div key={u.id || "none"} className="min-w-40 flex-1 border-r border-line">

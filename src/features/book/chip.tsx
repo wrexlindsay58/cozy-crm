@@ -25,11 +25,11 @@ export function EventChip({
       onClick={onClick}
       className={cn(
         "w-full overflow-hidden rounded-md border px-1.5 py-1 text-left",
-        selected ? "border-navy bg-navy text-card" : watch ? "border-alert bg-alert/10" : "border-line bg-card",
+        selected ? "border-navy bg-navy text-card" : e.blank ? "border-dashed border-line bg-page" : watch ? "border-alert bg-alert/10" : "border-line bg-card",
       )}
     >
       <p className="truncate text-[10px] font-bold tracking-wide uppercase opacity-70">{e.type}</p>
-      <p className="truncate text-[12px] font-semibold leading-tight">{e.title}</p>
+      <p className="truncate text-[12px] font-semibold leading-tight">{e.blank ? e.title || "Open slot" : e.title}</p>
       {compact ? null : (
         <p className="truncate text-[11px] opacity-80">
           {labelTime(e.start)} · {e.city || e.status}

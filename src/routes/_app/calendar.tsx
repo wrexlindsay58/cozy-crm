@@ -5,8 +5,7 @@ import { cn } from "@/lib/cn";
 import { PageTitle } from "@/components/ui-bits";
 import { useStaff } from "@/features/staff/store";
 import { ResourceBoard } from "@/features/book/board";
-import { Compose } from "@/features/book/compose";
-import { BookDetail } from "@/features/book/detail";
+import { EventModal } from "@/features/book/event-modal";
 import { MonthGrid } from "@/features/book/month";
 import { hoursFor, useRoster } from "@/features/book/roster";
 import { DaySpan } from "@/features/book/span";
@@ -179,11 +178,9 @@ function CalendarPage() {
       ) : null}
 
       {compose ? (
-        <div className="shrink-0 border-t border-line bg-card">
-          <Compose resources={resources} preset={compose} onClose={() => setCompose(null)} />
-        </div>
+        <EventModal resources={roster} preset={compose} onClose={() => setCompose(null)} />
       ) : selected ? (
-        <BookDetail e={selected} onClose={() => setPicked(null)} />
+        <EventModal resources={roster} event={selected} onClose={() => setPicked(null)} />
       ) : null}
     </div>
   );

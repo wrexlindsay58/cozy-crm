@@ -30,6 +30,11 @@ function row(
     internal: extra.internal ?? shop,
     woSigned: extra.woSigned ?? familyOf(type) !== "production",
     hold: extra.hold ?? false,
+    blank: extra.blank ?? type === "Open",
+    crewId: extra.crewId ?? (resourceId.startsWith("crew-") ? resourceId : ""),
+    techId: extra.techId ?? "",
+    assigneeId: extra.assigneeId ?? (!resourceId.startsWith("crew-") ? resourceId : ""),
+    links: extra.links ?? [],
     source: extra.source ?? (shop ? "shop" : "appointment"),
     sourceId: extra.sourceId ?? id,
   };
@@ -75,6 +80,8 @@ export const extraBook: BookEvent[] = [
   row("BK-16n", "Sales", "Briggs confirm", "cole", "2026-09-16T16:00", "2026-09-16T16:30", { personId: "L-4754", city: "Fort Worth" }),
   row("BK-16o", "Install", "Rahman prep", "crew-dallas", "2026-09-16T08:00", "2026-09-16T12:00", { jobId: "P-322", city: "Dallas", woSigned: false, status: "Set" }),
   row("BK-16p", "Time-off", "Nate half-day", "nate", "2026-09-16T12:00", "2026-09-16T17:00", { city: "Phoenix" }),
+  row("BK-16s", "Open", "Open slot", "marco", "2026-09-16T19:00", "2026-09-16T21:00", { city: "Phoenix", blank: true, status: "Set" }),
+  row("BK-17q", "Open", "Open slot", "dana", "2026-09-17T19:00", "2026-09-17T21:00", { city: "Scottsdale", blank: true, status: "Set" }),
   row("BK-16q", "Warranty", "Patterson callback", "crew-dallas", "2026-09-16T13:00", "2026-09-16T15:00", { jobId: "P-304", city: "Fort Worth", woSigned: true }),
   row("BK-16r", "Sales", "Nina reset", "luis", "2026-09-16T16:00", "2026-09-16T18:00", { personId: "L-4774", city: "Dallas", status: "Set" }),
 

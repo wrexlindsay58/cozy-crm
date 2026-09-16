@@ -3,7 +3,7 @@ import { appointments as seedAppts } from "@/lib/crm-data";
 import { addHrs, durationHrs, isoOn } from "./time";
 import { CREW_RESOURCES, resourceIdFor, type Resource } from "./roster";
 import { extraBook } from "./seed";
-import { familyOf, mapStatus, mapType, type BookEvent, type BookStatus, type BookType } from "./types";
+import { assignedIds, familyOf, mapStatus, mapType, type BookEvent, type BookStatus, type BookType } from "./types";
 
 const ROSTER_SEED: Resource[] = [
   ...["Marco Velez", "Dana Ortiz", "Luis Haddad", "Priya Shah", "Cole Brennan", "Amber Quinn", "Nate Solis", "Wrex Lindsay", "Tasha Reed", "Evan Cole"].map((name) => ({
@@ -48,6 +48,11 @@ function fromAppt(a: (typeof seedAppts)[number]): BookEvent {
     internal: false,
     woSigned: type === "Install" && a.leadId === "L-4788" ? false : type !== "Install",
     hold: false,
+    blank: false,
+    crewId: a.crew ? rid(a.crew) : "",
+    techId: "",
+    assigneeId: rid(a.closer),
+    links: [],
     source: "appointment",
     sourceId: a.id,
   };
@@ -93,11 +98,12 @@ export function setBookStatus(id: string, status: BookStatus) {
   return patchBook(id, { status });
 }
 export function overlaps(a: BookEvent, b: BookEvent) {
-  if (a.id === b.id || a.resourceId !== b.resourceId || !a.resourceId) return false;
+  const share = assignedIds(a).some((id) => assignedIds(b).includes(id));
+  if (a.id === b.id || !share) return false;
   return a.start < b.end && b.start < a.end;
 }
 export function loadHours(list: BookEvent[], resourceId: string, day: string) {
-  return list.filter((e) => e.resourceId === resourceId && e.start.slice(0, 10) === day).reduce((s, e) => {
+  return list.filter((e) => assignedIds(e).includes(resourceId) && e.start.slice(0, 10) === day).reduce((s, e) => {
     const hrs = (new Date(e.end).getTime() - new Date(e.start).getTime()) / 36e5;
     return s + Math.max(0, hrs);
   }, 0);
@@ -108,7 +114,7 @@ export function findSlot(opts: { resourceId: string; hrs: number; from: string; 
     const day = new Date(startDay);
     day.setDate(day.getDate() + d);
     const key = `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, "0")}-${String(day.getDate()).padStart(2, "0")}`;
-    const mine = events.filter((e) => e.resourceId === opts.resourceId && e.start.slice(0, 10) === key);
+    const mine = events.filter((e) => assignedIds(e).includes(opts.resourceId) && e.start.slice(0, 10) === key);
     for (const h of opts.hours) {
       const start = `${key}T${String(Math.floor(h)).padStart(2, "0")}:${String(Math.round((h % 1) * 60)).padStart(2, "0")}`;
       const end = addHrs(start, opts.hrs);
@@ -124,6 +130,9 @@ export function createBook(input: {
   personId?: string;
   href?: string;
   resourceId: string;
+  crewId?: string;
+  techId?: string;
+  assigneeId?: string;
   start: string;
   end: string;
   city?: string;
@@ -131,16 +140,26 @@ export function createBook(input: {
   setBy: string;
   internal?: boolean;
   office?: "PHX" | "DFW";
+  blank?: boolean;
+  links?: BookEvent["links"];
+  status?: BookStatus;
 }) {
+  const crewId = input.crewId ?? "";
+  const techId = input.techId ?? "";
+  const assigneeId = input.assigneeId ?? "";
+  const resourceId = input.resourceId || crewId || techId || assigneeId;
   const row: BookEvent = {
     id: `BK-${Date.now()}`,
-    type: input.type,
-    status: "Confirmed",
-    title: input.title.trim() || input.type,
-    personId: input.personId ?? "",
+    type: input.blank ? "Open" : input.type,
+    status: input.status ?? "Confirmed",
+    title: input.blank ? input.title.trim() || "Open slot" : input.title.trim() || input.type,
+    personId: input.blank ? "" : input.personId ?? "",
     jobId: "",
-    href: input.href ?? (input.personId ? `/leads/${input.personId}` : ""),
-    resourceId: input.resourceId,
+    href: input.blank ? "" : input.href ?? (input.personId ? `/leads/${input.personId}` : ""),
+    resourceId,
+    crewId,
+    techId,
+    assigneeId,
     office: input.office ?? "PHX",
     start: input.start,
     end: input.end,
@@ -148,10 +167,12 @@ export function createBook(input: {
     notes: input.notes ?? "",
     setBy: input.setBy,
     scope: "",
-    internal: Boolean(input.internal) || familyOf(input.type) === "shop",
+    internal: Boolean(input.internal) || Boolean(input.blank) || familyOf(input.type) === "shop",
     woSigned: familyOf(input.type) !== "production",
     hold: false,
-    source: input.personId ? "appointment" : "shop",
+    blank: Boolean(input.blank),
+    links: input.links ?? [],
+    source: input.personId && !input.blank ? "appointment" : "shop",
     sourceId: "",
   };
   events = [row, ...events];
@@ -184,6 +205,9 @@ export function putFromAppointment(input: {
     jobId: "",
     href: `/leads/${input.leadId}`,
     resourceId: rid(input.crew || input.assignee),
+    crewId: input.crew ? rid(input.crew) : "",
+    techId: "",
+    assigneeId: rid(input.assignee),
     office: officeFor(input.city ?? ""),
     start,
     end: addHrs(start, durationHrs(input.duration)),
@@ -194,6 +218,8 @@ export function putFromAppointment(input: {
     internal: false,
     woSigned: mapType(input.kind) !== "Install",
     hold: false,
+    blank: false,
+    links: [],
     source: "appointment",
     sourceId: input.id ?? "",
   });
@@ -224,6 +250,9 @@ export function putFromJob(input: {
     jobId: input.jobId,
     href: `/projects/${input.jobId}`,
     resourceId: rid(input.crew),
+    crewId: rid(input.crew),
+    techId: "",
+    assigneeId: "",
     office: officeFor(input.city ?? ""),
     start,
     end,
@@ -234,6 +263,8 @@ export function putFromJob(input: {
     internal: false,
     woSigned: Boolean(input.woSigned),
     hold: false,
+    blank: false,
+    links: [],
     source: "job",
     sourceId: input.sourceId,
   });
