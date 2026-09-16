@@ -32,13 +32,16 @@ export function OptionCard({ proposal, option }: { proposal: Proposal; option: O
 
   return (
     <article className={cn("flex flex-col rounded-md border p-4", accepted ? "border-navy bg-navy text-card" : "border-line bg-card")}>
-      <div className="mb-3 flex items-baseline justify-between gap-2">
-        <input
-          value={option.name}
-          disabled={locked}
-          onChange={(e) => renameOption(proposal.oppId, option.id, e.target.value)}
-          className={cn("min-w-0 flex-1 bg-transparent text-sm font-bold tracking-wide uppercase outline-none", accepted ? "text-card" : "")}
-        />
+      <div className="mb-3 flex items-start justify-between gap-2">
+        <label className="min-w-0 flex-1 text-[11px] font-bold tracking-wide text-muted uppercase">
+          Option name
+          <input
+            value={option.name}
+            disabled={locked}
+            onChange={(e) => renameOption(proposal.oppId, option.id, e.target.value)}
+            className={cn("mt-1 h-10 w-full rounded-md border px-3 text-sm font-semibold normal-case tracking-normal outline-none", accepted ? "border-card/40 bg-navy text-card" : "border-line bg-card text-ink")}
+          />
+        </label>
         <p className="text-lg font-extrabold tabular-nums">{money(total)}</p>
         {!locked && proposal.options.length > 1 ? (
           <button type="button" aria-label="Remove option" className="grid size-8 place-items-center text-muted hover:text-alert" onClick={() => removeOption(proposal.oppId, option.id)}>

@@ -2,6 +2,7 @@ import { useSyncExternalStore } from "react";
 import { addHistory } from "@/features/ops/store";
 import { defaultSkus } from "@/lib/pricebook";
 import { buildOption, defaultPicks, itemBySku, unitFor, type CatalogKind } from "@/features/catalog/store";
+import { PACKAGES, type PackageId } from "./packages";
 import { getDealerFeePct } from "@/features/money-settings/store";
 import { money, opportunities } from "@/lib/crm-data";
 
@@ -25,6 +26,13 @@ export type DocStub = {
   totals?: { id: string; name: string; amount: number }[];
 };
 export type GoodLeapStatus = "Not run" | "Pre-qualified" | "Sent" | "Approved" | "Declined";
+export type PayKind = "cash" | "card" | "finance";
+export type PayOffer = {
+  id: string;
+  kind: PayKind;
+  financer?: string;
+  terms: number[];
+};
 export type Proposal = {
   oppId: string;
   personId: string;
@@ -33,6 +41,7 @@ export type Proposal = {
   options: OptCard[];
   accepted?: string;
   pay: "cash" | "12mo" | "goodleap";
+  payOffers: PayOffer[];
   goodleapTerm: "10yr" | "12yr";
   goodleapStatus: GoodLeapStatus;
   proposalStatus: "Draft" | "Generated" | "Sent";
@@ -88,6 +97,7 @@ function seedFor(oppId: string, personId: string, closer: string, product: strin
       { id: "C", name: "Good", lines: a.map((l) => ({ ...l })) },
     ],
     pay: "cash",
+    payOffers: [],
     goodleapTerm: "10yr",
     goodleapStatus: "Not run",
     proposalStatus: "Draft",
@@ -223,14 +233,30 @@ export function removeLine(oppId: string, optId: string, sku: string) {
   };
   emit();
 }
-export function addOption(oppId: string) {
+export function addOption(oppId: string, pkg?: PackageId) {
   const p = proposals[oppId];
   if (!p || p.accepted) return;
   const letters = "ABCDEFGH";
   const id = letters[p.options.length] ?? `O${p.options.length + 1}`;
-  const src = p.options[0];
-  const next: OptCard = { id, name: `Option ${id}`, lines: src ? src.lines.map((l) => ({ ...l })) : linesFrom(p.products) };
+  const pack = pkg ? PACKAGES.find((x) => x.id === pkg) : undefined;
+  const lines = pack ? linesFrom([...pack.skus]) : [];
+  const next: OptCard = { id, name: pack?.label ?? `Option ${id}`, lines };
   proposals = { ...proposals, [oppId]: { ...p, options: [...p.options, next] } };
+  emit();
+}
+export function applyPackage(oppId: string, optId: string, pkg: PackageId) {
+  const p = proposals[oppId];
+  if (!p || p.accepted) return;
+  const pack = PACKAGES.find((x) => x.id === pkg);
+  if (!pack) return;
+  const lines = linesFrom([...pack.skus]);
+  proposals = {
+    ...proposals,
+    [oppId]: {
+      ...p,
+      options: p.options.map((o) => (o.id === optId ? { ...o, name: pack.label, lines } : o)),
+    },
+  };
   emit();
 }
 export function removeOption(oppId: string, optId: string) {
@@ -296,6 +322,42 @@ export function applyGoodLeap(oppId: string) {
   if (!p) return;
   proposals = { ...proposals, [oppId]: { ...p, goodleapStatus: "Sent", pay: "goodleap" } };
   addHistory(p.personId, p.closer, "GoodLeap apply — status Sent.");
+  emit();
+}
+export function addPayOffer(oppId: string, kind: PayKind) {
+  const p = proposals[oppId];
+  if (!p) return;
+  if (kind !== "finance" && p.payOffers.some((o) => o.kind === kind)) return;
+  const offer: PayOffer = { id: `PAY-${Date.now()}`, kind, financer: kind === "finance" ? "GoodLeap" : undefined, terms: kind === "finance" ? [120] : [] };
+  proposals = { ...proposals, [oppId]: { ...p, payOffers: [...p.payOffers, offer] } };
+  emit();
+}
+export function removePayOffer(oppId: string, id: string) {
+  const p = proposals[oppId];
+  if (!p) return;
+  proposals = { ...proposals, [oppId]: { ...p, payOffers: p.payOffers.filter((o) => o.id !== id) } };
+  emit();
+}
+export function setPayFinancer(oppId: string, id: string, financer: string) {
+  const p = proposals[oppId];
+  if (!p) return;
+  proposals = { ...proposals, [oppId]: { ...p, payOffers: p.payOffers.map((o) => (o.id === id ? { ...o, financer } : o)) } };
+  emit();
+}
+export function togglePayTerm(oppId: string, id: string, months: number) {
+  const p = proposals[oppId];
+  if (!p) return;
+  proposals = {
+    ...proposals,
+    [oppId]: {
+      ...p,
+      payOffers: p.payOffers.map((o) => {
+        if (o.id !== id) return o;
+        const on = o.terms.includes(months);
+        return { ...o, terms: on ? o.terms.filter((t) => t !== months) : [...o.terms, months].sort((a, b) => a - b) };
+      }),
+    },
+  };
   emit();
 }
 export function generateProposal(oppId: string) {
