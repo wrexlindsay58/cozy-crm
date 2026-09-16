@@ -1,5 +1,6 @@
 import { useSyncExternalStore } from "react";
 import { addHistory } from "@/features/ops/store";
+import { putFromJob } from "@/features/book/store";
 import { seedJobs } from "./seed";
 import {
   closeBlocks,
@@ -226,7 +227,22 @@ export function sendAssignWo(jobId: string, assignId: string) {
     const workOrders = a.woId ? j.workOrders.map((w) => (w.id === a.woId ? { ...w, ...row } : w)) : [row, ...j.workOrders];
     const fresh = eventsFromAssign(j, a);
     const events = [...j.events.filter((e) => e.assignId !== a.id), ...fresh];
-    return { ...j, workOrders, events, assignments: j.assignments.map((x) => (x.id === assignId ? { ...x, woId: row.id } : x)) };
+    const next = { ...j, workOrders, events, assignments: j.assignments.map((x) => (x.id === assignId ? { ...x, woId: row.id } : x)) };
+    fresh.forEach((ev) =>
+      putFromJob({
+        jobId: j.jobId,
+        personId: j.personId,
+        title: `${j.name} · ${ev.process}`,
+        process: ev.process,
+        day: ev.day,
+        start: ev.start,
+        end: ev.end,
+        crew: ev.crew,
+        sourceId: ev.id,
+        woSigned: false,
+      }),
+    );
+    return next;
   });
 }
 export function ackWo(jobId: string, woId: string, who: string) {
@@ -238,6 +254,21 @@ export function ackWo(jobId: string, woId: string, who: string) {
 export function signWo(jobId: string, woId: string, who: string) {
   patch(jobId, (j) => {
     addHistory(j.personId, who, `WO ${woId} signed.`);
+    const assign = j.assignments.find((a) => a.woId === woId);
+    j.events.filter((e) => e.assignId === assign?.id).forEach((ev) =>
+      putFromJob({
+        jobId: j.jobId,
+        personId: j.personId,
+        title: `${j.name} · ${ev.process}`,
+        process: ev.process,
+        day: ev.day,
+        start: ev.start,
+        end: ev.end,
+        crew: ev.crew,
+        sourceId: ev.id,
+        woSigned: true,
+      }),
+    );
     return { ...j, workOrders: j.workOrders.map((w) => (w.id === woId ? { ...w, status: "Signed", signedAt: "Now", signedBy: who } : w)) };
   });
 }
@@ -332,6 +363,17 @@ export function addEvent(jobId: string, process: string, scopeId: string, day: s
     const scope = j.scope.find((s) => s.id === scopeId);
     const row: JobEvent = { id: `EV-${Date.now()}`, scopeId, process, day: day.trim(), start, end, crew: j.crew, status: "Set" };
     addHistory(j.personId, j.pm, `${process} · ${scope?.label ?? ""} ${day}.`);
+    putFromJob({
+      jobId: j.jobId,
+      personId: j.personId,
+      title: `${j.name} · ${process}`,
+      process,
+      day: row.day,
+      start: row.start,
+      end: row.end,
+      crew: row.crew,
+      sourceId: row.id,
+    });
     return { ...j, events: [...j.events, row] };
   });
 }

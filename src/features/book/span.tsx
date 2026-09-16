@@ -1,0 +1,85 @@
+import { EventChip } from "./chip";
+import { addDays, hourOf, isoFromDateHour, toIso } from "./time";
+import type { BookEvent } from "./types";
+
+const ROW = 48;
+
+export function DaySpan({
+  start,
+  days,
+  hours,
+  events,
+  selectedId,
+  onSelect,
+  onSlot,
+  onMove,
+}: {
+  start: Date;
+  days: number;
+  hours: number[];
+  events: BookEvent[];
+  selectedId: string | null;
+  onSelect: (id: string) => void;
+  onSlot: (resourceId: string, start: string) => void;
+  onMove: (id: string, resourceId: string, start: string) => void;
+}) {
+  const startH = hours[0] ?? 7;
+  const height = hours.length * ROW;
+  const cols = Array.from({ length: days }, (_, i) => addDays(start, i));
+
+  return (
+    <div className="min-h-0 flex-1 overflow-auto">
+      <div className="flex min-w-max">
+        <div className="sticky left-0 z-10 w-12 shrink-0 bg-card">
+          <div className="h-12 border-b border-r border-line" />
+          <div className="relative" style={{ height }}>
+            {hours.map((h, i) => (
+              <div key={h} className="absolute inset-x-0 border-b border-line px-1 text-right text-[10px] font-bold text-muted" style={{ top: i * ROW, height: ROW }}>
+                {h === 12 ? "12" : h > 12 ? `${h - 12}p` : `${h}a`}
+              </div>
+            ))}
+          </div>
+        </div>
+        {cols.map((d) => {
+          const key = toIso(d).slice(0, 10);
+          const mine = events.filter((e) => e.start.slice(0, 10) === key);
+          return (
+            <div key={key} className="min-w-40 flex-1 border-r border-line">
+              <div className="sticky top-0 z-10 flex h-12 flex-col justify-center border-b border-line bg-card px-2">
+                <p className="text-[12px] font-semibold">{d.toLocaleDateString("en-US", { weekday: "short" })}</p>
+                <p className="text-[11px] text-muted">{d.getDate()}</p>
+              </div>
+              <div className="relative" style={{ height }}>
+                {hours.map((h, i) => (
+                  <button
+                    key={h}
+                    type="button"
+                    className="absolute inset-x-0 border-b border-line/80"
+                    style={{ top: i * ROW, height: ROW }}
+                    onClick={() => onSlot("", isoFromDateHour(d, h))}
+                    onDragOver={(e) => e.preventDefault()}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      const id = e.dataTransfer.getData("text/book-id");
+                      if (id) onMove(id, "", isoFromDateHour(d, h));
+                    }}
+                    aria-label={key}
+                  />
+                ))}
+                {mine.map((b) => {
+                  const top = (hourOf(b.start) - startH) * ROW + 2;
+                  const hrs = Math.max(0.5, hourOf(b.end) - hourOf(b.start));
+                  return (
+                    <div key={b.id} className="absolute right-1 left-1 z-10" style={{ top, height: hrs * ROW - 4 }}>
+                      <EventChip e={b} selected={selectedId === b.id} onClick={() => onSelect(b.id)} />
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}

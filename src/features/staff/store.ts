@@ -12,13 +12,18 @@ export type Person = {
 export type PermKey = "seeCost" | "takeCard" | "editCatalog";
 export type RolePerms = Record<string, Record<PermKey, boolean>>;
 
-const seedPeople: Person[] = reps.map((r) => ({
-  name: r.name,
-  role: r.role,
-  office: r.office,
-  active: true,
-  sold: r.sold,
-}));
+const seedPeople: Person[] = [
+  ...reps.map((r) => ({
+    name: r.name,
+    role: r.role,
+    office: r.office,
+    active: true,
+    sold: r.sold,
+  })),
+  { name: "Tasha Reed", role: "PM", office: "Scottsdale", active: true, sold: 0 },
+  { name: "Evan Cole", role: "PM", office: "Phoenix", active: true, sold: 0 },
+  { name: "Omar Diaz", role: "Crew", office: "Phoenix", active: true, sold: 0 },
+];
 
 const seedPerms: RolePerms = {
   Owner: { seeCost: true, takeCard: true, editCatalog: true },

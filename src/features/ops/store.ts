@@ -3,6 +3,7 @@ import { activities, appointments as seedAppts, leads as seedLeads, tickets as s
 import { interestsLabel } from "@/features/lead/interests";
 import { followersByPerson, type PersonRef } from "@/lib/file-data";
 import { logCallMessage, sendMessage } from "@/features/thread/store";
+import { putFromAppointment } from "@/features/book/store";
 import { type WorkStatus } from "@/lib/chrome";
 import { toneForStatus } from "@/lib/lead-status";
 
@@ -120,6 +121,20 @@ export function bookAppointment(input: {
     } as Appointment,
     ...appointments,
   ];
+  putFromAppointment({
+    leadId: input.leadId,
+    name: lead.name,
+    kind: input.kind,
+    day: input.day,
+    time: input.time,
+    assignee: input.assignee,
+    setBy: input.setBy,
+    notes: input.notes,
+    crew: input.crew,
+    duration: input.duration,
+    scope: input.scope,
+    city: lead.city,
+  });
   addHistory(
     input.leadId,
     input.setBy,

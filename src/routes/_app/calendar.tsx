@@ -1,48 +1,76 @@
-import { useMemo, useState } from "react";
-import { Link, createFileRoute } from "@tanstack/react-router";
+import { useEffect, useMemo, useState } from "react";
+import { createFileRoute } from "@tanstack/react-router";
+import { Plus } from "lucide-react";
 import { cn } from "@/lib/cn";
-import { appointments, money } from "@/lib/crm-data";
-import { Btn, PageTitle } from "@/components/ui-bits";
-import { board, boardHours, statusTone, units, type BoardBlock } from "@/lib/dispatch-data";
+import { PageTitle } from "@/components/ui-bits";
+import { useStaff } from "@/features/staff/store";
+import { ResourceBoard } from "@/features/book/board";
+import { Compose } from "@/features/book/compose";
+import { BookDetail } from "@/features/book/detail";
+import { MonthGrid } from "@/features/book/month";
+import { hoursFor, useRoster } from "@/features/book/roster";
+import { DaySpan } from "@/features/book/span";
+import { addHrs, durationHrs, hourOf, TODAY, toIso } from "@/features/book/time";
+import { familyOf } from "@/features/book/types";
+import { moveBook, useBook } from "@/features/book/store";
 
 export const Route = createFileRoute("/_app/calendar")({
   component: CalendarPage,
 });
 
-const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-const START = 2;
-const LENGTH = 30;
-const WEEK = [13, 14, 15, 16, 17, 18, 19];
-const ROW = 56;
-const TONE = {
-  stop: "bg-stop text-card",
-  watch: "bg-watch text-card",
-  go: "bg-go text-card",
-  info: "bg-navy text-card",
-  none: "bg-line text-ink",
-} as const;
-
-function hourLabel(h: number) {
-  if (h === 12) return "12";
-  if (h > 12) return `${h - 12}p`;
-  return `${h}a`;
-}
+const VIEWS = ["resource", "three", "week", "month"] as const;
+type View = (typeof VIEWS)[number];
+const VIEW_LABEL: Record<View, string> = { resource: "Resource", three: "3-day", week: "Week", month: "Month" };
 
 function CalendarPage() {
-  const [day, setDay] = useState(14);
-  const [view, setView] = useState<"board" | "month">("board");
-  const [kind, setKind] = useState<"all" | "run" | "install">("all");
-  const [picked, setPicked] = useState<BoardBlock | null>(null);
-  const cells = useMemo(() => {
-    const list = Array.from({ length: START + LENGTH }, (_, i) => (i < START ? 0 : i - START + 1));
-    while (list.length % 7) list.push(0);
-    return list;
+  const events = useBook();
+  const roster = useRoster();
+  const { viewAs } = useStaff();
+  const [view, setView] = useState<View>("resource");
+  const [office, setOffice] = useState<"all" | "PHX" | "DFW">("PHX");
+  const [group, setGroup] = useState<"all" | "sales" | "crews">(viewAs === "Closer" || viewAs === "Setter" ? "sales" : viewAs === "PM" || viewAs === "Crew" ? "crews" : "all");
+  const [family, setFamily] = useState<"all" | "sales" | "production">("all");
+  const [mine, setMine] = useState(false);
+  const [cursor, setCursor] = useState(() => new Date(TODAY));
+  const [picked, setPicked] = useState<string | null>(null);
+  const [compose, setCompose] = useState<{ resourceId: string; start: string } | null>(null);
+
+  useEffect(() => {
+    const q = window.matchMedia("(max-width: 767px)");
+    function apply() {
+      if (q.matches) setView((v) => (v === "resource" ? "three" : v));
+    }
+    apply();
+    q.addEventListener("change", apply);
+    return () => q.removeEventListener("change", apply);
   }, []);
-  const cols = units.filter((u) => u.role !== "Setter");
-  const blocks = board.filter((b) => b.day === day && (kind === "all" || b.kind === kind));
-  const onDay = appointments.filter((a) => a.day === day);
-  const boardH = boardHours.length * ROW;
-  const closer = picked ? (units.find((u) => u.id === picked.personId)?.name ?? "") : "";
+
+  const resources = useMemo(() => {
+    return roster.filter((r) => {
+      if (office !== "all" && r.office !== office) return false;
+      if (group === "sales" && r.kind !== "closer" && r.kind !== "setter") return false;
+      if (group === "crews" && r.kind !== "crew") return false;
+      if (mine && viewAs !== "Owner" && !r.name.toLowerCase().includes(viewAs.toLowerCase()) && r.role !== viewAs) return false;
+      return true;
+    });
+  }, [roster, office, group, mine, viewAs]);
+
+  const dayKey = toIso(cursor).slice(0, 10);
+  const shown = events.filter((e) => {
+    if (office !== "all" && e.office !== office && e.office) return false;
+    if (family !== "all" && familyOf(e.type) !== family) return false;
+    return true;
+  });
+  const selected = shown.find((e) => e.id === picked) ?? null;
+  const hours = hoursFor(resources);
+
+  function onMove(id: string, resourceId: string, start: string) {
+    const cur = events.find((e) => e.id === id);
+    if (!cur) return;
+    const hrs = Math.max(0.5, hourOf(cur.end) - hourOf(cur.start) || durationHrs());
+    const end = addHrs(start, hrs);
+    moveBook(id, start, end, resourceId || cur.resourceId);
+  }
 
   return (
     <div className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden">
@@ -52,164 +80,106 @@ function CalendarPage() {
           flush
           actions={
             <>
-              <div className="flex rounded-sm bg-page p-0.5">
-                <button type="button" className={cn("h-8 px-3 text-[13px] font-semibold", view === "board" ? "bg-navy text-card" : "text-muted")} onClick={() => setView("board")}>
-                  Board
-                </button>
-                <button type="button" className={cn("h-8 px-3 text-[13px] font-semibold", view === "month" ? "bg-navy text-card" : "text-muted")} onClick={() => setView("month")}>
-                  Month
-                </button>
-              </div>
-              <div className="flex rounded-sm bg-page p-0.5">
-                {(["all", "run", "install"] as const).map((k) => (
-                  <button key={k} type="button" onClick={() => setKind(k)} className={cn("h-8 px-3 text-[13px] font-semibold", kind === k ? "bg-navy text-card" : "text-muted")}>
-                    {k === "all" ? "All" : k === "run" ? "Runs" : "Installs"}
+              <div className="flex rounded-md bg-page p-0.5">
+                {VIEWS.map((v) => (
+                  <button key={v} type="button" className={cn("h-8 px-2.5 text-[13px] font-semibold", view === v ? "bg-navy text-card" : "text-muted")} onClick={() => setView(v)}>
+                    {VIEW_LABEL[v]}
                   </button>
                 ))}
               </div>
+              <div className="flex rounded-md bg-page p-0.5">
+                {(["all", "PHX", "DFW"] as const).map((o) => (
+                  <button key={o} type="button" onClick={() => setOffice(o)} className={cn("h-8 px-2.5 text-[13px] font-semibold", office === o ? "bg-navy text-card" : "text-muted")}>
+                    {o === "all" ? "All" : o}
+                  </button>
+                ))}
+              </div>
+              <div className="flex rounded-md bg-page p-0.5">
+                {(["all", "sales", "crews"] as const).map((g) => (
+                  <button key={g} type="button" onClick={() => setGroup(g)} className={cn("h-8 px-2.5 text-[13px] font-semibold", group === g ? "bg-navy text-card" : "text-muted")}>
+                    {g === "all" ? "People" : g === "sales" ? "Closers" : "Crews"}
+                  </button>
+                ))}
+              </div>
+              <div className="flex rounded-md bg-page p-0.5">
+                {(["all", "sales", "production"] as const).map((f) => (
+                  <button key={f} type="button" onClick={() => setFamily(f)} className={cn("h-8 px-2.5 text-[13px] font-semibold", family === f ? "bg-navy text-card" : "text-muted")}>
+                    {f === "all" ? "Types" : f === "sales" ? "Sales" : "Production"}
+                  </button>
+                ))}
+              </div>
+              <button type="button" onClick={() => setMine((v) => !v)} className={cn("h-8 rounded-md px-2.5 text-[13px] font-semibold", mine ? "bg-navy text-card" : "border border-line")}>
+                Mine
+              </button>
+              <button
+                type="button"
+                className="inline-flex h-9 items-center gap-1 rounded-md bg-navy px-3 text-sm font-semibold text-card"
+                onClick={() => setCompose({ resourceId: resources[0]?.id ?? "", start: `${dayKey}T${String(hours[0] ?? 9).padStart(2, "0")}:00` })}
+              >
+                <Plus className="size-4" />
+                Event
+              </button>
             </>
           }
         />
       </header>
 
-      {view === "board" ? (
-        <>
-          <div className="flex gap-1 overflow-x-auto border-b border-line bg-card px-4 py-2">
-            {WEEK.map((d) => {
-              const n = board.filter((b) => b.day === d && (kind === "all" || b.kind === kind)).length;
-              return (
-                <button
-                  key={d}
-                  type="button"
-                  onClick={() => {
-                    setDay(d);
-                    setPicked(null);
-                  }}
-                  className={cn("min-w-16 rounded-sm px-2 py-2 text-center", d === day ? "bg-navy text-card" : "bg-page")}
-                >
-                  <p className={cn("text-[11px] font-bold", d === day ? "text-navy-fg" : "text-muted")}>{DAYS[(START + d - 1) % 7]}</p>
-                  <p className="text-[13px] font-bold tabular-nums">{d}</p>
-                  <p className={cn("text-[11px] tabular-nums", d === day ? "text-navy-fg" : "text-muted")}>{n}</p>
-                </button>
-              );
-            })}
-          </div>
-          <div className="min-h-0 min-w-0 flex-1 overflow-auto">
-            <div className="flex min-w-max">
-              <div className="sticky left-0 z-20 w-14 shrink-0 bg-card">
-                <div className="sticky top-0 z-30 h-14 border-b border-r border-line bg-card" />
-                <div className="relative" style={{ height: boardH }}>
-                  {boardHours.map((h, i) => (
-                    <div key={h} className="absolute right-0 left-0 border-b border-line px-1 text-right text-[11px] font-bold text-muted" style={{ top: i * ROW, height: ROW }}>
-                      {hourLabel(h)}
-                    </div>
-                  ))}
-                </div>
-              </div>
-              {cols.map((u) => {
-                const mine = blocks.filter((b) => b.personId === u.id);
-                return (
-                  <div key={u.id} className="w-40 shrink-0 border-r border-line">
-                    <div className="sticky top-0 z-10 flex h-14 flex-col justify-center border-b border-line bg-card px-2">
-                      <p className="truncate text-[13px] font-semibold">{u.name}</p>
-                      <p className="text-[11px] text-muted">{u.role}</p>
-                    </div>
-                    <div className="relative bg-page/40" style={{ height: boardH }}>
-                      {boardHours.map((h, i) => (
-                        <div key={h} className="absolute inset-x-0 border-b border-line/80" style={{ top: i * ROW, height: ROW }} />
-                      ))}
-                      {mine.map((b) => {
-                        const top = (b.hour - boardHours[0]) * ROW + 4;
-                        const height = b.hours * ROW - 8;
-                        const tone = statusTone(b.status);
-                        const on = picked?.personId === b.personId && picked.hour === b.hour && picked.day === b.day;
-                        return (
-                          <button
-                            key={`${b.personId}-${b.leadId}-${b.hour}`}
-                            type="button"
-                            onClick={() => setPicked(b)}
-                            className={cn("absolute right-1 left-1 overflow-hidden rounded-sm px-2 py-1 text-left", on ? "bg-ink text-card" : TONE[tone])}
-                            style={{ top, height }}
-                          >
-                            <p className="truncate text-[11px] font-bold leading-tight">{b.name}</p>
-                            <p className="truncate text-[11px] opacity-80">{b.status}</p>
-                            <p className="truncate text-[11px] opacity-80">{b.job}</p>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-          {picked ? (
-            <footer className="flex min-h-14 shrink-0 flex-wrap items-center gap-4 border-t border-line bg-card px-4 py-2 text-[13px]">
-              <span className="font-semibold">{picked.name}</span>
-              <span className="text-muted">
-                {hourLabel(picked.hour)} · {closer} · {picked.city} · {picked.status}
-              </span>
-              <span className="tabular-nums">{money(picked.amount)}</span>
-              <span className="ml-auto">
-                <Btn href={`/leads/${picked.leadId}`}>Open lead</Btn>
-              </span>
-            </footer>
-          ) : null}
-        </>
-      ) : (
-        <div className="min-h-0 flex-1 overflow-auto p-4">
-          <div className="grid gap-4 lg:grid-cols-[1.4fr_.9fr]">
-            <section className="rounded-sm bg-card p-4">
-              <div className="mb-2 grid grid-cols-7 text-center text-[11px] font-bold tracking-wide text-muted uppercase">
-                {DAYS.map((d) => (
-                  <span key={d} className="py-1">
-                    {d}
-                  </span>
-                ))}
-              </div>
-              <div className="grid grid-cols-7 gap-1">
-                {cells.map((d, i) => {
-                  if (!d) return <div key={`e-${i}`} className="min-h-16" />;
-                  const marks = appointments.filter((a) => a.day === d);
-                  return (
-                    <button
-                      key={d}
-                      type="button"
-                      onClick={() => setDay(d)}
-                      className={cn("min-h-16 rounded-sm p-2 text-left", d === day ? "bg-navy text-card" : "bg-page")}
-                    >
-                      <span className="text-[13px] font-bold">{d}</span>
-                      <div className="mt-1 space-y-0.5">
-                        {marks.slice(0, 2).map((m) => (
-                          <p key={m.id} className={cn("truncate text-[11px]", d === day ? "text-card/80" : "text-muted")}>
-                            {m.time} {m.name.split(" ")[0]}
-                          </p>
-                        ))}
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            </section>
-            <section className="rounded-sm bg-card p-4">
-              <h2 className="text-[13px] font-bold">Sep {day}</h2>
-              <ul className="mt-3 space-y-2">
-                {onDay.map((a) => (
-                  <li key={a.id} className="rounded-sm bg-page p-3">
-                    <Link to="/leads/$leadId" params={{ leadId: a.leadId }} className="font-semibold hover:text-navy">
-                      {a.name}
-                    </Link>
-                    <p className="text-[13px] text-muted">
-                      {a.time} · {a.city} · {a.closer}
-                    </p>
-                  </li>
-                ))}
-                {onDay.length === 0 ? <li className="text-[13px] text-muted">Nothing on the book.</li> : null}
-              </ul>
-            </section>
-          </div>
+      <div className="flex shrink-0 items-center gap-2 border-b border-line bg-card px-4 py-2">
+        <button type="button" className="h-8 rounded-md border border-line px-2 text-xs font-semibold" onClick={() => setCursor(new Date(cursor.getFullYear(), cursor.getMonth(), cursor.getDate() - (view === "week" ? 7 : view === "three" ? 3 : 1)))}>
+          Prev
+        </button>
+        <button type="button" className="h-8 rounded-md border border-line px-2 text-xs font-semibold" onClick={() => setCursor(new Date(TODAY))}>
+          Today
+        </button>
+        <button type="button" className="h-8 rounded-md border border-line px-2 text-xs font-semibold" onClick={() => setCursor(new Date(cursor.getFullYear(), cursor.getMonth(), cursor.getDate() + (view === "week" ? 7 : view === "three" ? 3 : 1)))}>
+          Next
+        </button>
+        <p className="text-sm font-semibold">
+          {cursor.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+        </p>
+      </div>
+
+      {view === "resource" ? (
+        <ResourceBoard
+          day={dayKey}
+          resources={resources}
+          events={shown}
+          selectedId={picked}
+          onSelect={setPicked}
+          onSlot={(resourceId, start) => setCompose({ resourceId, start })}
+          onMove={onMove}
+        />
+      ) : null}
+      {view === "three" || view === "week" ? (
+        <DaySpan
+          start={cursor}
+          days={view === "three" ? 3 : 7}
+          hours={hours}
+          events={shown}
+          selectedId={picked}
+          onSelect={setPicked}
+          onSlot={(_, start) => setCompose({ resourceId: resources[0]?.id ?? "", start })}
+          onMove={onMove}
+        />
+      ) : null}
+      {view === "month" ? (
+        <MonthGrid
+          events={shown}
+          selectedDay={cursor.getDate()}
+          onDay={(d) => {
+            setCursor(new Date(cursor.getFullYear(), cursor.getMonth(), d));
+            setView("three");
+          }}
+        />
+      ) : null}
+
+      {compose ? (
+        <div className="shrink-0 border-t border-line bg-card">
+          <Compose resources={resources} preset={compose} onClose={() => setCompose(null)} />
         </div>
-      )}
+      ) : selected ? (
+        <BookDetail e={selected} onClose={() => setPicked(null)} />
+      ) : null}
     </div>
   );
 }

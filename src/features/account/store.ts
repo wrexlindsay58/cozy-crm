@@ -1,5 +1,6 @@
 import { useSyncExternalStore } from "react";
 import { addHistory, createLead } from "@/features/ops/store";
+import { putFromAppointment } from "@/features/book/store";
 import { photosByPerson, type Photo } from "@/lib/file-data";
 import type { Activity } from "@/lib/crm-data";
 
@@ -46,7 +47,18 @@ export function defaultsFor(kind: VisitKind) {
 export function scheduleVisit(input: { accountId: string; kind: VisitKind; closer: string; day: number; hour: string; fee: number; cost: number }) {
   const file = files[input.accountId]; if (!file) return;
   const row: Visit = { id: `V-${20 + file.visits.length}`, accountId: input.accountId, kind: input.kind, day: `Sep ${input.day} ${input.hour}`, who: input.closer, fee: input.fee, cost: input.cost, status: "Booked" };
-  files = { ...files, [input.accountId]: { ...file, visits: [row, ...file.visits] } }; emit();
+  files = { ...files, [input.accountId]: { ...file, visits: [row, ...file.visits] } };
+  putFromAppointment({
+    leadId: file.leadId,
+    name: file.name,
+    kind: input.kind,
+    day: input.day,
+    time: input.hour,
+    assignee: input.closer,
+    setBy: input.closer,
+    city: file.city,
+  });
+  emit();
 }
 export function addPhoto(accountId: string, caption: string) {
   const trimmed = caption.trim(); if (!trimmed) return false;

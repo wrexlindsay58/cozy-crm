@@ -1,0 +1,52 @@
+import { cn } from "@/lib/cn";
+import { monthGrid } from "./time";
+import type { BookEvent } from "./types";
+
+const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+export function MonthGrid({
+  events,
+  selectedDay,
+  onDay,
+}: {
+  events: BookEvent[];
+  selectedDay: number;
+  onDay: (d: number) => void;
+}) {
+  const cells = monthGrid();
+  return (
+    <div className="flex min-h-0 flex-1 flex-col overflow-auto p-4">
+      <div className="grid grid-cols-7 text-center text-[11px] font-bold tracking-wide text-muted uppercase">
+        {DAYS.map((d) => (
+          <span key={d} className="py-1">
+            {d}
+          </span>
+        ))}
+      </div>
+      <div className="grid flex-1 grid-cols-7 gap-1">
+        {cells.map((d, i) => {
+          if (!d) return <div key={`e-${i}`} className="min-h-20" />;
+          const marks = events.filter((e) => Number(e.start.slice(8, 10)) === d);
+          return (
+            <button
+              key={d}
+              type="button"
+              onClick={() => onDay(d)}
+              className={cn("min-h-20 rounded-md p-2 text-left", d === selectedDay ? "bg-navy text-card" : "bg-card border border-line")}
+            >
+              <span className="text-[13px] font-bold">{d}</span>
+              <div className="mt-1 space-y-0.5">
+                {marks.slice(0, 3).map((m) => (
+                  <p key={m.id} className={cn("truncate text-[11px]", d === selectedDay ? "text-card/80" : "text-muted")}>
+                    {m.title.split(" ")[0]} · {m.type}
+                  </p>
+                ))}
+                {marks.length > 3 ? <p className="text-[11px] opacity-70">+{marks.length - 3}</p> : null}
+              </div>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
