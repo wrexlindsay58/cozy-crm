@@ -145,7 +145,7 @@ const LANES: { id: ConvLane; label: string; icon: typeof MessageSquare }[] = [
   { id: "tags", label: "Tags", icon: Tag },
   { id: "actions", label: "Actions", icon: ListChecks },
   { id: "history", label: "History", icon: Clock },
-  { id: "media", label: "Media", icon: Image },
+  { id: "media", label: "Media & Files", icon: Image },
   { id: "form", label: "Form", icon: ClipboardList },
 ];
 
