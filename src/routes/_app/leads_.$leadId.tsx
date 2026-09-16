@@ -1,10 +1,10 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { assessmentForLead, startAssessment } from "@/features/assessment/store";
 import { BookWidget } from "@/features/lead/book-widget";
-import { DetailsForm } from "@/features/lead/details-form";
+import { LeadCard } from "@/features/lead/lead-card";
 import { DispositionControl } from "@/features/lead/disposition";
 import { RecordShell } from "@/features/record-shell/record-shell";
-import { updateLead, useOps } from "@/features/ops/store";
+import { useOps } from "@/features/ops/store";
 import { opportunities } from "@/lib/crm-data";
 import { followersByPerson, photosByPerson } from "@/lib/file-data";
 
@@ -47,7 +47,7 @@ function LeadFile() {
       photos={photosByPerson[lead.id] ?? []}
     >
       <div className="space-y-3">
-        <DetailsForm initial={lead} submitLabel="Save details" onSubmit={(d) => updateLead(lead.id, d)} />
+        <LeadCard lead={lead} />
         <BookWidget leadId={lead.id} defaultCloser={lead.closer} defaultKind="Sales" />
         <DispositionControl
           lead={lead}
