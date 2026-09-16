@@ -45,6 +45,8 @@ function fromAppt(a: (typeof seedAppts)[number]): BookEvent {
     notes: a.notes ?? "",
     setBy: a.setBy ?? a.setter,
     scope: a.scope ?? a.product,
+    leadSource: "",
+    products: a.product ? [{ label: a.product, notes: a.notes ?? "", qty: 1 }] : [],
     internal: false,
     woSigned: type === "Install" && a.leadId === "L-4788" ? false : type !== "Install",
     hold: false,
@@ -143,18 +145,22 @@ export function createBook(input: {
   blank?: boolean;
   links?: BookEvent["links"];
   status?: BookStatus;
+  leadSource?: string;
+  products?: BookEvent["products"];
+  scope?: string;
+  jobId?: string;
 }) {
   const crewId = input.crewId ?? "";
   const techId = input.techId ?? "";
   const assigneeId = input.assigneeId ?? "";
   const resourceId = input.resourceId || crewId || techId || assigneeId;
   const row: BookEvent = {
-    id: `BK-${Date.now()}`,
-    type: input.blank ? "Open" : input.type,
+    id: `BK-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+    type: input.type,
     status: input.status ?? "Confirmed",
     title: input.blank ? input.title.trim() || "Open slot" : input.title.trim() || input.type,
     personId: input.blank ? "" : input.personId ?? "",
-    jobId: "",
+    jobId: input.jobId ?? "",
     href: input.blank ? "" : input.href ?? (input.personId ? `/leads/${input.personId}` : ""),
     resourceId,
     crewId,
@@ -166,7 +172,9 @@ export function createBook(input: {
     city: input.city ?? "",
     notes: input.notes ?? "",
     setBy: input.setBy,
-    scope: "",
+    scope: input.scope ?? "",
+    leadSource: input.leadSource ?? "",
+    products: input.products ?? [],
     internal: Boolean(input.internal) || Boolean(input.blank) || familyOf(input.type) === "shop",
     woSigned: familyOf(input.type) !== "production",
     hold: false,
@@ -215,6 +223,8 @@ export function putFromAppointment(input: {
     notes: input.notes ?? "",
     setBy: input.setBy,
     scope: input.scope ?? "",
+    leadSource: "",
+    products: input.scope ? [{ label: input.scope, notes: input.notes ?? "", qty: 1 }] : [],
     internal: false,
     woSigned: mapType(input.kind) !== "Install",
     hold: false,
@@ -260,6 +270,8 @@ export function putFromJob(input: {
     notes: "",
     setBy: input.crew,
     scope: input.process,
+    leadSource: "",
+    products: [{ label: input.process, notes: "", qty: 1 }],
     internal: false,
     woSigned: Boolean(input.woSigned),
     hold: false,

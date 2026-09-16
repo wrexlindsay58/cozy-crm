@@ -28,6 +28,8 @@ export type BookFamily = "sales" | "production" | "shop";
 
 export type BookLink = { id: string; label: string; url: string };
 
+export type BookProduct = { label: string; notes: string; qty: number };
+
 export type BookEvent = {
   id: string;
   type: BookType;
@@ -47,6 +49,8 @@ export type BookEvent = {
   notes: string;
   setBy: string;
   scope: string;
+  leadSource: string;
+  products: BookProduct[];
   internal: boolean;
   woSigned: boolean;
   hold: boolean;

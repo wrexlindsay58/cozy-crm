@@ -27,6 +27,8 @@ function row(
     notes: extra.notes ?? "",
     setBy: extra.setBy ?? "Priya Shah",
     scope: extra.scope ?? "",
+    leadSource: extra.leadSource ?? "",
+    products: extra.products ?? [],
     internal: extra.internal ?? shop,
     woSigned: extra.woSigned ?? familyOf(type) !== "production",
     hold: extra.hold ?? false,
