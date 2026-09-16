@@ -26,7 +26,7 @@ export function OppWorkspace({ proposal }: { proposal: Proposal }) {
           </button>
         ) : null}
       </div>
-      <div className="grid gap-3 xl:grid-cols-3">
+      <div className="space-y-3">
         {proposal.options.map((opt) => (
           <OptionCard key={opt.id} proposal={proposal} option={opt} />
         ))}

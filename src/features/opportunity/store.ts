@@ -79,7 +79,7 @@ export function useProposal(oppId: string) {
   return all[oppId];
 }
 export function optionTotal(opt: OptCard) {
-  return opt.lines.reduce((sum, l) => sum + (l.on ? l.unit * l.qty : 0), 0);
+  return opt.lines.reduce((sum, l) => sum + l.unit * l.qty, 0);
 }
 export function dealerFee(total: number) {
   return Math.round(total * (getDealerFeePct() / 100));
