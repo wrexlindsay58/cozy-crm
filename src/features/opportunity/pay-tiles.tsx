@@ -20,11 +20,22 @@ const ADD: { kind: PayKind; label: string }[] = [
   { kind: "finance", label: "Financing" },
 ];
 
+function OptionPrices({ proposal, format }: { proposal: Proposal; format: (n: number) => string }) {
+  return (
+    <ul className="mt-2 space-y-1">
+      {proposal.options.map((opt) => (
+        <li key={opt.id} className="flex items-baseline justify-between gap-3 text-sm">
+          <span className="min-w-0 truncate">{opt.name}</span>
+          <span className="shrink-0 font-extrabold tabular-nums">{format(optionTotal(opt))}</span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 export function PayTiles({ proposal }: { proposal: Proposal }) {
   const { financers } = useMoneySettings();
   const shops = financers.filter((f) => f.active && f.name !== "Cash");
-  const accepted = proposal.options.find((o) => o.id === proposal.accepted) ?? proposal.options[0];
-  const total = accepted ? optionTotal(accepted) : 0;
   const [open, setOpen] = useState(false);
   const [anchor, setAnchor] = useState<DOMRect | null>(null);
 
@@ -65,8 +76,7 @@ export function PayTiles({ proposal }: { proposal: Proposal }) {
       <div className="space-y-2">
         {proposal.payOffers.map((offer) => {
           const shop = shops.find((f) => f.name === offer.financer) ?? shops[0];
-          const fee = offer.kind === "finance" ? Math.round(total * ((shop?.feePct ?? 0) / 100)) : 0;
-          const financed = total + fee;
+          const feePct = offer.kind === "finance" ? (shop?.feePct ?? 0) / 100 : 0;
           return (
             <article key={offer.id} className="rounded-md border border-line p-3">
               <div className="flex items-start justify-between gap-2">
@@ -74,9 +84,9 @@ export function PayTiles({ proposal }: { proposal: Proposal }) {
                   <p className="text-[11px] font-bold tracking-wide text-muted uppercase">
                     {offer.kind === "cash" ? "Cash" : offer.kind === "card" ? "Credit card" : "Financing"}
                   </p>
-                  {offer.kind !== "finance" ? <p className="mt-1 text-lg font-extrabold tabular-nums">{money(total)}</p> : null}
+                  {offer.kind !== "finance" ? <OptionPrices proposal={proposal} format={money} /> : null}
                   {offer.kind === "finance" ? (
-                    <div className="mt-2 space-y-2">
+                    <div className="mt-2 space-y-3">
                       <label className="block text-[11px] font-bold tracking-wide text-muted uppercase">
                         Company
                         <select
@@ -102,12 +112,24 @@ export function PayTiles({ proposal }: { proposal: Proposal }) {
                               onClick={() => togglePayTerm(proposal.oppId, offer.id, t.months)}
                               className={cn("h-10 rounded-md px-3 text-sm font-semibold", on ? "bg-navy text-card" : "border border-line")}
                             >
-                              {t.label} · {money(demoMonthly(financed, t.months))}/mo
+                              {t.label}
                             </button>
                           );
                         })}
                       </div>
-                      {fee ? <p className="text-[11px] text-muted">Dealer fee {money(fee)} on the financed amount.</p> : null}
+                      {offer.terms.map((months) => {
+                        const t = TERM_PICKS.find((x) => x.months === months);
+                        return (
+                          <div key={months}>
+                            <p className="text-[11px] font-bold tracking-wide text-muted uppercase">{t?.label ?? `${months} mo`}</p>
+                            <OptionPrices
+                              proposal={proposal}
+                              format={(n) => `${money(demoMonthly(Math.round(n * (1 + feePct)), months))}/mo`}
+                            />
+                          </div>
+                        );
+                      })}
+                      {feePct ? <p className="text-[11px] text-muted">Dealer fee is in the monthly.</p> : null}
                     </div>
                   ) : null}
                 </div>
