@@ -66,6 +66,7 @@ import { Route as AppSettingsPermissionsRouteImport } from './routes/_app/settin
 import { Route as AppSettingsPinsRouteImport } from './routes/_app/settings_.pins'
 import { Route as AppSettingsPositionsRouteImport } from './routes/_app/settings_.positions'
 import { Route as AppSettingsPricebookRouteImport } from './routes/_app/settings_.pricebook'
+import { Route as AppSettingsProductionRouteImport } from './routes/_app/settings_.production'
 import { Route as AppSettingsRatePlansRouteImport } from './routes/_app/settings_.rate-plans'
 import { Route as AppSettingsReductionInstallsRouteImport } from './routes/_app/settings_.reduction-installs'
 import { Route as AppSettingsRemindersRouteImport } from './routes/_app/settings_.reminders'
@@ -371,6 +372,11 @@ const AppSettingsPricebookRoute = AppSettingsPricebookRouteImport.update({
   path: '/settings/pricebook',
   getParentRoute: () => AppRoute,
 } as any)
+const AppSettingsProductionRoute = AppSettingsProductionRouteImport.update({
+  id: '/settings_/production',
+  path: '/settings/production',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppSettingsRatePlansRoute = AppSettingsRatePlansRouteImport.update({
   id: '/settings_/rate-plans',
   path: '/settings/rate-plans',
@@ -496,6 +502,7 @@ export interface FileRoutesByFullPath {
   '/settings/pins': typeof AppSettingsPinsRoute
   '/settings/positions': typeof AppSettingsPositionsRoute
   '/settings/pricebook': typeof AppSettingsPricebookRoute
+  '/settings/production': typeof AppSettingsProductionRoute
   '/settings/rate-plans': typeof AppSettingsRatePlansRoute
   '/settings/reduction-installs': typeof AppSettingsReductionInstallsRoute
   '/settings/reminders': typeof AppSettingsRemindersRoute
@@ -567,6 +574,7 @@ export interface FileRoutesByTo {
   '/settings/pins': typeof AppSettingsPinsRoute
   '/settings/positions': typeof AppSettingsPositionsRoute
   '/settings/pricebook': typeof AppSettingsPricebookRoute
+  '/settings/production': typeof AppSettingsProductionRoute
   '/settings/rate-plans': typeof AppSettingsRatePlansRoute
   '/settings/reduction-installs': typeof AppSettingsReductionInstallsRoute
   '/settings/reminders': typeof AppSettingsRemindersRoute
@@ -640,6 +648,7 @@ export interface FileRoutesById {
   '/_app/settings_/pins': typeof AppSettingsPinsRoute
   '/_app/settings_/positions': typeof AppSettingsPositionsRoute
   '/_app/settings_/pricebook': typeof AppSettingsPricebookRoute
+  '/_app/settings_/production': typeof AppSettingsProductionRoute
   '/_app/settings_/rate-plans': typeof AppSettingsRatePlansRoute
   '/_app/settings_/reduction-installs': typeof AppSettingsReductionInstallsRoute
   '/_app/settings_/reminders': typeof AppSettingsRemindersRoute
@@ -713,6 +722,7 @@ export interface FileRouteTypes {
     | '/settings/pins'
     | '/settings/positions'
     | '/settings/pricebook'
+    | '/settings/production'
     | '/settings/rate-plans'
     | '/settings/reduction-installs'
     | '/settings/reminders'
@@ -784,6 +794,7 @@ export interface FileRouteTypes {
     | '/settings/pins'
     | '/settings/positions'
     | '/settings/pricebook'
+    | '/settings/production'
     | '/settings/rate-plans'
     | '/settings/reduction-installs'
     | '/settings/reminders'
@@ -856,6 +867,7 @@ export interface FileRouteTypes {
     | '/_app/settings_/pins'
     | '/_app/settings_/positions'
     | '/_app/settings_/pricebook'
+    | '/_app/settings_/production'
     | '/_app/settings_/rate-plans'
     | '/_app/settings_/reduction-installs'
     | '/_app/settings_/reminders'
@@ -1277,6 +1289,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppSettingsPricebookRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/settings_/production': {
+      id: '/_app/settings_/production'
+      path: '/settings/production'
+      fullPath: '/settings/production'
+      preLoaderRoute: typeof AppSettingsProductionRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/settings_/rate-plans': {
       id: '/_app/settings_/rate-plans'
       path: '/settings/rate-plans'
@@ -1427,6 +1446,7 @@ interface AppRouteChildren {
   AppSettingsPinsRoute: typeof AppSettingsPinsRoute
   AppSettingsPositionsRoute: typeof AppSettingsPositionsRoute
   AppSettingsPricebookRoute: typeof AppSettingsPricebookRoute
+  AppSettingsProductionRoute: typeof AppSettingsProductionRoute
   AppSettingsRatePlansRoute: typeof AppSettingsRatePlansRoute
   AppSettingsReductionInstallsRoute: typeof AppSettingsReductionInstallsRoute
   AppSettingsRemindersRoute: typeof AppSettingsRemindersRoute
@@ -1498,6 +1518,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppSettingsPinsRoute: AppSettingsPinsRoute,
   AppSettingsPositionsRoute: AppSettingsPositionsRoute,
   AppSettingsPricebookRoute: AppSettingsPricebookRoute,
+  AppSettingsProductionRoute: AppSettingsProductionRoute,
   AppSettingsRatePlansRoute: AppSettingsRatePlansRoute,
   AppSettingsReductionInstallsRoute: AppSettingsReductionInstallsRoute,
   AppSettingsRemindersRoute: AppSettingsRemindersRoute,
