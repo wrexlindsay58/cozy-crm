@@ -26,7 +26,7 @@ export function PresentOption({
   const list = menu === "product" ? productsOf(catalog).filter((p) => !have.has(p.sku)) : menu === "adder" ? addersOf(catalog).filter((p) => !have.has(p.sku)) : discountsOf(catalog).filter((p) => !have.has(p.sku));
 
   return (
-    <article className={cn("rounded-sm border-2 bg-white p-5 text-[var(--p-navy)]", selected ? "border-[var(--p-red)] shadow-[0_0_0_1px_var(--p-red)]" : "border-[var(--p-navy)]/15")}>
+    <article className={cn("rounded-sm border bg-white p-5 text-[var(--p-navy)]", selected ? "border-[var(--p-navy)]" : "border-[var(--p-trim)]")}>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <button type="button" onClick={onPick} className="min-w-0 flex-1 text-left">
           <input
@@ -153,7 +153,7 @@ export function PresentOption({
         ) : (
           <button
             type="button"
-            className="h-11 flex-1 bg-[var(--p-red)] text-sm font-semibold text-white"
+            className="h-11 flex-1 bg-[var(--p-navy)] text-sm font-semibold text-white"
             onClick={() => {
               if (proposal.accepted && proposal.accepted !== option.id) unacceptOption(proposal.oppId);
               onPick();
