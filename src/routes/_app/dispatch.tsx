@@ -1,11 +1,11 @@
 import { useMemo, useState } from "react";
 import { Link, createFileRoute } from "@tanstack/react-router";
 import { X } from "lucide-react";
-import { DispatchMap, unitColor } from "@/components/dispatch-map";
+import { DispatchMap, streetViewSrc, unitColor, type MapView } from "@/components/dispatch-map";
 import { cn } from "@/lib/cn";
 import { money } from "@/lib/crm-data";
 import { PageTitle } from "@/components/ui-bits";
-import { offices, statusLabel, statusTone, stops, units, type Unit } from "@/lib/dispatch-data";
+import { offices, statusLabel, statusTone, stops, units, type Stop, type Unit } from "@/lib/dispatch-data";
 
 export const Route = createFileRoute("/_app/dispatch")({
   component: DispatchPage,
@@ -19,17 +19,34 @@ const TONE = {
   none: "text-muted",
 } as const;
 
+const VIEWS: { id: MapView; label: string }[] = [
+  { id: "base", label: "Base" },
+  { id: "aerial", label: "Aerial" },
+  { id: "3d", label: "3D" },
+];
+
 function DispatchPage() {
   const [office, setOffice] = useState<"PHX" | "DFW">("PHX");
+  const [view, setView] = useState<MapView>("base");
   const [selectedId, setSelectedId] = useState<string | null>("marco");
+  const [selectedStopId, setSelectedStopId] = useState<string | null>(null);
   const [drawer, setDrawer] = useState(true);
   const here = useMemo(() => units.filter((u) => u.office === office), [office]);
   const selected = here.find((u) => u.id === selectedId) ?? null;
   const selectedStops = selected ? (stops[selected.id] ?? []) : [];
+  const selectedStop = selectedStops.find((s) => s.id === selectedStopId) ?? selectedStops[0] ?? null;
   const live = here.filter((u) => u.status === "en-route" || u.status === "on-site" || u.status === "late").length;
+  const street = selectedStop ?? (selected ? { lat: selected.lat, lng: selected.lng, name: selected.name, address: selected.next ?? "", city: "" } : null);
 
   function pick(id: string) {
     setSelectedId(id);
+    setSelectedStopId(null);
+    setDrawer(true);
+  }
+
+  function pickStop(unitId: string, stopId: string) {
+    setSelectedId(unitId);
+    setSelectedStopId(stopId);
     setDrawer(true);
   }
 
@@ -41,7 +58,14 @@ function DispatchPage() {
           flush
           actions={
             <>
-              <div className="flex rounded-sm bg-page p-0.5">
+              <div className="flex rounded-md bg-page p-0.5">
+                {VIEWS.map((v) => (
+                  <button key={v.id} type="button" className={cn("h-8 px-2.5 text-[13px] font-semibold", view === v.id ? "bg-navy text-card" : "text-muted")} onClick={() => setView(v.id)}>
+                    {v.label}
+                  </button>
+                ))}
+              </div>
+              <div className="flex rounded-md bg-page p-0.5">
                 {(Object.keys(offices) as Array<"PHX" | "DFW">).map((k) => (
                   <button
                     key={k}
@@ -50,9 +74,10 @@ function DispatchPage() {
                       setOffice(k);
                       const first = units.find((u) => u.office === k)?.id ?? null;
                       setSelectedId(first);
+                      setSelectedStopId(null);
                       setDrawer(true);
                     }}
-                    className={cn("h-8 px-3 text-[13px] font-semibold", office === k ? "bg-navy text-card" : "text-muted")}
+                    className={cn("h-8 px-2.5 text-[13px] font-semibold", office === k ? "bg-navy text-card" : "text-muted")}
                   >
                     {offices[k].label}
                   </button>
@@ -100,16 +125,17 @@ function DispatchPage() {
         </aside>
 
         <div className="relative min-h-[22rem] min-w-0 lg:h-full">
-          <DispatchMap office={office} selectedId={selected?.id ?? null} onSelect={pick} />
+          <DispatchMap office={office} view={view} selectedId={selected?.id ?? null} selectedStopId={selectedStopId} onSelect={pick} onPickStop={pickStop} />
           {selected && drawer ? (
-            <aside className="absolute inset-x-0 bottom-0 z-10 flex max-h-[70%] flex-col overflow-auto border-t border-line bg-card shadow-card lg:inset-y-0 lg:left-auto lg:max-h-none lg:w-80 lg:border-t-0 lg:border-l">
+            <aside className="absolute inset-x-0 bottom-0 z-10 flex max-h-[78%] flex-col overflow-auto border-t border-line bg-card shadow-sm lg:inset-y-0 lg:left-auto lg:max-h-none lg:w-96 lg:border-t-0 lg:border-l">
               <div className="flex min-h-10 items-center justify-end px-2">
                 <button type="button" className="grid size-10 place-items-center" aria-label="Close" onClick={() => setDrawer(false)}>
                   <X className="size-4" />
                 </button>
               </div>
               <div className="px-4 pb-4">
-                <UnitDetail u={selected} stops={selectedStops} />
+                {street ? <StreetPane lat={street.lat} lng={street.lng} name={selectedStop?.name ?? selected.name} address={selectedStop?.address ?? ""} city={selectedStop?.city ?? ""} /> : null}
+                <UnitDetail u={selected} stops={selectedStops} activeStopId={selectedStop?.id ?? null} onStop={(id) => pickStop(selected.id, id)} />
               </div>
             </aside>
           ) : null}
@@ -119,7 +145,24 @@ function DispatchPage() {
   );
 }
 
-function UnitDetail({ u, stops: jobStops }: { u: Unit; stops: (typeof stops)[string] }) {
+function StreetPane({ lat, lng, name, address, city }: { lat: number; lng: number; name: string; address: string; city: string }) {
+  return (
+    <div className="mb-3 overflow-hidden rounded-md border border-line bg-page">
+      <iframe title={`Street view ${name}`} src={streetViewSrc(lat, lng)} className="h-48 w-full border-0" loading="lazy" referrerPolicy="no-referrer-when-downgrade" allowFullScreen />
+      <div className="flex items-center justify-between gap-2 px-3 py-2">
+        <p className="min-w-0 truncate text-[12px] font-semibold">
+          {address || name}
+          {city ? ` · ${city}` : ""}
+        </p>
+        <a href={`https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${lat},${lng}`} target="_blank" rel="noreferrer" className="shrink-0 text-[11px] font-semibold text-navy">
+          Open
+        </a>
+      </div>
+    </div>
+  );
+}
+
+function UnitDetail({ u, stops: jobStops, activeStopId, onStop }: { u: Unit; stops: Stop[]; activeStopId: string | null; onStop: (id: string) => void }) {
   return (
     <div>
       <p className="text-[11px] font-bold tracking-wide text-muted uppercase">{u.role}</p>
@@ -144,20 +187,22 @@ function UnitDetail({ u, stops: jobStops }: { u: Unit; stops: (typeof stops)[str
       {jobStops.length === 0 ? <p className="text-[13px] text-muted">No stops on the route.</p> : null}
       <ul className="divide-y divide-line">
         {jobStops.map((s) => (
-          <li key={s.id} className="py-2">
-            {s.leadId ? (
-              <Link to="/leads/$leadId" params={{ leadId: s.leadId }} className="text-[13px] font-semibold hover:text-navy">
-                {s.name}
-              </Link>
-            ) : (
-              <p className="text-[13px] font-semibold">{s.name}</p>
-            )}
-            <p className="text-[11px] text-muted">
-              {s.time} · {s.job} · {s.city}
-            </p>
-            <p className="text-[11px] tabular-nums">
-              {money(s.amount)} · {s.pay} · {s.status}
-            </p>
+          <li key={s.id}>
+            <button type="button" onClick={() => onStop(s.id)} className={cn("w-full py-2 text-left", activeStopId === s.id ? "bg-page" : "")}>
+              {s.leadId ? (
+                <Link to="/leads/$leadId" params={{ leadId: s.leadId }} className="text-[13px] font-semibold hover:text-navy" onClick={(e) => e.stopPropagation()}>
+                  {s.name}
+                </Link>
+              ) : (
+                <p className="text-[13px] font-semibold">{s.name}</p>
+              )}
+              <p className="text-[11px] text-muted">
+                {s.time} · {s.job} · {s.city}
+              </p>
+              <p className="text-[11px] tabular-nums">
+                {money(s.amount)} · {s.pay} · {s.status}
+              </p>
+            </button>
           </li>
         ))}
       </ul>

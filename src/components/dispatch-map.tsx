@@ -3,7 +3,22 @@ import "maplibre-gl/dist/maplibre-gl.css";
 import { offices, routes, shop, stops, units, type Unit } from "@/lib/dispatch-data";
 import { HEX } from "@/lib/tokens";
 
-const RASTER = {
+export type MapView = "base" | "aerial" | "3d";
+
+const AERIAL = {
+  version: 8 as const,
+  sources: {
+    esri: {
+      type: "raster" as const,
+      tiles: ["https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"],
+      tileSize: 256,
+      attribution: "Tiles © Esri",
+    },
+  },
+  layers: [{ id: "esri", type: "raster" as const, source: "esri" }],
+};
+
+const BASE = {
   version: 8 as const,
   sources: {
     carto: {
@@ -20,6 +35,8 @@ const RASTER = {
   layers: [{ id: "carto", type: "raster" as const, source: "carto" }],
 };
 
+const OPENFREE = "https://tiles.openfreemap.org/styles/bright";
+
 const STATUS_HEX: Record<string, string> = {
   idle: HEX.idle,
   "en-route": HEX.watch,
@@ -28,32 +45,61 @@ const STATUS_HEX: Record<string, string> = {
   done: HEX.go,
 };
 
-const BOUNDS = {
-  PHX: { w: -112.62, e: -111.72, s: 33.32, n: 33.78 },
-  DFW: { w: -97.55, e: -96.55, s: 32.55, n: 33.15 },
+type MapHandle = {
+  remove: () => void;
+  flyTo: (o: Record<string, unknown>) => void;
+  resize: () => void;
+  setPitch: (n: number) => unknown;
+  setBearing: (n: number) => unknown;
 };
 
-function xy(office: "PHX" | "DFW", lat: number, lng: number) {
-  const b = BOUNDS[office];
-  return {
-    x: ((lng - b.w) / (b.e - b.w)) * 100,
-    y: ((b.n - lat) / (b.n - b.s)) * 100,
-  };
+function addBuildings(map: { getLayer: (id: string) => unknown; getSource: (id: string) => unknown; getStyle: () => { layers?: { id: string; type: string }[] }; addSource: (id: string, s: object) => void; addLayer: (l: object, before?: string) => void }) {
+  if (map.getLayer("3d-buildings")) return;
+  const layers = map.getStyle().layers ?? [];
+  const label = layers.find((l) => l.type === "symbol")?.id;
+  if (!map.getSource("openfreemap")) {
+    map.addSource("openfreemap", { type: "vector", url: "https://tiles.openfreemap.org/planet" });
+  }
+  map.addLayer(
+    {
+      id: "3d-buildings",
+      source: "openfreemap",
+      "source-layer": "building",
+      type: "fill-extrusion",
+      minzoom: 14,
+      filter: ["!=", ["get", "hide_3d"], true],
+      paint: {
+        "fill-extrusion-color": "#c5ccd3",
+        "fill-extrusion-height": ["coalesce", ["get", "render_height"], ["get", "height"], 10],
+        "fill-extrusion-base": ["coalesce", ["get", "render_min_height"], 0],
+        "fill-extrusion-opacity": 0.88,
+      },
+    },
+    label,
+  );
 }
 
 export function DispatchMap({
   office,
+  view,
   selectedId,
+  selectedStopId,
   onSelect,
+  onPickStop,
 }: {
   office: "PHX" | "DFW";
+  view: MapView;
   selectedId: string | null;
+  selectedStopId: string | null;
   onSelect: (id: string) => void;
+  onPickStop: (unitId: string, stopId: string) => void;
 }) {
   const wrap = useRef<HTMLDivElement>(null);
-  const mapRef = useRef<{ remove: () => void; flyTo: (o: Record<string, unknown>) => void; resize: () => void } | null>(null);
+  const mapRef = useRef<MapHandle | null>(null);
   const onSelectRef = useRef(onSelect);
+  const onStopRef = useRef(onPickStop);
   onSelectRef.current = onSelect;
+  onStopRef.current = onPickStop;
   const [tiles, setTiles] = useState(false);
 
   useEffect(() => {
@@ -66,15 +112,21 @@ export function DispatchMap({
     (async () => {
       const maplibregl = await import("maplibre-gl");
       if (dead || !wrap.current) return;
-      const view = offices[office];
+      const viewOffice = offices[office];
+      const style = view === "aerial" ? AERIAL : view === "3d" ? OPENFREE : BASE;
       const map = new maplibregl.Map({
         container: wrap.current,
-        style: RASTER as never,
-        center: [view.lng, view.lat],
-        zoom: view.zoom,
+        style: style as never,
+        center: [viewOffice.lng, viewOffice.lat],
+        zoom: view === "3d" ? 15.2 : viewOffice.zoom,
+        pitch: view === "3d" ? 58 : 0,
+        bearing: view === "3d" ? -18 : 0,
+        maxPitch: 80,
         attributionControl: false,
+        canvasContextAttributes: { antialias: view === "3d" },
       });
       map.addControl(new maplibregl.AttributionControl({ compact: true }), "bottom-right");
+      map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), "bottom-right");
       mapRef.current = map;
       const observer = new ResizeObserver(() => map.resize());
       observer.observe(wrap.current);
@@ -84,6 +136,13 @@ export function DispatchMap({
         if (dead) return;
         setTiles(true);
         map.resize();
+        if (view === "3d") {
+          try {
+            addBuildings(map as never);
+          } catch {
+            /* tiles without buildings still pitch */
+          }
+        }
         const here = units.filter((u) => u.office === office);
         const feats = here
           .filter((u) => routes[u.id])
@@ -93,36 +152,12 @@ export function DispatchMap({
             geometry: { type: "LineString" as const, coordinates: routes[u.id] },
           }));
         if (!map.getSource("routes")) {
-          map.addSource("routes", {
-            type: "geojson",
-            data: { type: "FeatureCollection", features: feats },
-          });
+          map.addSource("routes", { type: "geojson", data: { type: "FeatureCollection", features: feats } });
           map.addLayer({
             id: "routes-line",
             type: "line",
             source: "routes",
-            paint: { "line-color": HEX.navy, "line-width": 3, "line-opacity": 0.8 },
-          });
-        }
-        const stopFeats = here.flatMap((u) =>
-          (stops[u.id] ?? []).map((s) => ({
-            type: "Feature" as const,
-            properties: { name: s.name },
-            geometry: { type: "Point" as const, coordinates: [s.lng, s.lat] },
-          })),
-        );
-        if (!map.getSource("stops")) {
-          map.addSource("stops", { type: "geojson", data: { type: "FeatureCollection", features: stopFeats } });
-          map.addLayer({
-            id: "stops-pt",
-            type: "circle",
-            source: "stops",
-            paint: {
-              "circle-radius": 5,
-              "circle-color": HEX.navy,
-              "circle-stroke-width": 2,
-              "circle-stroke-color": HEX.card,
-            },
+            paint: { "line-color": HEX.navy, "line-width": 3, "line-opacity": 0.75 },
           });
         }
         const shopPt = shop[office];
@@ -130,7 +165,20 @@ export function DispatchMap({
         shopEl.className = "dispatch-shop";
         shopEl.title = shopPt.name;
         markers.push(new maplibregl.Marker({ element: shopEl }).setLngLat([shopPt.lng, shopPt.lat]).addTo(map));
+
         here.forEach((u) => {
+          (stops[u.id] ?? []).forEach((s) => {
+            const house = document.createElement("button");
+            house.type = "button";
+            house.className = "dispatch-house";
+            house.title = s.name;
+            house.innerHTML = `<span>${s.name.slice(0, 1)}</span>`;
+            house.addEventListener("click", (ev) => {
+              ev.stopPropagation();
+              onStopRef.current(u.id, s.id);
+            });
+            markers.push(new maplibregl.Marker({ element: house, anchor: "bottom" }).setLngLat([s.lng, s.lat]).addTo(map));
+          });
           const pin = document.createElement("button");
           pin.type = "button";
           pin.className = "dispatch-pin";
@@ -154,59 +202,34 @@ export function DispatchMap({
       mapRef.current?.remove();
       mapRef.current = null;
     };
-  }, [office]);
+  }, [office, view]);
 
   useEffect(() => {
+    if (!mapRef.current) return;
+    if (selectedStopId) {
+      const hit = Object.values(stops)
+        .flat()
+        .find((s) => s.id === selectedStopId);
+      if (hit) mapRef.current.flyTo({ center: [hit.lng, hit.lat], zoom: 17.2, pitch: view === "3d" ? 60 : 0, duration: 700 });
+      return;
+    }
     const u = units.find((x) => x.id === selectedId);
-    if (!u || u.office !== office || !mapRef.current) return;
-    mapRef.current.flyTo({ center: [u.lng, u.lat], zoom: 12, duration: 600 });
-  }, [selectedId, office]);
-
-  const here = units.filter((u) => u.office === office);
-  const shopPt = shop[office];
-  const shopXY = xy(office, shopPt.lat, shopPt.lng);
+    if (!u || u.office !== office) return;
+    mapRef.current.flyTo({ center: [u.lng, u.lat], zoom: view === "3d" ? 15.6 : 12.4, pitch: view === "3d" ? 58 : 0, duration: 600 });
+  }, [selectedId, selectedStopId, office, view]);
 
   return (
     <div className="relative h-full min-h-[22rem] w-full">
-      {!tiles ? (
-        <div className="absolute inset-0 bg-page">
-          <svg viewBox="0 0 100 100" className="h-full w-full" preserveAspectRatio="xMidYMid slice" aria-hidden>
-            <rect width="100" height="100" fill={HEX.page} />
-            <path d="M0 42 H100" stroke={HEX.line} strokeWidth="0.6" />
-            <path d="M0 58 H100" stroke={HEX.line} strokeWidth="0.6" />
-            <path d="M28 0 V100" stroke={HEX.line} strokeWidth="0.6" />
-            <path d="M62 0 V100" stroke={HEX.lineStrong} strokeWidth="0.9" />
-            <path d="M8 70 H92" stroke={HEX.navy} strokeWidth="0.5" opacity="0.35" />
-            <text x="64" y="8" fill={HEX.faint} fontSize="3" fontFamily="IBM Plex Sans">
-              {office === "PHX" ? "101" : "35"}
-            </text>
-            <text x="4" y="40" fill={HEX.faint} fontSize="3" fontFamily="IBM Plex Sans">
-              {office === "PHX" ? "Bell" : "I-30"}
-            </text>
-          </svg>
-          <i className="absolute size-2.5 rotate-45 bg-navy" style={{ left: `${shopXY.x}%`, top: `${shopXY.y}%` }} />
-          {here.map((u) => {
-            const p = xy(office, u.lat, u.lng);
-            const on = u.id === selectedId;
-            return (
-              <button
-                key={u.id}
-                type="button"
-                onClick={() => onSelect(u.id)}
-                className="dispatch-pin absolute -translate-x-1/2 -translate-y-1/2"
-                style={{ left: `${p.x}%`, top: `${p.y}%`, background: STATUS_HEX[u.status], outline: on ? `2px solid ${HEX.ink}` : undefined }}
-              >
-                {u.initials}
-              </button>
-            );
-          })}
-        </div>
-      ) : null}
-      <div ref={wrap} className={tiles ? "dispatch-map absolute inset-0" : "dispatch-map pointer-events-none absolute inset-0 opacity-0"} />
+      {!tiles ? <div className="absolute inset-0 bg-page" /> : null}
+      <div ref={wrap} className="dispatch-map absolute inset-0" />
     </div>
   );
 }
 
 export function unitColor(u: Unit) {
   return STATUS_HEX[u.status];
+}
+
+export function streetViewSrc(lat: number, lng: number) {
+  return `https://maps.google.com/maps?layer=c&cbll=${lat},${lng}&cbp=12,90,0,0,0&output=svembed`;
 }
