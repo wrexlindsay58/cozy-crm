@@ -31,5 +31,5 @@ export function packStyle(p: Packed, top: number, height: number): CSSProperties
   const gap = 2;
   const width = `calc(${100 / p.cols}% - ${gap * 2}px)`;
   const left = `calc(${(p.col / p.cols) * 100}% + ${gap}px)`;
-  return { top, height: Math.max(height, 22), left, width, position: "absolute" as const, zIndex: 10 + p.col };
+  return { top, height: Math.max(height, 22), left, width, position: "absolute" as const, zIndex: 1 + p.col };
 }

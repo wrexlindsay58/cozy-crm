@@ -30,27 +30,31 @@ export function DaySpan({
 
   return (
     <div className="min-h-0 flex-1 overflow-auto">
-      <div className="flex min-w-max">
-        <div className="sticky left-0 z-10 w-12 shrink-0 bg-card">
-          <div className="h-12 border-b border-r border-line" />
-          <div className="relative" style={{ height }}>
-            {hours.map((h, i) => (
-              <div key={h} className="absolute inset-x-0 border-b border-line px-1 text-right text-[10px] font-bold text-muted" style={{ top: i * ROW, height: ROW }}>
-                {h === 12 ? "12" : h > 12 ? `${h - 12}p` : `${h}a`}
-              </div>
-            ))}
-          </div>
+      <div className="min-w-max">
+        <div className="sticky top-0 z-30 flex border-b border-line bg-card">
+          <div className="sticky left-0 z-40 h-12 w-12 shrink-0 border-r border-line bg-card" />
+          {cols.map((d) => (
+            <div key={toIso(d).slice(0, 10)} className="flex h-12 min-w-48 flex-1 flex-col justify-center border-r border-line px-2">
+              <p className="text-[12px] font-semibold">{d.toLocaleDateString("en-US", { weekday: "short" })}</p>
+              <p className="text-[11px] text-muted">{d.getDate()}</p>
+            </div>
+          ))}
         </div>
-        {cols.map((d) => {
-          const key = toIso(d).slice(0, 10);
-          const mine = events.filter((e) => e.start.slice(0, 10) === key);
-          return (
-            <div key={key} className="min-w-48 flex-1 border-r border-line">
-              <div className="sticky top-0 z-10 flex h-12 flex-col justify-center border-b border-line bg-card px-2">
-                <p className="text-[12px] font-semibold">{d.toLocaleDateString("en-US", { weekday: "short" })}</p>
-                <p className="text-[11px] text-muted">{d.getDate()}</p>
-              </div>
-              <div className="relative bg-page" style={{ height }}>
+        <div className="flex">
+          <div className="sticky left-0 z-20 w-12 shrink-0 bg-card">
+            <div className="relative" style={{ height }}>
+              {hours.map((h, i) => (
+                <div key={h} className="absolute inset-x-0 border-b border-line px-1 text-right text-[10px] font-bold text-muted" style={{ top: i * ROW, height: ROW }}>
+                  {h === 12 ? "12" : h > 12 ? `${h - 12}p` : `${h}a`}
+                </div>
+              ))}
+            </div>
+          </div>
+          {cols.map((d) => {
+            const key = toIso(d).slice(0, 10);
+            const mine = events.filter((e) => e.start.slice(0, 10) === key);
+            return (
+              <div key={key} className="relative min-w-48 flex-1 overflow-hidden border-r border-line bg-page" style={{ height }}>
                 {hours.map((h, i) => (
                   <button
                     key={h}
@@ -77,9 +81,9 @@ export function DaySpan({
                   );
                 })}
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
     </div>
   );
