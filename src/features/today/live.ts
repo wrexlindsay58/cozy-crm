@@ -2,25 +2,11 @@ import { cashOut, referrals, reviews, snapshot } from "@/lib/snapshot";
 import { tickets, type Lead } from "@/lib/crm-data";
 import type { Resource } from "@/features/book/roster";
 import { familyOf, isWatch, type BookEvent } from "@/features/book/types";
-import { hourOf, labelTime } from "@/features/book/time";
+import { hourOf } from "@/features/book/time";
 
-export type Fire = { id: string; title: string; detail: string; href: string; stop: boolean };
-export type SitRow = { id: string; time: string; name: string; who: string; city: string; status: string; href: string; amount: number; startH: number; endH: number };
-export type Meter = { label: string; fact: string; score: number; tone: string };
+export type Split = { label: string; n: number; tone: string };
 export type Rank = { id: string; name: string; role: string; amount: number; why: string; href: string };
-export type Bucket = {
-  id: string;
-  label: string;
-  n: number;
-  amount?: number;
-  stop?: boolean;
-  href: string;
-  items: { id: string; title: string; detail: string; href: string; amount?: number }[];
-};
-
-function active(e: BookEvent) {
-  return e.status !== "Done" && e.status !== "No-sit" && e.status !== "No-show";
-}
+export type HourBar = { h: number; label: string; sales: number; prod: number };
 
 function valueOf(e: BookEvent, leads: Lead[]) {
   return leads.find((l) => l.id === e.personId)?.value ?? 0;
@@ -30,8 +16,11 @@ function whoName(id: string, roster: Resource[]) {
   return roster.find((r) => r.id === id)?.name ?? id;
 }
 
-function clamp(n: number) {
-  return Math.max(0, Math.min(100, Math.round(n)));
+function hourLabel(h: number) {
+  if (h === 0 || h === 24) return "12a";
+  if (h === 12) return "12p";
+  if (h < 12) return `${h}a`;
+  return `${h - 12}p`;
 }
 
 export function buildToday(opts: {
@@ -53,265 +42,153 @@ export function buildToday(opts: {
   const sold = soldEv.reduce((s, e) => s + valueOf(e, leads), 0);
   const soldN = soldEv.length;
   const yesterday = yestSold.reduce((s, e) => s + valueOf(e, leads), 0);
-  const sitsLeft = sales.filter((e) => active(e) && hourOf(e.end) > hour).sort((a, b) => a.start.localeCompare(b.start));
-  const onBook = sitsLeft.reduce((s, e) => s + valueOf(e, leads), 0);
-  const street = prod.filter(active).sort((a, b) => a.start.localeCompare(b.start));
-  const behindEv = [...sales, ...prod].filter((e) => active(e) && hourOf(e.end) <= hour);
-  const behindN = new Set(behindEv.map((e) => e.resourceId).filter(Boolean)).size;
-  const unsigned = prod.filter((e) => isWatch(e) && active(e));
+  const passed = sales.filter((e) => hourOf(e.end) <= hour);
+  const left = sales.filter((e) => hourOf(e.end) > hour);
   const nosit = day.filter((e) => e.status === "No-sit" || e.status === "No-show");
+  const cancelled = leads.filter((l) => l.status === "Cancelled" || l.status === "Not qualified");
+  const decided = soldN + nosit.length + cancelled.length;
+  const closeRate = decided ? Math.round((soldN / decided) * 100) : 0;
+  const jobsDone = prod.filter((e) => e.status === "Done").length;
+  const jobsOut = prod.filter((e) => e.status === "Dispatched" || (e.status !== "Done" && e.status !== "Set")).length;
+  const jobsPending = prod.filter((e) => e.status === "Set" || e.hold).length;
+  const tixOpen = tickets.filter((t) => t.status !== "Complete" && t.status !== "Cancel").length;
+  const tixAdded = snapshot.ticketsAddedToday;
+  const tixClosed = snapshot.ticketsClosedToday;
+  const ads = new Set(["Google", "Website", "Canvass"]);
+  const marketingSold = soldEv.filter((e) => ads.has(leads.find((l) => l.id === e.personId)?.source ?? "")).reduce((s, e) => s + valueOf(e, leads), 0);
+  const marketingSpend = snapshot.marketingToday;
+  const payroll = snapshot.payrollToday;
   const cashIn = snapshot.cashInToday;
   const spent = snapshot.cashOutToday;
+  const expected = snapshot.expectedInToday;
 
   const closers = roster.filter((r) => r.kind === "closer" && (office === "all" || r.office === office));
   const crews = roster.filter((r) => r.kind === "crew" && (office === "all" || r.office === office));
-  const idle = closers.filter((r) => !sales.some((e) => e.resourceId === r.id));
-  const unmarked = leads.filter((l) => l.status === "Unmarked" || l.status === "Missed");
-  const notCalled = leads.filter((l) => l.status === "Pending" || l.status === "Unmarked");
-  const openTickets = tickets.filter((t) => t.status !== "Complete" && t.status !== "Cancel");
-  const badReview = reviews.filter((r) => r.flag === "stop");
+  const setters = roster.filter((r) => r.kind === "setter" && (office === "all" || r.office === office));
 
-  const fire: Fire[] = [];
-  nosit.forEach((e) => {
-    fire.push({
-      id: `n-${e.id}`,
-      title: `${e.title} ${e.status.toLowerCase()}`,
-      detail: `${whoName(e.resourceId, roster)} · ${e.city}`,
-      href: e.href || "/calendar",
-      stop: true,
-    });
-  });
-  behindEv
-    .filter((e) => familyOf(e.type) === "sales")
-    .forEach((e) => {
-      fire.push({
-        id: `b-${e.id}`,
-        title: `${e.title} not marked`,
-        detail: `${e.type} · ${whoName(e.resourceId, roster)} · ${labelTime(e.start)}`,
-        href: e.href || "/calendar",
-        stop: true,
-      });
-    });
-  behindEv
-    .filter((e) => familyOf(e.type) === "production")
-    .forEach((e) => {
-      fire.push({
-        id: `p-${e.id}`,
-        title: `${e.title} still out`,
-        detail: `${whoName(e.resourceId, roster)} · should have been done ${labelTime(e.end)}`,
-        href: e.href || "/projects",
-        stop: true,
-      });
-    });
-  unsigned
-    .filter((e) => !behindEv.some((b) => b.id === e.id))
-    .forEach((e) => {
-      fire.push({
-        id: `w-${e.id}`,
-        title: `${e.title} needs a signed work order`,
-        detail: whoName(e.resourceId, roster),
-        href: e.href || "/projects",
-        stop: false,
-      });
-    });
-  unmarked.forEach((l) => {
-    fire.push({
-      id: `u-${l.id}`,
-      title: `${l.name} unmarked`,
-      detail: `${l.city} · ${l.closer}`,
-      href: `/leads/${l.id}`,
-      stop: true,
-    });
-  });
-  badReview.forEach((r) => {
-    fire.push({ id: r.id, title: `${r.name} left 1 star`, detail: r.text, href: "/accounts", stop: true });
-  });
-  if (spent > cashIn) {
-    fire.push({
-      id: "cash",
-      title: "More cash went out than came in",
-      detail: cashOut.map((r) => r.name).join(", "),
-      href: "/invoices",
-      stop: true,
-    });
+  const closerRank: Rank[] = closers
+    .map((r) => {
+      const mine = sales.filter((e) => e.resourceId === r.id);
+      const amt = mine.filter((e) => e.status === "Done").reduce((s, e) => s + valueOf(e, leads), 0);
+      const leftN = mine.filter((e) => hourOf(e.end) > hour && e.status !== "Done").length;
+      return {
+        id: r.id,
+        name: r.name,
+        role: "Closer",
+        amount: amt,
+        why: amt ? `${mine.filter((e) => e.status === "Done").length} sold` : leftN ? `${leftN} sits left` : "No sold",
+        href: "/calendar",
+      };
+    })
+    .sort((a, b) => b.amount - a.amount);
+
+  const crewRank: Rank[] = crews
+    .map((r) => {
+      const mine = prod.filter((e) => e.resourceId === r.id);
+      const done = mine.filter((e) => e.status === "Done").length;
+      return {
+        id: r.id,
+        name: r.name,
+        role: "Crew",
+        amount: mine.length,
+        why: mine.length ? mine.map((e) => e.title).join(", ") : "No jobs",
+        href: "/dispatch",
+      };
+    })
+    .sort((a, b) => b.amount - a.amount);
+
+  const setterRank: Rank[] = setters
+    .map((r) => {
+      const mine = sales.filter((e) => e.setBy === r.name || whoName(e.resourceId, roster) === r.name);
+      return {
+        id: r.id,
+        name: r.name,
+        role: "Setter",
+        amount: mine.length,
+        why: mine.length ? `${mine.length} on the book` : "No sets today",
+        href: "/calendar",
+      };
+    })
+    .sort((a, b) => b.amount - a.amount);
+
+  function ends(list: Rank[]) {
+    if (!list.length) return { top: [] as Rank[], bottom: [] as Rank[] };
+    const top = list[0].amount > 0 ? [list[0]] : [];
+    const last = list[list.length - 1];
+    const bottom = last && last.id !== top[0]?.id ? [last] : [];
+    return { top, bottom };
   }
-
-  const sitRows: SitRow[] = sitsLeft.map((e) => ({
-    id: e.id,
-    time: labelTime(e.start),
-    name: e.title,
-    who: whoName(e.resourceId, roster),
-    city: e.city,
-    status: e.status,
-    href: e.href || "/calendar",
-    amount: valueOf(e, leads),
-    startH: hourOf(e.start),
-    endH: hourOf(e.end),
-  }));
-  const streetRows: SitRow[] = street.map((e) => ({
-    id: e.id,
-    time: labelTime(e.start),
-    name: e.title,
-    who: whoName(e.resourceId, roster),
-    city: e.city,
-    status: e.hold ? "Hold" : e.status,
-    href: e.href || (e.jobId ? `/projects/${e.jobId}` : "/projects"),
-    amount: 0,
-    startH: hourOf(e.start),
-    endH: hourOf(e.end),
-  }));
-
-  const board: Rank[] = [
-    ...closers
-      .map((r) => {
-        const mine = sales.filter((e) => e.resourceId === r.id);
-        const soldAmt = mine.filter((e) => e.status === "Done").reduce((s, e) => s + valueOf(e, leads), 0);
-        const left = mine.filter((e) => active(e) && hourOf(e.end) > hour);
-        const bookAmt = left.reduce((s, e) => s + valueOf(e, leads), 0);
-        const amount = soldAmt + bookAmt;
-        const why = soldAmt
-          ? `${mine.filter((e) => e.status === "Done").length} sold${left.length ? ` · ${left.length} left` : ""}`
-          : left.length
-            ? `${left.length} sit${left.length === 1 ? "" : "s"} left`
-            : "";
-        return { id: r.id, name: r.name, role: "Closer", amount, why, href: "/calendar" };
-      })
-      .filter((r) => r.amount > 0)
-      .sort((a, b) => b.amount - a.amount),
-    ...crews.flatMap((r) => {
-      const mine = street.filter((e) => e.resourceId === r.id);
-      if (!mine.length) return [];
-      return [{ id: r.id, name: r.name, role: "Crew", amount: mine.length, why: mine.map((e) => e.title).join(", "), href: "/dispatch" }];
-    }),
-  ];
-
-  const soldItems = soldEv.map((e) => ({
-    id: e.id,
-    title: e.title,
-    detail: whoName(e.resourceId, roster),
-    href: e.href || "/calendar",
-    amount: valueOf(e, leads),
-  }));
-  const doneItems = prod.filter((e) => e.status === "Done").map((e) => ({
-    id: e.id,
-    title: e.title,
-    detail: whoName(e.resourceId, roster),
-    href: e.href || "/projects",
-  }));
-  const starItems = reviews.filter((r) => r.stars >= 5).map((r) => ({ id: r.id, title: r.name, detail: r.text, href: "/accounts" }));
-  const refItems = referrals.map((r) => ({ id: r.id, title: `${r.from} → ${r.to}`, detail: r.status, href: "/leads" }));
-
-  const winBuckets: Bucket[] = [
-    { id: "sold", label: "Sold", n: soldN, amount: sold, href: "/scoreboard", items: soldItems },
-    { id: "done", label: "Done", n: doneItems.length, href: "/projects", items: doneItems },
-    { id: "stars", label: "5-star", n: starItems.length, href: "/accounts", items: starItems },
-    { id: "refs", label: "Referrals", n: refItems.length, href: "/leads", items: refItems },
-  ];
-
-  const nositItems = nosit.map((e) => ({
-    id: e.id,
-    title: e.title,
-    detail: `${whoName(e.resourceId, roster)} · ${e.city}`,
-    href: e.href || "/calendar",
-  }));
-  const unmarkedItems = unmarked.map((l) => ({
-    id: l.id,
-    title: l.name,
-    detail: `${l.city} · ${l.closer}`,
-    href: `/leads/${l.id}`,
-  }));
-  const idleItems = idle.map((r) => ({ id: r.id, title: r.name, detail: r.role, href: "/calendar" }));
-  const woItems = unsigned.map((e) => ({
-    id: e.id,
-    title: e.title,
-    detail: whoName(e.resourceId, roster),
-    href: e.href || "/projects",
-  }));
-  const behindItems = behindEv.map((e) => ({
-    id: e.id,
-    title: e.title,
-    detail: `${whoName(e.resourceId, roster)} · ${labelTime(e.end)}`,
-    href: e.href || "/calendar",
-  }));
-  const hotTickets = openTickets.filter((k) => k.priority === "High");
-  const ticketItems = hotTickets.map((k) => ({
-    id: k.id,
-    title: k.title,
-    detail: `${k.owner} · ${k.age}`,
-    href: "/tickets",
-  }));
-  const cancelledLeads = leads.filter((l) => l.status === "Cancelled" || l.status === "Not qualified");
-  const cancelItems = cancelledLeads.map((l) => ({
-    id: l.id,
-    title: l.name,
-    detail: l.status,
-    href: `/leads/${l.id}`,
-    amount: l.value,
-  }));
-
-  const lossBuckets: Bucket[] = [
-    { id: "nosit", label: "No-sit", n: nositItems.length, stop: true, href: "/appointments", items: nositItems },
-    { id: "cancel", label: "Cancelled", n: cancelItems.length, stop: true, href: "/leads", items: cancelItems },
-    { id: "unmarked", label: "Unmarked", n: unmarkedItems.length, stop: true, href: "/leads", items: unmarkedItems },
-    { id: "behind", label: "Behind", n: behindItems.length, stop: true, href: "/dispatch", items: behindItems },
-    { id: "idle", label: "Idle", n: idleItems.length, href: "/calendar", items: idleItems },
-    { id: "wo", label: "No WO", n: woItems.length, href: "/projects", items: woItems },
-    { id: "tix", label: "Tickets", n: ticketItems.length, stop: ticketItems.length > 0, href: "/tickets", items: ticketItems },
-  ];
-
-  const mix = [
-    { label: "Set", n: sales.filter((e) => e.status === "Set").length, tone: "var(--color-line-strong)" },
-    { label: "Confirmed", n: sales.filter((e) => e.status === "Confirmed").length, tone: "var(--color-navy-2)" },
-    { label: "Out", n: sales.filter((e) => e.status === "Dispatched").length, tone: "var(--color-muted)" },
-    { label: "Sold", n: soldN, tone: "var(--color-navy)" },
-    { label: "Cancelled", n: cancelItems.length, tone: "var(--color-idle)" },
-  ];
+  const c = ends(closerRank);
+  const k = ends(crewRank);
+  const s = ends(setterRank);
 
   const hours = Array.from({ length: 16 }, (_, i) => i + 6);
-  const strip = hours.map((h) => ({
+  const strip: HourBar[] = hours.map((h) => ({
     h,
-    n: day.filter((e) => Math.floor(hourOf(e.start)) === h).length,
-    sales: day.some((e) => familyOf(e.type) === "sales" && Math.floor(hourOf(e.start)) === h),
-    prod: day.some((e) => familyOf(e.type) === "production" && Math.floor(hourOf(e.start)) === h),
+    label: hourLabel(h),
+    sales: day.filter((e) => familyOf(e.type) === "sales" && Math.floor(hourOf(e.start)) === h).length,
+    prod: day.filter((e) => familyOf(e.type) === "production" && Math.floor(hourOf(e.start)) === h).length,
   }));
 
-  const moneyScore = clamp((onBook > 0 ? 55 : 25) + (sold >= yesterday ? 20 : 0) + (cashIn >= spent ? 20 : -25) + Math.min(20, soldN * 10));
-  const bookScore = clamp(100 - nosit.length * 25 - unmarked.length * 8 + (sitsLeft.length ? 10 : 0));
-  const streetScore = clamp(100 - behindN * 18 - unsigned.length * 12);
-  const peopleScore = clamp(100 - idle.length * 12 - notCalled.length * 4);
+  const mix: Split[] = [
+    { label: "Set", n: sales.filter((e) => e.status === "Set").length, tone: "var(--color-line-strong)" },
+    { label: "Confirmed", n: sales.filter((e) => e.status === "Confirmed").length, tone: "var(--color-navy-2)" },
+    { label: "Sold", n: soldN, tone: "var(--color-navy)" },
+    { label: "Cancelled", n: cancelled.length, tone: "var(--color-idle)" },
+  ];
 
-  const meters: Meter[] = [
-    { label: "Money", fact: sold ? `$${Math.round(sold / 1000)}k · ${soldN} sold` : "$0 sold", score: moneyScore, tone: "var(--color-navy)" },
-    { label: "Book", fact: `${sitsLeft.length} sit${sitsLeft.length === 1 ? "" : "s"} left`, score: bookScore, tone: "var(--color-navy-2)" },
-    { label: "Installs", fact: `${street.length} out`, score: streetScore, tone: "var(--color-muted)" },
-    { label: "People", fact: `${board.filter((r) => r.role === "Closer").length} deployed`, score: peopleScore, tone: "var(--color-faint)" },
+  const appt: Split[] = [
+    { label: "Passed", n: passed.length, tone: "var(--color-navy-2)" },
+    { label: "Left", n: left.length, tone: "var(--color-navy)" },
+  ];
+  const jobSplit: Split[] = [
+    { label: "Done", n: jobsDone, tone: "var(--color-navy)" },
+    { label: "Out", n: Math.max(jobsOut, prod.filter((e) => e.status === "Dispatched").length), tone: "var(--color-navy-2)" },
+    { label: "Pending", n: jobsPending, tone: "var(--color-line-strong)" },
+  ];
+  const tix: Split[] = [
+    { label: "Open", n: tixOpen, tone: "var(--color-navy)" },
+    { label: "Added", n: tixAdded, tone: "var(--color-navy-2)" },
+    { label: "Closed", n: tixClosed, tone: "var(--color-line-strong)" },
   ];
 
   return {
-    day,
     sold,
     soldN,
     yesterday,
-    onBook,
+    closeRate,
+    decided,
+    passed: passed.length,
+    left: left.length,
+    onBook: left.reduce((s, e) => s + valueOf(e, leads), 0),
     cashIn,
     spent,
+    expected,
     cashOut,
-    sitsLeft: sitRows,
-    street: streetRows,
-    behindN,
-    fire,
-    board,
-    winBuckets,
-    lossBuckets,
-    mix,
-    strip,
-    hour,
-    meters,
+    marketingSpend,
+    marketingSold,
+    payroll,
+    payrollYest: snapshot.payrollYesterday,
+    jobsDone,
+    jobsOut: jobSplit[1].n,
+    jobsPending,
+    tixOpen,
+    tixAdded,
+    tixClosed,
     reviews,
-    referrals,
     reviewScore: snapshot.reviewScore,
     reviewCount: snapshot.reviewCount,
-    tickets: openTickets,
-    notCalled: notCalled.length,
+    referrals,
+    strip,
+    mix,
+    appt,
+    jobSplit,
+    tix,
+    hour,
+    behindN: day.filter((e) => familyOf(e.type) === "production" && e.status !== "Done" && hourOf(e.end) <= hour).length,
+    unsigned: prod.filter((e) => isWatch(e)).length,
+    top: [...c.top, ...k.top, ...s.top],
+    bottom: [...c.bottom, ...k.bottom, ...s.bottom],
+    nosit: nosit.length,
   };
 }
