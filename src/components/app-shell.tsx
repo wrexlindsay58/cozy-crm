@@ -171,8 +171,11 @@ export function AppShell({ children }: { children: ReactNode }) {
         >
           <PanelLeft className="size-4" />
         </button>
-        <Link to="/" className="shrink-0">
-          <CozyWordmark className="h-6 w-28 md:h-7 md:w-32" />
+        <Link
+          to="/"
+          className="flex h-10 items-center rounded-md bg-card px-2.5 shadow-[0_1px_2px_rgba(12,35,64,0.18)] ring-1 ring-black/5"
+        >
+          <CozyWordmark className="h-[26px] w-[78px] md:h-[30px] md:w-[90px]" house="#C2162E" word="#0C2340" />
         </Link>
         </div>
         <div className="relative hidden w-full justify-center md:flex">
