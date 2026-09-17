@@ -41,7 +41,7 @@ function Cell({ label, value, note, delta, stop }: { label: string; value: strin
 }
 
 function lightFill(tone: string) {
-  return tone.includes("idle") || tone.includes("line-strong") || tone.includes("page");
+  return /idle|line|page|color-mix/.test(tone);
 }
 
 function Stack({ title, rows, caption }: { title: string; rows: Split[]; caption?: string }) {
@@ -55,11 +55,11 @@ function Stack({ title, rows, caption }: { title: string; rows: Split[]; caption
           r.n ? (
             <span
               key={r.label}
-              className={cn("grid place-items-center text-[12px] font-bold", lightFill(r.tone) ? "text-ink" : "text-card")}
+              className={cn("grid place-items-center px-1 text-[12px] font-bold tabular-nums", lightFill(r.tone) ? "text-ink" : "text-card")}
               style={{ width: `${(r.n / total) * 100}%`, background: r.tone }}
-              title={`${r.label}: ${r.n}`}
+              title={`${r.label}: ${r.n} · ${r.pct}%`}
             >
-              {r.n}
+              {r.pct >= 12 ? `${r.pct}%` : r.n}
             </span>
           ) : null,
         )}
@@ -69,7 +69,9 @@ function Stack({ title, rows, caption }: { title: string; rows: Split[]; caption
           <li key={r.label} className="inline-flex items-center gap-1.5">
             <i className="size-2.5 rounded-sm" style={{ background: r.tone }} />
             <span className="font-semibold">{r.label}</span>
-            <span className="tabular-nums text-muted">{r.n}</span>
+            <span className="tabular-nums text-muted">
+              {r.n} · {r.pct}%
+            </span>
           </li>
         ))}
       </ul>
@@ -161,7 +163,7 @@ export function TodayBoard() {
             <Cell label="Sales today" value={money(t.sold)} note={`${t.soldN} deals`} delta={salesDelta} />
             <Cell label="Close rate" value={`${t.closeRate}%`} note={`${t.soldN} sold of ${t.decided} decided`} />
             <Cell label="Cash in" value={money(t.cashIn)} note={`${money(t.expected)} still expected`} />
-            <Cell label="Sits left" value={String(t.left)} note={`${t.passed} already ran · ${money(t.onBook)} still on the book`} />
+            <Cell label="Sits left" value={String(t.left)} note={`${t.passed} ran · ${t.appt.find((r) => r.label === "Left")?.pct ?? 0}% of the book still out`} />
           </section>
 
           <section className="grid gap-px overflow-hidden rounded-md bg-line lg:grid-cols-3">
@@ -217,14 +219,14 @@ export function TodayBoard() {
             <div className="mb-3 flex flex-wrap items-end justify-between gap-2">
               <div>
                 <p className="text-[11px] font-bold tracking-wide text-muted uppercase">Appointments and installs by hour</p>
-                <p className="text-[12px] text-muted">Navy is sits. Green is installs. Line is now ({t.hour > 12 ? `${t.hour - 12}p` : `${t.hour}a`}).</p>
+                <p className="text-[12px] text-muted">Dark navy is sits. Soft green is installs. Line is now ({t.hour > 12 ? `${t.hour - 12}p` : `${t.hour}a`}).</p>
               </div>
               <ul className="flex gap-4 text-[12px]">
                 <li className="inline-flex items-center gap-1.5">
                   <i className="size-2.5 rounded-sm bg-navy" /> Sits
                 </li>
                 <li className="inline-flex items-center gap-1.5">
-                  <i className="size-2.5 rounded-sm bg-go" /> Installs
+                  <i className="size-2.5 rounded-sm" style={{ background: "color-mix(in srgb, var(--color-go) 45%, white)" }} /> Installs
                 </li>
               </ul>
             </div>
@@ -237,7 +239,15 @@ export function TodayBoard() {
                     style={{ height: `${16 + ((s.sales + s.prod) / stripMax) * 72}px` }}
                     title={`${s.label}: ${s.sales} sits, ${s.prod} installs`}
                   >
-                    {s.prod ? <span className="w-full bg-go" style={{ height: `${(s.prod / Math.max(s.sales + s.prod, 1)) * 100}%` }} /> : null}
+                    {s.prod ? (
+                      <span
+                        className="w-full"
+                        style={{
+                          height: `${(s.prod / Math.max(s.sales + s.prod, 1)) * 100}%`,
+                          background: "color-mix(in srgb, var(--color-go) 45%, white)",
+                        }}
+                      />
+                    ) : null}
                     {s.sales ? <span className="w-full bg-navy" style={{ height: `${(s.sales / Math.max(s.sales + s.prod, 1)) * 100}%` }} /> : null}
                     {!s.sales && !s.prod ? <span className="h-2 w-full bg-page" /> : null}
                   </div>
@@ -247,13 +257,14 @@ export function TodayBoard() {
             </div>
           </section>
 
-          <div className="grid gap-3 lg:grid-cols-3">
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Stack title="Leads" caption={`${t.leadsIn} in this week`} rows={t.leadSplit} />
             <Stack title="Appointments" caption="Passed vs still on the book" rows={t.appt} />
             <Stack title="Jobs" caption="Done, on a house, not started" rows={t.jobSplit} />
             <Stack title="Tickets" caption="Open pile, added today, closed today" rows={t.tix} />
           </div>
 
-          <Stack title="Set, sold, cancelled" caption="What happened to today's book" rows={t.mix} />
+          <Stack title="Set, ran, sold, cancelled" caption="Share of today's book" rows={t.mix} />
 
           <section className="rounded-md bg-card px-5 py-4">
             <p className="text-[11px] font-bold tracking-wide text-muted uppercase">Customers</p>

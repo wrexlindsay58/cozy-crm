@@ -4,7 +4,17 @@ import type { Resource } from "@/features/book/roster";
 import { familyOf, isWatch, type BookEvent } from "@/features/book/types";
 import { hourOf } from "@/features/book/time";
 
-export type Split = { label: string; n: number; tone: string };
+export type Split = { label: string; n: number; pct: number; tone: string };
+
+const KEY = "var(--color-navy)";
+const SOFT = "var(--color-idle)";
+const WASH = "var(--color-line-strong)";
+const GOOD = "color-mix(in srgb, var(--color-go) 45%, white)";
+
+function pack(rows: { label: string; n: number; tone: string }[]): Split[] {
+  const total = rows.reduce((s, r) => s + r.n, 0);
+  return rows.map((r) => ({ ...r, pct: total ? Math.round((r.n / total) * 100) : 0 }));
+}
 export type Rank = { id: string; name: string; role: string; amount: number; why: string; href: string };
 export type HourBar = { h: number; label: string; sales: number; prod: number };
 
@@ -130,27 +140,34 @@ export function buildToday(opts: {
     prod: day.filter((e) => familyOf(e.type) === "production" && Math.floor(hourOf(e.start)) === h).length,
   }));
 
-  const mix: Split[] = [
-    { label: "Set", n: sales.filter((e) => e.status === "Set").length, tone: "var(--color-idle)" },
-    { label: "Confirmed", n: sales.filter((e) => e.status === "Confirmed").length, tone: "var(--color-muted)" },
-    { label: "Sold", n: soldN, tone: "var(--color-go)" },
-    { label: "Cancelled", n: cancelled.length, tone: "var(--color-line-strong)" },
-  ];
+  const ranN =
+    nosit.length +
+    sales.filter((e) => e.status !== "Done" && e.status !== "Set" && hourOf(e.end) <= hour).length;
+  const mix = pack([
+    { label: "Set", n: sales.filter((e) => e.status === "Set").length, tone: WASH },
+    { label: "Ran", n: ranN, tone: SOFT },
+    { label: "Sold", n: soldN, tone: KEY },
+    { label: "Cancelled", n: cancelled.length, tone: "var(--color-muted)" },
+  ]);
 
-  const appt: Split[] = [
-    { label: "Passed", n: passed.length, tone: "var(--color-muted)" },
-    { label: "Left", n: left.length, tone: "var(--color-navy)" },
-  ];
-  const jobSplit: Split[] = [
-    { label: "Done", n: jobsDone, tone: "var(--color-go)" },
-    { label: "Out", n: Math.max(jobsOut, prod.filter((e) => e.status === "Dispatched").length), tone: "var(--color-navy)" },
-    { label: "Pending", n: jobsPending, tone: "var(--color-idle)" },
-  ];
-  const tix: Split[] = [
-    { label: "Open", n: tixOpen, tone: "var(--color-navy)" },
-    { label: "Added", n: tixAdded, tone: "var(--color-muted)" },
-    { label: "Closed", n: tixClosed, tone: "var(--color-go)" },
-  ];
+  const appt = pack([
+    { label: "Passed", n: passed.length, tone: SOFT },
+    { label: "Left", n: left.length, tone: KEY },
+  ]);
+  const jobSplit = pack([
+    { label: "Done", n: jobsDone, tone: GOOD },
+    { label: "Out", n: Math.max(jobsOut, prod.filter((e) => e.status === "Dispatched").length), tone: KEY },
+    { label: "Pending", n: jobsPending, tone: WASH },
+  ]);
+  const tix = pack([
+    { label: "Open", n: tixOpen, tone: KEY },
+    { label: "Added", n: tixAdded, tone: SOFT },
+    { label: "Closed", n: tixClosed, tone: GOOD },
+  ]);
+  const leadSplit = pack([
+    { label: "Called", n: snapshot.leadsCalled, tone: SOFT },
+    { label: "Not called", n: snapshot.leadsNotCalled, tone: KEY },
+  ]);
 
   return {
     sold,
@@ -184,6 +201,8 @@ export function buildToday(opts: {
     appt,
     jobSplit,
     tix,
+    leadSplit,
+    leadsIn: snapshot.leadsInWeek,
     hour,
     behindN: day.filter((e) => familyOf(e.type) === "production" && e.status !== "Done" && hourOf(e.end) <= hour).length,
     unsigned: prod.filter((e) => isWatch(e)).length,
