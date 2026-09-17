@@ -92,31 +92,33 @@ function DispatchPage() {
         />
       </header>
 
-      <div className="relative grid min-h-0 min-w-0 flex-1 lg:grid-cols-[16rem_minmax(0,1fr)]">
-        <aside className="min-h-0 overflow-auto border-b border-line bg-card lg:border-r lg:border-b-0">
-          <ul>
+      <div className="grid min-h-0 min-w-0 flex-1 grid-rows-[auto_minmax(22rem,1fr)] lg:grid-cols-[20rem_minmax(0,1fr)] lg:grid-rows-1">
+        <aside className="min-h-0 overflow-auto bg-page p-2 lg:border-r lg:border-line">
+          <ul className="space-y-2">
             {here.map((u) => (
               <li key={u.id}>
                 <button
                   type="button"
                   onClick={() => pick(u.id)}
                   className={cn(
-                    "flex w-full items-start gap-2 border-l-4 px-3 py-3 text-left",
-                    u.status === "late" && "border-l-stop bg-stop-bg",
-                    selected?.id === u.id && u.status !== "late" && "border-l-navy bg-page",
-                    selected?.id !== u.id && u.status !== "late" && "border-l-transparent hover:bg-page/60",
+                    "flex w-full items-start gap-2 rounded-md border bg-card px-3 py-3 text-left",
+                    selected?.id === u.id ? "border-navy" : "border-line",
+                    u.status === "late" && selected?.id !== u.id ? "border-stop" : "",
                   )}
                 >
-                  <i className="mt-1 size-2.5 shrink-0 rounded-sm" style={{ background: unitColor(u) }} />
+                  <span className="mt-0.5 grid size-9 shrink-0 place-items-center rounded-md text-[10px] font-bold text-card" style={{ background: unitColor(u) }}>
+                    {u.initials}
+                  </span>
                   <span className="min-w-0 flex-1">
                     <span className="flex items-baseline justify-between gap-2">
-                      <span className="truncate text-[13px] font-semibold">{u.name}</span>
-                      <span className={cn("text-[11px] font-bold uppercase", TONE[statusTone(u.status)])}>{statusLabel(u.status)}</span>
+                      <span className="truncate text-sm font-semibold">{u.name}</span>
+                      <span className={cn("shrink-0 text-[11px] font-bold uppercase", TONE[statusTone(u.status)])}>{statusLabel(u.status)}</span>
                     </span>
-                    <span className="block truncate text-[11px] text-muted">
+                    <span className="mt-0.5 block truncate text-[11px] text-muted">
                       {u.next}
                       {u.eta ? ` · ETA ${u.eta}` : ""}
                     </span>
+                    <span className="mt-0.5 block truncate text-[11px] text-faint">{u.role}</span>
                   </span>
                 </button>
               </li>
@@ -124,7 +126,7 @@ function DispatchPage() {
           </ul>
         </aside>
 
-        <div className="relative min-h-[22rem] min-w-0 lg:h-full">
+        <div className="relative min-h-[22rem] min-w-0 lg:min-h-0">
           <DispatchMap office={office} view={view} selectedId={selected?.id ?? null} selectedStopId={selectedStopId} onSelect={pick} onPickStop={pickStop} />
           {selected && drawer ? (
             <aside className="absolute inset-x-0 bottom-0 z-10 flex max-h-[78%] flex-col overflow-auto border-t border-line bg-card shadow-sm lg:inset-y-0 lg:left-auto lg:max-h-none lg:w-96 lg:border-t-0 lg:border-l">
