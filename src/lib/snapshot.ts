@@ -2,14 +2,14 @@ export type Flag = "go" | "watch" | "stop" | "info" | "none";
 
 export const snapshot = {
   date: "Mon Sep 14",
-  salesToday: 0,
-  salesYesterday: 28640,
+  salesToday: 40150,
+  salesYesterday: 50920,
   salesWeek: 412400,
   salesLastWeek: 388100,
   cancelsWeek: 18200,
   margin: 31,
   marginTarget: 34,
-  cashInToday: 0,
+  cashInToday: 18640,
   cashOutToday: 8440,
   cashInWeek: 20770,
   unread: 5,

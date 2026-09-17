@@ -13,7 +13,7 @@ import { useMemo, useState } from "react";
 function clockHour(cursor: Date) {
   const a = toIso(cursor).slice(0, 10);
   const b = toIso(TODAY).slice(0, 10);
-  if (a === b) return 20;
+  if (a === b) return 18;
   if (a < b) return 22;
   return 6;
 }
@@ -24,32 +24,32 @@ function initials(name: string) {
 }
 
 function Meter({ label, fact, score }: { label: string; fact: string; score: number }) {
-  const r = 28;
+  const r = 34;
   const c = 2 * Math.PI * r;
   const dash = (score / 100) * c;
   const tone = score < 40 ? "var(--color-stop)" : score < 65 ? "var(--color-watch)" : "var(--color-navy)";
   return (
-    <div className="flex items-center gap-3 px-4 py-3">
-      <svg width="72" height="72" viewBox="0 0 72 72" aria-hidden className="shrink-0">
-        <circle cx="36" cy="36" r={r} fill="none" stroke="var(--color-page)" strokeWidth="8" />
+    <div className="flex items-center gap-4 px-5 py-5">
+      <svg width="92" height="92" viewBox="0 0 92 92" aria-hidden className="shrink-0">
+        <circle cx="46" cy="46" r={r} fill="none" stroke="var(--color-page)" strokeWidth="9" />
         <circle
-          cx="36"
-          cy="36"
+          cx="46"
+          cy="46"
           r={r}
           fill="none"
           stroke={tone}
-          strokeWidth="8"
+          strokeWidth="9"
           strokeLinecap="round"
           strokeDasharray={`${dash} ${c}`}
-          transform="rotate(-90 36 36)"
+          transform="rotate(-90 46 46)"
         />
-        <text x="36" y="40" textAnchor="middle" className="fill-ink" style={{ font: "700 13px IBM Plex Sans, sans-serif" }}>
+        <text x="46" y="52" textAnchor="middle" fill="currentColor" style={{ font: "700 18px IBM Plex Sans, ui-sans-serif, sans-serif" }}>
           {score}
         </text>
       </svg>
       <div className="min-w-0">
         <p className="text-[11px] font-bold tracking-wide text-muted uppercase">{label}</p>
-        <p className="truncate text-sm font-semibold">{fact}</p>
+        <p className="mt-0.5 text-[18px] leading-tight font-bold">{fact}</p>
       </div>
     </div>
   );
@@ -60,7 +60,7 @@ export function TodayBoard() {
   const roster = useRoster();
   const { leads } = useOps();
   const cursor = useBookDay();
-  const [office, setOffice] = useState<"all" | "PHX" | "DFW">("PHX");
+  const [office, setOffice] = useState<"all" | "PHX" | "DFW">("all");
   const dayKey = toIso(cursor).slice(0, 10);
   const yestKey = toIso(addDays(cursor, -1)).slice(0, 10);
   const hour = clockHour(cursor);
@@ -124,35 +124,45 @@ export function TodayBoard() {
       </p>
 
       <div className="min-h-0 flex-1 overflow-auto">
-        <section className="border-b border-line bg-card">
-          <div className="grid grid-cols-2 lg:grid-cols-4">
+        <div className="space-y-3 bg-page p-3">
+        <section className="overflow-hidden rounded-md bg-card">
+          <div className="grid grid-cols-2 divide-x divide-y divide-line lg:grid-cols-4 lg:divide-y-0">
             {t.meters.map((m) => (
               <Meter key={m.label} {...m} />
             ))}
           </div>
-          <div className="border-t border-line px-4 py-3">
-            <p className="mb-2 text-[11px] font-bold tracking-wide text-muted uppercase">Day</p>
-            <div className="flex h-16 items-end gap-px">
-              {t.strip.map((s) => (
-                <div key={s.h} className="flex min-w-0 flex-1 flex-col items-center justify-end gap-1">
-                  <div
-                    className={cn("w-full max-w-4 rounded-sm", s.prod ? "bg-navy-2" : s.sales ? "bg-navy" : "bg-page")}
-                    style={{ height: `${8 + (s.n / stripMax) * 40}px` }}
-                    title={`${s.h}:00 · ${s.n}`}
-                  />
-                  {s.h % 3 === 0 ? <span className="text-[9px] text-faint">{s.h}</span> : <span className="text-[9px] text-transparent">0</span>}
-                </div>
-              ))}
-            </div>
+        </section>
+
+        <section className="rounded-md bg-card px-5 py-4">
+          <div className="mb-3 flex items-baseline justify-between gap-3">
+            <p className="text-[11px] font-bold tracking-wide text-muted uppercase">Day</p>
+            <p className="text-[12px] text-muted">Now {t.hour}:00</p>
+          </div>
+          <div className="relative flex h-24 items-end gap-1">
+            {t.strip.map((s) => (
+              <div key={s.h} className="relative flex min-w-0 flex-1 flex-col items-center justify-end gap-1.5">
+                {s.h === t.hour ? <i className="absolute inset-x-0 -top-1 bottom-4 border-l-2 border-navy" /> : null}
+                <div
+                  className={cn(
+                    "w-full max-w-5 rounded-sm",
+                    s.h === t.hour ? "bg-navy" : s.prod ? "bg-navy-2" : s.sales ? "bg-navy/80" : "bg-page",
+                  )}
+                  style={{ height: `${12 + (s.n / stripMax) * 56}px` }}
+                  title={`${s.h}:00 · ${s.n}`}
+                />
+                <span className={cn("text-[10px] tabular-nums", s.h === t.hour ? "font-bold text-navy" : "text-faint")}>{s.h}</span>
+              </div>
+            ))}
           </div>
         </section>
 
-        <section className="grid grid-cols-2 gap-px border-b border-line bg-line lg:grid-cols-4">
-          <MoneyCell label="On the book" value={t.onBook} note={`${t.sitsLeft.length} sits`} />
-          <MoneyCell label="Sold" value={t.sold} note={`Yesterday ${money(t.yesterday)}`} bar={t.sold / maxBar} prior={t.yesterday / maxBar} />
-          <MoneyCell label="In" value={t.cashIn} />
+        <section className="grid grid-cols-2 gap-px overflow-hidden rounded-md bg-line lg:grid-cols-4">
+          <MoneyCell label="On the book" value={t.onBook} note={`${t.sitsLeft.length} sits left`} />
+          <MoneyCell label="Sold" value={t.sold} note={`${t.soldN} deals · Yesterday ${money(t.yesterday)}`} bar={t.sold / maxBar} prior={t.yesterday / maxBar} />
+          <MoneyCell label="In" value={t.cashIn} note="Deposits and funded" />
           <MoneyCell label="Out" value={t.spent} hot={t.spent > t.cashIn} note={t.cashOut.map((r) => r.name).join(" · ")} />
         </section>
+        </div>
 
         <div className="grid lg:grid-cols-2">
           <ListBlock title="Late" count={t.fire.length}>
@@ -287,20 +297,26 @@ export function TodayBoard() {
 
 function MoneyCell({ label, value, note, hot, bar, prior }: { label: string; value: number; note?: string; hot?: boolean; bar?: number; prior?: number }) {
   return (
-    <div className={cn("bg-card p-4", hot && "bg-stop-bg")}>
+    <div className={cn("bg-card px-5 py-5", hot && "bg-stop-bg")}>
       <p className="text-[11px] font-bold tracking-wide text-muted uppercase">{label}</p>
-      <p className={cn("text-[20px] font-bold tabular-nums", hot && "text-stop")}>{money(value)}</p>
+      <p className={cn("mt-1 text-[28px] leading-none font-bold tabular-nums", hot && "text-stop")}>{money(value)}</p>
       {bar != null ? (
-        <div className="mt-2 space-y-1">
-          <span className="block h-1.5 overflow-hidden rounded-sm bg-page">
-            <i className="block h-full bg-navy" style={{ width: `${Math.max(4, bar * 100)}%` }} />
+        <div className="mt-3 space-y-1.5">
+          <span className="flex items-center gap-2">
+            <span className="w-10 text-[10px] font-bold text-muted uppercase">Today</span>
+            <span className="h-2 flex-1 overflow-hidden rounded-sm bg-page">
+              <i className="block h-full bg-navy" style={{ width: `${Math.max(8, bar * 100)}%` }} />
+            </span>
           </span>
-          <span className="block h-1.5 overflow-hidden rounded-sm bg-page">
-            <i className="block h-full bg-line-strong" style={{ width: `${Math.max(4, (prior ?? 0) * 100)}%` }} />
+          <span className="flex items-center gap-2">
+            <span className="w-10 text-[10px] font-bold text-muted uppercase">Yest</span>
+            <span className="h-2 flex-1 overflow-hidden rounded-sm bg-page">
+              <i className="block h-full bg-navy-2" style={{ width: `${Math.max(8, (prior ?? 0) * 100)}%` }} />
+            </span>
           </span>
         </div>
       ) : null}
-      {note ? <p className="mt-1 text-[11px] text-muted">{note}</p> : null}
+      {note ? <p className="mt-2 text-[12px] text-muted">{note}</p> : null}
     </div>
   );
 }

@@ -43,10 +43,10 @@ export function buildToday(opts: {
   const sold = soldEv.reduce((s, e) => s + valueOf(e, leads), 0);
   const soldN = soldEv.length;
   const yesterday = yestSold.reduce((s, e) => s + valueOf(e, leads), 0);
-  const sitsLeft = sales.filter((e) => active(e) && hourOf(e.start) >= hour).sort((a, b) => a.start.localeCompare(b.start));
+  const sitsLeft = sales.filter((e) => active(e) && hourOf(e.end) > hour).sort((a, b) => a.start.localeCompare(b.start));
   const onBook = sitsLeft.reduce((s, e) => s + valueOf(e, leads), 0);
   const street = prod.filter(active).sort((a, b) => a.start.localeCompare(b.start));
-  const behindEv = [...sales, ...prod].filter((e) => active(e) && hourOf(e.start) < hour);
+  const behindEv = [...sales, ...prod].filter((e) => active(e) && hourOf(e.end) <= hour);
   const behindN = new Set(behindEv.map((e) => e.resourceId).filter(Boolean)).size;
   const unsigned = prod.filter((e) => isWatch(e) && active(e));
   const nosit = day.filter((e) => e.status === "No-sit" || e.status === "No-show");
@@ -59,19 +59,9 @@ export function buildToday(opts: {
   const unmarked = leads.filter((l) => l.status === "Unmarked" || l.status === "Missed");
   const notCalled = leads.filter((l) => l.status === "Pending" || l.status === "Unmarked");
   const openTickets = tickets.filter((t) => t.status !== "Complete" && t.status !== "Cancel");
-  const hotTickets = openTickets.filter((t) => t.priority === "High");
   const badReview = reviews.filter((r) => r.flag === "stop");
 
   const fire: Fire[] = [];
-  behindEv.forEach((e) => {
-    fire.push({
-      id: `b-${e.id}`,
-      title: `${e.title} is behind`,
-      detail: `${e.type} · ${whoName(e.resourceId, roster)} · ${labelTime(e.start)}`,
-      href: e.href || "/calendar",
-      stop: true,
-    });
-  });
   nosit.forEach((e) => {
     fire.push({
       id: `n-${e.id}`,
@@ -81,15 +71,39 @@ export function buildToday(opts: {
       stop: true,
     });
   });
-  unsigned.forEach((e) => {
-    fire.push({
-      id: `w-${e.id}`,
-      title: `${e.title} needs a signed work order`,
-      detail: whoName(e.resourceId, roster),
-      href: e.href || "/projects",
-      stop: false,
+  behindEv
+    .filter((e) => familyOf(e.type) === "sales")
+    .forEach((e) => {
+      fire.push({
+        id: `b-${e.id}`,
+        title: `${e.title} not marked`,
+        detail: `${e.type} · ${whoName(e.resourceId, roster)} · ${labelTime(e.start)}`,
+        href: e.href || "/calendar",
+        stop: true,
+      });
     });
-  });
+  behindEv
+    .filter((e) => familyOf(e.type) === "production")
+    .forEach((e) => {
+      fire.push({
+        id: `p-${e.id}`,
+        title: `${e.title} still out`,
+        detail: `${whoName(e.resourceId, roster)} · should have been done ${labelTime(e.end)}`,
+        href: e.href || "/projects",
+        stop: true,
+      });
+    });
+  unsigned
+    .filter((e) => !behindEv.some((b) => b.id === e.id))
+    .forEach((e) => {
+      fire.push({
+        id: `w-${e.id}`,
+        title: `${e.title} needs a signed work order`,
+        detail: whoName(e.resourceId, roster),
+        href: e.href || "/projects",
+        stop: false,
+      });
+    });
   unmarked.forEach((l) => {
     fire.push({
       id: `u-${l.id}`,
@@ -102,16 +116,7 @@ export function buildToday(opts: {
   badReview.forEach((r) => {
     fire.push({ id: r.id, title: `${r.name} left 1 star`, detail: r.text, href: "/accounts", stop: true });
   });
-  hotTickets.forEach((t) => {
-    fire.push({
-      id: t.id,
-      title: t.title,
-      detail: `${t.owner} · ${t.age}`,
-      href: t.related.startsWith("L-") ? `/leads/${t.related}` : t.related.startsWith("P-") ? `/projects/${t.related}` : "/tickets",
-      stop: false,
-    });
-  });
-  if (spent > cashIn && cashIn >= 0) {
+  if (spent > cashIn) {
     fire.push({
       id: "cash",
       title: "More cash went out than came in",
@@ -145,13 +150,13 @@ export function buildToday(opts: {
   const people = [
     ...closers.map((r) => {
       const mine = sales.filter((e) => e.resourceId === r.id);
-      const left = mine.filter((e) => active(e) && hourOf(e.start) >= hour).length;
-      const late = mine.some((e) => active(e) && hourOf(e.start) < hour);
+      const left = mine.filter((e) => active(e) && hourOf(e.end) > hour).length;
+      const late = mine.some((e) => active(e) && hourOf(e.end) <= hour);
       return { id: r.id, name: r.name, role: "Closer", fact: left ? `${left} sit${left === 1 ? "" : "s"} left` : mine.length ? "Clear" : "Idle", late, href: "/calendar" };
     }),
     ...crews.map((r) => {
       const mine = street.filter((e) => e.resourceId === r.id);
-      const late = mine.some((e) => hourOf(e.start) < hour);
+      const late = mine.some((e) => hourOf(e.end) <= hour);
       return { id: r.id, name: r.name, role: "Crew", fact: mine[0] ? mine[0].title : "At shop", late, href: "/dispatch" };
     }),
   ];
@@ -178,7 +183,7 @@ export function buildToday(opts: {
   const peopleScore = clamp(100 - idle.length * 12 - notCalled.length * 4);
 
   const meters: Meter[] = [
-    { label: "Money", fact: onBook ? `$${Math.round(onBook / 1000)}k on the book` : sold ? `$${Math.round(sold / 1000)}k sold` : "$0 sold", score: moneyScore },
+    { label: "Money", fact: sold ? `$${Math.round(sold / 1000)}k · ${soldN} sold` : onBook ? `$${Math.round(onBook / 1000)}k on the book` : "$0 sold", score: moneyScore },
     { label: "Book", fact: `${sitsLeft.length} sit${sitsLeft.length === 1 ? "" : "s"} left`, score: bookScore },
     { label: "Street", fact: behindN ? `${behindN} behind` : `${street.length} out`, score: streetScore },
     { label: "People", fact: idle.length ? `${idle.length} idle` : "Working", score: peopleScore },
