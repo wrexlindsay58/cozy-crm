@@ -128,6 +128,8 @@ function DispatchPage() {
   const selectedStops = selected ? dayJobs.filter((e) => e.resourceId === selected.id).sort((a, b) => a.start.localeCompare(b.start)) : [];
   const selectedStop = dayJobs.find((s) => s.id === selectedStopId) ?? selectedStops[0] ?? null;
   const live = here.filter((u) => dayJobs.some((e) => e.resourceId === u.id && e.status === "Dispatched")).length;
+  const lateCount = here.filter((u) => behind(dayJobs.filter((e) => e.resourceId === u.id), hour)).length;
+  const stopCount = dayJobs.filter((e) => e.resourceId).length;
   const { paths, drive } = useStreetPaths(here, dayJobs);
   const helper = selected
     ? here.find((u) => u.id !== selected.id && !dayJobs.some((e) => e.resourceId === u.id && active(e)) && (u.kind === selected.kind || (selected.kind === "closer" && u.kind === "setter")))
@@ -224,10 +226,6 @@ function DispatchPage() {
       </header>
 
       <div className="flex shrink-0 items-center gap-2 border-b border-line bg-card px-4 py-2">
-        <p className="text-[13px] tabular-nums">
-          <span className="font-bold">{live}</span>
-          <span className="text-muted"> moving</span>
-        </p>
         <button type="button" className="h-8 rounded-md border border-line px-2 text-xs font-semibold" onClick={() => shiftBookDay(-1)}>
           Prev
         </button>
@@ -317,7 +315,29 @@ function DispatchPage() {
           </ul>
         </aside>
 
-        <div className="relative h-full min-h-[22rem] min-w-0">
+        <div className="flex h-full min-h-[22rem] min-w-0 flex-col">
+          <p className="shrink-0 border-b border-line bg-card px-4 py-1.5 text-center text-[13px] tabular-nums">
+            <span className="font-bold">{live}</span>
+            <span className="text-muted"> moving</span>
+            {open.length ? (
+              <>
+                <span className="text-muted"> · </span>
+                <span className="font-bold">{open.length}</span>
+                <span className="text-muted"> open</span>
+              </>
+            ) : null}
+            {lateCount ? (
+              <>
+                <span className="text-muted"> · </span>
+                <span className="font-bold text-stop">{lateCount}</span>
+                <span className="text-muted"> behind</span>
+              </>
+            ) : null}
+            <span className="text-muted"> · </span>
+            <span className="font-bold">{stopCount}</span>
+            <span className="text-muted"> stops</span>
+          </p>
+          <div className="relative min-h-0 min-w-0 flex-1">
           <DispatchMap office={office} view={view} people={peoplePins} houses={houses} paths={paths} selectedId={selected?.id ?? null} selectedStopId={selectedStopId} showAll={showAll} onSelect={pick} onPickStop={pickStop} />
           {selected && drawer ? (
             <aside className="absolute inset-x-0 bottom-0 z-10 flex max-h-[78%] flex-col overflow-auto border-t border-line bg-card shadow-sm lg:inset-y-0 lg:left-auto lg:max-h-none lg:w-96 lg:border-t-0 lg:border-l">
@@ -363,6 +383,7 @@ function DispatchPage() {
               </div>
             </aside>
           ) : null}
+          </div>
         </div>
       </div>
     </div>
