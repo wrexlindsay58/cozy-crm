@@ -58,9 +58,14 @@ export function TodayBoard() {
     [events, leads, roster, dayKey, yestKey, office],
   );
   const maxBar = Math.max(t.sold, t.yesterday, 1);
-  const mixMax = Math.max(...t.mix.map((m) => m.n), 1);
   const stripMax = Math.max(...t.strip.map((s) => s.n), 1);
   const topAmt = Math.max(...t.board.filter((r) => r.role === "Closer").map((r) => r.amount), 1);
+  const mixTotal = Math.max(t.mix.reduce((s, x) => s + x.n, 0), 1);
+  const [open, setOpen] = useState<string | null>(null);
+  const buckets = [...t.winBuckets, ...t.lossBuckets];
+  const openBucket = buckets.find((b) => b.id === open);
+  const closers = t.board.filter((r) => r.role === "Closer");
+  const crews = t.board.filter((r) => r.role === "Crew");
 
   return (
     <div className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden bg-page">
@@ -88,7 +93,7 @@ export function TodayBoard() {
         />
       </header>
 
-      <p className="shrink-0 border-b border-line bg-card px-4 py-1.5 text-center text-[13px] tabular-nums">
+      <p className="shrink-0 border-b border-line bg-card px-4 py-2.5 text-center text-[15px] tabular-nums">
         <span className="font-bold text-navy">{t.soldN} sold</span>
         <span className="text-muted"> · </span>
         <span className="font-bold text-navy-2">{money(t.onBook)} on the book</span>
@@ -138,168 +143,164 @@ export function TodayBoard() {
             <MoneyCell label="In" value={t.cashIn} note="Deposits and funded" />
             <MoneyCell label="Out" value={t.spent} hot={t.spent > t.cashIn} note={t.cashOut.map((r) => r.name).join(" · ")} />
           </section>
-        </div>
 
-        <div className="grid lg:grid-cols-2">
-          <ListBlock title="Won" count={t.wins.length}>
-            {t.wins.length === 0 ? <p className="px-4 py-3 text-[13px] text-muted">Nothing closed yet.</p> : null}
-            <ul>
-              {t.wins.map((w) => (
-                <li key={w.id} className="border-b border-line last:border-b-0">
-                  <a href={w.href} className="flex items-start gap-3 px-3 py-2.5 hover:bg-page">
-                    <i className="mt-1 h-8 w-1 shrink-0 bg-navy" />
-                    <span className="min-w-0 flex-1">
-                      <span className="flex items-baseline justify-between gap-2">
-                        <span className="truncate text-sm font-semibold">{w.title}</span>
-                        {w.amount ? <span className="shrink-0 text-[12px] font-bold tabular-nums text-navy">{money(w.amount)}</span> : null}
-                      </span>
-                      <span className="block truncate text-[11px] text-muted">{w.detail}</span>
-                    </span>
-                  </a>
+          <section className="rounded-md bg-card px-5 py-4">
+            <p className="mb-3 text-[11px] font-bold tracking-wide text-muted uppercase">Set, ran, sold, cancelled</p>
+            <div className="flex h-10 overflow-hidden rounded-md bg-page">
+              {t.mix.map((m) =>
+                m.n ? (
+                  <span
+                    key={m.label}
+                    className="grid place-items-center text-[12px] font-bold text-card"
+                    style={{ width: `${(m.n / mixTotal) * 100}%`, background: m.tone }}
+                    title={`${m.label} ${m.n}`}
+                  >
+                    {m.n}
+                  </span>
+                ) : null,
+              )}
+            </div>
+            <ul className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-[12px]">
+              {t.mix.map((m) => (
+                <li key={m.label} className="inline-flex items-center gap-1.5">
+                  <i className="size-2.5 rounded-sm" style={{ background: m.tone }} />
+                  <span className="font-semibold">{m.label}</span>
+                  <span className="tabular-nums text-muted">{m.n}</span>
                 </li>
               ))}
             </ul>
-          </ListBlock>
-          <ListBlock title="Deployed" count={t.board.length}>
-            <ul>
-              {t.board.map((p, i) => (
-                <li key={p.id} className="border-b border-line last:border-b-0">
-                  <a href={p.href} className="flex items-start gap-3 px-3 py-2.5 hover:bg-page">
-                    <span className="grid size-10 shrink-0 place-items-center rounded-md bg-navy text-[10px] font-bold text-card">
-                      {p.role === "Closer" ? i + 1 : initials(p.name)}
-                    </span>
-                    <span className="min-w-0 flex-1">
-                      <span className="flex items-baseline justify-between gap-2">
-                        <span className="truncate text-sm font-semibold">{p.name}</span>
-                        <span className="shrink-0 text-[12px] font-bold tabular-nums">
-                          {p.role === "Closer" ? money(p.amount) : `${p.amount} job${p.amount === 1 ? "" : "s"}`}
+          </section>
+
+          <div className="grid gap-3 lg:grid-cols-2">
+            <section className="rounded-md bg-card">
+              <h2 className="border-b border-line px-5 py-3 text-[11px] font-bold tracking-wide text-muted uppercase">Won</h2>
+              <div className="grid grid-cols-2 gap-px bg-line">
+                {t.winBuckets.map((b) => (
+                  <button
+                    key={b.id}
+                    type="button"
+                    onClick={() => setOpen(open === b.id ? null : b.id)}
+                    className={cn("bg-card px-5 py-4 text-left hover:bg-page", open === b.id && "bg-page")}
+                  >
+                    <p className="text-[11px] font-bold tracking-wide text-muted uppercase">{b.label}</p>
+                    <p className="mt-1 text-[28px] leading-none font-bold tabular-nums text-navy">{b.n}</p>
+                    {b.amount ? <p className="mt-1 text-[12px] font-semibold text-muted">{money(b.amount)}</p> : null}
+                  </button>
+                ))}
+              </div>
+            </section>
+            <section className="rounded-md bg-card">
+              <h2 className="border-b border-line px-5 py-3 text-[11px] font-bold tracking-wide text-muted uppercase">Lost</h2>
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-2 xl:grid-cols-3 gap-px bg-line">
+                {t.lossBuckets.map((b) => (
+                  <button
+                    key={b.id}
+                    type="button"
+                    onClick={() => setOpen(open === b.id ? null : b.id)}
+                    className={cn("bg-card px-5 py-4 text-left hover:bg-page", open === b.id && "bg-page")}
+                  >
+                    <p className="text-[11px] font-bold tracking-wide text-muted uppercase">{b.label}</p>
+                    <p className={cn("mt-1 text-[28px] leading-none font-bold tabular-nums", b.stop && b.n ? "text-stop" : "text-ink")}>{b.n}</p>
+                  </button>
+                ))}
+              </div>
+            </section>
+          </div>
+
+          {openBucket && openBucket.items.length ? (
+            <section className="rounded-md bg-card">
+              <h2 className="border-b border-line px-5 py-3 text-[13px] font-bold">
+                {openBucket.label} <span className="font-semibold text-muted">{openBucket.n}</span>
+              </h2>
+              <div className="max-h-56 overflow-y-auto">
+                <ul>
+                  {openBucket.items.map((row) => (
+                    <li key={row.id} className="border-b border-line last:border-b-0">
+                      <a href={row.href} className="flex items-baseline justify-between gap-3 px-5 py-2.5 hover:bg-page">
+                        <span className="min-w-0">
+                          <span className="block truncate text-sm font-semibold">{row.title}</span>
+                          <span className="block truncate text-[11px] text-muted">{row.detail}</span>
                         </span>
-                      </span>
-                      <span className="block truncate text-[11px] text-muted">
-                        {p.role} · {p.why}
-                      </span>
-                      {p.role === "Closer" ? (
-                        <span className="mt-1.5 block h-1.5 overflow-hidden rounded-sm bg-page">
+                        {row.amount ? <span className="shrink-0 text-[12px] font-bold tabular-nums">{money(row.amount)}</span> : null}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </section>
+          ) : null}
+
+          <section className="overflow-hidden rounded-md bg-card">
+            <h2 className="border-b border-line px-5 py-3 text-[11px] font-bold tracking-wide text-muted uppercase">Deployed</h2>
+            <div className="max-h-80 overflow-auto">
+              <table className="w-full text-left text-[13px]">
+                <thead className="sticky top-0 bg-card text-[11px] font-bold tracking-wide text-muted uppercase">
+                  <tr className="border-b border-line">
+                    <th className="w-10 px-3 py-2">#</th>
+                    <th className="px-3 py-2">Name</th>
+                    <th className="px-3 py-2">Why</th>
+                    <th className="px-3 py-2 text-right">Today</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {closers.map((p, i) => (
+                    <tr key={p.id} className="border-b border-line">
+                      <td className="px-3 py-2.5 font-bold tabular-nums text-muted">{i + 1}</td>
+                      <td className="px-3 py-2.5">
+                        <a href={p.href} className="font-semibold hover:text-navy">
+                          {p.name}
+                        </a>
+                        <span className="mt-1 block h-1.5 max-w-[12rem] overflow-hidden rounded-sm bg-page">
                           <i className="block h-full bg-navy" style={{ width: `${Math.max(8, (p.amount / topAmt) * 100)}%` }} />
                         </span>
-                      ) : (
-                        <Window start={6} end={15} now={t.hour} />
-                      )}
-                    </span>
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </ListBlock>
-        </div>
+                      </td>
+                      <td className="px-3 py-2.5 text-muted">{p.why}</td>
+                      <td className="px-3 py-2.5 text-right font-bold tabular-nums">{money(p.amount)}</td>
+                    </tr>
+                  ))}
+                  {crews.map((p) => (
+                    <tr key={p.id} className="border-b border-line last:border-b-0">
+                      <td className="px-3 py-2.5">
+                        <span className="grid size-8 place-items-center rounded-md bg-navy text-[10px] font-bold text-card">{initials(p.name)}</span>
+                      </td>
+                      <td className="px-3 py-2.5 font-semibold">{p.name}</td>
+                      <td className="px-3 py-2.5 text-muted">{p.why}</td>
+                      <td className="px-3 py-2.5 text-right font-bold tabular-nums">
+                        {p.amount} job{p.amount === 1 ? "" : "s"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
 
-        <div className="grid lg:grid-cols-2">
-          <ListBlock title="Issues" count={t.fire.length}>
-            {t.fire.length === 0 ? <p className="px-4 py-3 text-[13px] text-muted">No issues.</p> : null}
-            <ul>
-              {t.fire.map((f) => (
-                <li key={f.id} className="border-b border-line last:border-b-0">
-                  <a href={f.href} className="flex items-start gap-3 px-3 py-2.5 hover:bg-page">
-                    <i className={cn("mt-1 h-8 w-1 shrink-0", f.stop ? "bg-stop" : "bg-watch")} />
-                    <span className="min-w-0">
-                      <span className="block text-sm font-semibold">{f.title}</span>
-                      <span className="block text-[11px] text-muted">{f.detail}</span>
-                    </span>
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </ListBlock>
-          <ListBlock title="Leaking" count={t.leaks.length}>
-            {t.leaks.length === 0 ? <p className="px-4 py-3 text-[13px] text-muted">No leaks.</p> : null}
-            <ul>
-              {t.leaks.map((f) => (
-                <li key={f.id} className="border-b border-line last:border-b-0">
-                  <a href={f.href} className="flex items-start gap-3 px-3 py-2.5 hover:bg-page">
-                    <i className={cn("mt-1 h-8 w-1 shrink-0", f.stop ? "bg-stop" : "bg-watch")} />
-                    <span className="min-w-0">
-                      <span className="block text-sm font-semibold">{f.title}</span>
-                      <span className="block text-[11px] text-muted">{f.detail}</span>
-                    </span>
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </ListBlock>
-        </div>
-
-        <section className="border-t border-line bg-card px-5 py-4">
-          <p className="mb-3 text-[11px] font-bold tracking-wide text-muted uppercase">Set, ran, sold</p>
-          <div className="mb-4 flex h-8 overflow-hidden rounded-md bg-page">
-            {t.mix.map((m, i) =>
-              m.n ? (
-                <span
-                  key={m.label}
-                  className="grid place-items-center text-[11px] font-bold text-card"
-                  style={{
-                    width: `${(m.n / Math.max(t.mix.reduce((s, x) => s + x.n, 0), 1)) * 100}%`,
-                    background: i === t.mix.length - 1 ? "var(--color-navy)" : i === 0 ? "var(--color-line-strong)" : i === 1 ? "#5c7380" : "var(--color-navy-2)",
-                  }}
-                  title={`${m.label} ${m.n}`}
-                >
-                  {m.n}
-                </span>
-              ) : null,
-            )}
-          </div>
-          <ul className="space-y-2">
-            {t.mix.map((m) => (
-              <li key={m.label} className="grid grid-cols-[6.5rem_1fr_2rem] items-center gap-3 text-[13px]">
-                <span className="font-semibold">{m.label}</span>
-                <span className="h-2.5 overflow-hidden rounded-sm bg-page">
-                  <i className="block h-full bg-navy" style={{ width: `${(m.n / mixMax) * 100}%` }} />
-                </span>
-                <span className="text-right font-semibold tabular-nums">{m.n}</span>
-              </li>
-            ))}
-          </ul>
-        </section>
-
-        <div className="grid border-t border-line lg:grid-cols-2">
-          <ListBlock title="Customers" count={t.reviews.length + t.referrals.length}>
-            <ul>
+          <section className="rounded-md bg-card px-5 py-4">
+            <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+              <div>
+                <p className="text-[11px] font-bold tracking-wide text-muted uppercase">Customers</p>
+                <p className="mt-1 flex items-center gap-2 text-[28px] font-bold tabular-nums">
+                  {t.reviewScore}
+                  <Stars n={5} tone="gold" />
+                </p>
+                <p className="text-[12px] text-muted">{t.reviewCount} reviews</p>
+              </div>
+              <p className="text-[13px] font-semibold">
+                {t.referrals.length} referrals <span className="font-normal text-muted">set this week</span>
+              </p>
+            </div>
+            <ul className="divide-y divide-line">
               {t.reviews.map((r) => (
-                <li key={r.id} className="border-b border-line px-4 py-2.5 last:border-b-0">
-                  <p className="flex items-center gap-2 text-sm font-semibold">
-                    <Stars n={r.stars} />
-                    <span>{r.name}</span>
-                  </p>
-                  <p className="mt-1 text-[11px] text-muted">{r.text}</p>
-                </li>
-              ))}
-              {t.referrals.map((r) => (
-                <li key={r.id} className="border-b border-line px-4 py-2.5 last:border-b-0">
-                  <p className="text-sm font-semibold">
-                    {r.from} → {r.to}
-                  </p>
-                  <p className="text-[11px] text-muted">Referral · {r.status}</p>
+                <li key={r.id} className="flex items-start gap-3 py-3 first:pt-0 last:pb-0">
+                  <Stars n={r.stars} />
+                  <span className="min-w-0">
+                    <span className="block text-sm font-semibold">{r.name}</span>
+                    <span className="text-[12px] text-muted">{r.text}</span>
+                  </span>
                 </li>
               ))}
             </ul>
-          </ListBlock>
-          <ListBlock title="Tickets" count={t.tickets.length}>
-            <ul>
-              {t.tickets.map((k) => (
-                <li key={k.id} className="border-b border-line last:border-b-0">
-                  <a href="/tickets" className="flex items-start gap-3 px-3 py-2.5 hover:bg-page">
-                    <i className={cn("mt-1 h-8 w-1 shrink-0", k.priority === "High" ? "bg-stop" : "bg-navy")} />
-                    <span className="min-w-0 flex-1">
-                      <span className="flex items-baseline justify-between gap-2">
-                        <span className="truncate text-sm font-semibold">{k.title}</span>
-                        <span className={cn("shrink-0 text-[11px] font-semibold", k.priority === "High" ? "text-stop" : "text-muted")}>{k.age}</span>
-                      </span>
-                      <span className="text-[11px] text-muted">{k.owner}</span>
-                    </span>
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </ListBlock>
+          </section>
         </div>
       </div>
     </div>
@@ -332,36 +333,24 @@ function MoneyCell({ label, value, note, hot, bar, prior }: { label: string; val
   );
 }
 
-function ListBlock({ title, count, children }: { title: string; count: number; children: React.ReactNode }) {
-  return (
-    <section className="border-b border-line bg-card lg:border-r lg:last:border-r-0">
-      <h2 className="border-b border-line px-4 py-2.5 text-[13px] font-bold">
-        {title} <span className="ml-1 font-semibold text-muted">{count}</span>
-      </h2>
-      <div className="max-h-72 overflow-y-auto">{children}</div>
-    </section>
-  );
-}
-
-function Window({ start, end, now }: { start: number; end: number; now: number }) {
-  const lo = 6;
-  const span = 15;
-  const left = Math.max(0, ((start - lo) / span) * 100);
-  const width = Math.max(6, ((Math.max(end, start + 0.5) - start) / span) * 100);
-  const mark = Math.max(0, Math.min(100, ((now - lo) / span) * 100));
-  return (
-    <span className="relative mt-1.5 block h-1.5 overflow-hidden rounded-sm bg-page">
-      <i className="absolute top-0 h-full rounded-sm bg-navy" style={{ left: `${left}%`, width: `${width}%` }} />
-      <i className="absolute top-0 h-full w-0.5 bg-ink" style={{ left: `${mark}%` }} />
-    </span>
-  );
-}
-
-function Stars({ n }: { n: number }) {
+function Stars({ n, tone }: { n: number; tone?: "gold" | "silver" | "bronze" }) {
+  const fill =
+    tone === "gold" || n >= 5
+      ? "#C4A35A"
+      : tone === "silver" || n === 4
+        ? "#8AA0AB"
+        : tone === "bronze" || n === 3
+          ? "#A67C52"
+          : n <= 1
+            ? "var(--color-stop)"
+            : "var(--color-navy)";
+  const empty = "var(--color-page)";
   return (
     <span className="inline-flex gap-0.5" aria-label={`${n} stars`}>
       {[1, 2, 3, 4, 5].map((i) => (
-        <i key={i} className={cn("size-2.5 rounded-[1px]", i <= n ? (n === 1 ? "bg-stop" : "bg-navy") : "bg-page")} />
+        <svg key={i} viewBox="0 0 24 24" className="size-3.5 shrink-0" aria-hidden>
+          <path d="M12 2.6 14.7 8.4l6.4.9-4.6 4.5 1.1 6.4L12 17.2 6.4 20.2l1.1-6.4L2.9 9.3l6.4-.9L12 2.6z" fill={i <= n ? fill : empty} />
+        </svg>
       ))}
     </span>
   );

@@ -8,7 +8,15 @@ export type Fire = { id: string; title: string; detail: string; href: string; st
 export type SitRow = { id: string; time: string; name: string; who: string; city: string; status: string; href: string; amount: number; startH: number; endH: number };
 export type Meter = { label: string; fact: string; score: number; tone: string };
 export type Rank = { id: string; name: string; role: string; amount: number; why: string; href: string };
-export type Win = { id: string; title: string; detail: string; href: string; amount?: number };
+export type Bucket = {
+  id: string;
+  label: string;
+  n: number;
+  amount?: number;
+  stop?: boolean;
+  href: string;
+  items: { id: string; title: string; detail: string; href: string; amount?: number }[];
+};
 
 function active(e: BookEvent) {
   return e.status !== "Done" && e.status !== "No-sit" && e.status !== "No-show";
@@ -177,62 +185,86 @@ export function buildToday(opts: {
     }),
   ];
 
-  const wins: Win[] = [
-    ...soldEv.map((e) => ({
-      id: `s-${e.id}`,
-      title: `${e.title} sold`,
-      detail: whoName(e.resourceId, roster),
-      href: e.href || "/calendar",
-      amount: valueOf(e, leads),
-    })),
-    ...prod
-      .filter((e) => e.status === "Done")
-      .map((e) => ({
-        id: `d-${e.id}`,
-        title: `${e.title} done`,
-        detail: whoName(e.resourceId, roster),
-        href: e.href || "/projects",
-      })),
-    ...reviews.filter((r) => r.stars >= 5).map((r) => ({ id: r.id, title: `${r.name} · 5 stars`, detail: r.text, href: "/accounts" })),
-    ...referrals.map((r) => ({ id: r.id, title: `${r.from} sent ${r.to}`, detail: r.status, href: "/leads" })),
+  const soldItems = soldEv.map((e) => ({
+    id: e.id,
+    title: e.title,
+    detail: whoName(e.resourceId, roster),
+    href: e.href || "/calendar",
+    amount: valueOf(e, leads),
+  }));
+  const doneItems = prod.filter((e) => e.status === "Done").map((e) => ({
+    id: e.id,
+    title: e.title,
+    detail: whoName(e.resourceId, roster),
+    href: e.href || "/projects",
+  }));
+  const starItems = reviews.filter((r) => r.stars >= 5).map((r) => ({ id: r.id, title: r.name, detail: r.text, href: "/accounts" }));
+  const refItems = referrals.map((r) => ({ id: r.id, title: `${r.from} → ${r.to}`, detail: r.status, href: "/leads" }));
+
+  const winBuckets: Bucket[] = [
+    { id: "sold", label: "Sold", n: soldN, amount: sold, href: "/scoreboard", items: soldItems },
+    { id: "done", label: "Done", n: doneItems.length, href: "/projects", items: doneItems },
+    { id: "stars", label: "5-star", n: starItems.length, href: "/accounts", items: starItems },
+    { id: "refs", label: "Referrals", n: refItems.length, href: "/leads", items: refItems },
   ];
 
-  const leaks: Fire[] = [
-    ...nosit.map((e) => ({
-      id: `ns-${e.id}`,
-      title: `${e.title} no-sit`,
-      detail: `${whoName(e.resourceId, roster)} · ${e.city}`,
-      href: e.href || "/calendar",
-      stop: true,
-    })),
-    ...idle.map((r) => ({
-      id: `i-${r.id}`,
-      title: `${r.name} idle`,
-      detail: r.role,
-      href: "/calendar",
-      stop: false,
-    })),
-    ...unmarked.map((l) => ({
-      id: `um-${l.id}`,
-      title: `${l.name} unmarked`,
-      detail: `${l.city} · ${l.closer}`,
-      href: `/leads/${l.id}`,
-      stop: true,
-    })),
-    ...unsigned.map((e) => ({
-      id: `wo-${e.id}`,
-      title: `${e.title} no work order`,
-      detail: whoName(e.resourceId, roster),
-      href: e.href || "/projects",
-      stop: false,
-    })),
+  const nositItems = nosit.map((e) => ({
+    id: e.id,
+    title: e.title,
+    detail: `${whoName(e.resourceId, roster)} · ${e.city}`,
+    href: e.href || "/calendar",
+  }));
+  const unmarkedItems = unmarked.map((l) => ({
+    id: l.id,
+    title: l.name,
+    detail: `${l.city} · ${l.closer}`,
+    href: `/leads/${l.id}`,
+  }));
+  const idleItems = idle.map((r) => ({ id: r.id, title: r.name, detail: r.role, href: "/calendar" }));
+  const woItems = unsigned.map((e) => ({
+    id: e.id,
+    title: e.title,
+    detail: whoName(e.resourceId, roster),
+    href: e.href || "/projects",
+  }));
+  const behindItems = behindEv.map((e) => ({
+    id: e.id,
+    title: e.title,
+    detail: `${whoName(e.resourceId, roster)} · ${labelTime(e.end)}`,
+    href: e.href || "/calendar",
+  }));
+  const hotTickets = openTickets.filter((k) => k.priority === "High");
+  const ticketItems = hotTickets.map((k) => ({
+    id: k.id,
+    title: k.title,
+    detail: `${k.owner} · ${k.age}`,
+    href: "/tickets",
+  }));
+  const cancelledLeads = leads.filter((l) => l.status === "Cancelled" || l.status === "Not qualified");
+  const cancelItems = cancelledLeads.map((l) => ({
+    id: l.id,
+    title: l.name,
+    detail: l.status,
+    href: `/leads/${l.id}`,
+    amount: l.value,
+  }));
+
+  const lossBuckets: Bucket[] = [
+    { id: "nosit", label: "No-sit", n: nositItems.length, stop: true, href: "/appointments", items: nositItems },
+    { id: "cancel", label: "Cancelled", n: cancelItems.length, stop: true, href: "/leads", items: cancelItems },
+    { id: "unmarked", label: "Unmarked", n: unmarkedItems.length, stop: true, href: "/leads", items: unmarkedItems },
+    { id: "behind", label: "Behind", n: behindItems.length, stop: true, href: "/dispatch", items: behindItems },
+    { id: "idle", label: "Idle", n: idleItems.length, href: "/calendar", items: idleItems },
+    { id: "wo", label: "No WO", n: woItems.length, href: "/projects", items: woItems },
+    { id: "tix", label: "Tickets", n: ticketItems.length, stop: ticketItems.length > 0, href: "/tickets", items: ticketItems },
   ];
 
   const mix = [
-    { label: "Set", n: sales.filter((e) => e.status === "Set").length },
-    { label: "Confirmed", n: sales.filter((e) => e.status === "Confirmed").length },
-    { label: "Out", n: sales.filter((e) => e.status === "Dispatched").length },
-    { label: "Sold", n: soldN },
+    { label: "Set", n: sales.filter((e) => e.status === "Set").length, tone: "var(--color-line-strong)" },
+    { label: "Confirmed", n: sales.filter((e) => e.status === "Confirmed").length, tone: "var(--color-navy-2)" },
+    { label: "Out", n: sales.filter((e) => e.status === "Dispatched").length, tone: "var(--color-muted)" },
+    { label: "Sold", n: soldN, tone: "var(--color-navy)" },
+    { label: "Cancelled", n: cancelItems.length, tone: "var(--color-idle)" },
   ];
 
   const hours = Array.from({ length: 16 }, (_, i) => i + 6);
@@ -251,8 +283,8 @@ export function buildToday(opts: {
   const meters: Meter[] = [
     { label: "Money", fact: sold ? `$${Math.round(sold / 1000)}k · ${soldN} sold` : "$0 sold", score: moneyScore, tone: "var(--color-navy)" },
     { label: "Book", fact: `${sitsLeft.length} sit${sitsLeft.length === 1 ? "" : "s"} left`, score: bookScore, tone: "var(--color-navy-2)" },
-    { label: "Installs", fact: `${street.length} out`, score: streetScore, tone: "#3e5360" },
-    { label: "People", fact: `${board.filter((r) => r.role === "Closer").length} deployed`, score: peopleScore, tone: "#5c7380" },
+    { label: "Installs", fact: `${street.length} out`, score: streetScore, tone: "var(--color-muted)" },
+    { label: "People", fact: `${board.filter((r) => r.role === "Closer").length} deployed`, score: peopleScore, tone: "var(--color-faint)" },
   ];
 
   return {
@@ -269,14 +301,16 @@ export function buildToday(opts: {
     behindN,
     fire,
     board,
-    wins,
-    leaks,
+    winBuckets,
+    lossBuckets,
     mix,
     strip,
     hour,
     meters,
     reviews,
     referrals,
+    reviewScore: snapshot.reviewScore,
+    reviewCount: snapshot.reviewCount,
     tickets: openTickets,
     notCalled: notCalled.length,
   };
