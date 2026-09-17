@@ -41,7 +41,7 @@ export function MonthGrid({
                   <p
                     key={m.id}
                     className={cn("truncate rounded-sm px-1 text-[11px] leading-5", d === selectedDay ? "bg-card/20 text-card" : "text-ink")}
-                    style={d === selectedDay ? undefined : { background: TYPE_TONE[m.type]?.bg, borderLeft: `3px solid ${TYPE_TONE[m.type]?.bar}` }}
+                    style={d === selectedDay ? undefined : { background: TYPE_TONE[m.type]?.bg }}
                   >
                     {m.title.split(" ")[0]} · {m.type}
                   </p>
