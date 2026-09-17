@@ -4,14 +4,16 @@ import type { Resource } from "@/features/book/roster";
 import { familyOf, isWatch, type BookEvent } from "@/features/book/types";
 import { hourOf } from "@/features/book/time";
 
-export type Split = { label: string; n: number; pct: number; tone: string };
+export type Split = { label: string; n: number; pct: number; tone: string; ink?: boolean };
 
 const KEY = "var(--color-navy)";
-const SOFT = "var(--color-idle)";
+const STEEL = "var(--color-idle)";
 const WASH = "var(--color-line-strong)";
-const GOOD = "color-mix(in srgb, var(--color-go) 45%, white)";
+const HEALTHY = "color-mix(in srgb, var(--color-go) 78%, #082418)";
+const FAIR = "color-mix(in srgb, var(--color-watch) 58%, white)";
+const ALERT = "color-mix(in srgb, var(--color-stop) 72%, #4a0c14)";
 
-function pack(rows: { label: string; n: number; tone: string }[]): Split[] {
+function pack(rows: { label: string; n: number; tone: string; ink?: boolean }[]): Split[] {
   const total = rows.reduce((s, r) => s + r.n, 0);
   return rows.map((r) => ({ ...r, pct: total ? Math.round((r.n / total) * 100) : 0 }));
 }
@@ -144,29 +146,29 @@ export function buildToday(opts: {
     nosit.length +
     sales.filter((e) => e.status !== "Done" && e.status !== "Set" && hourOf(e.end) <= hour).length;
   const mix = pack([
-    { label: "Set", n: sales.filter((e) => e.status === "Set").length, tone: WASH },
-    { label: "Ran", n: ranN, tone: SOFT },
-    { label: "Sold", n: soldN, tone: KEY },
-    { label: "Cancelled", n: cancelled.length, tone: "var(--color-muted)" },
+    { label: "Set", n: sales.filter((e) => e.status === "Set").length, tone: WASH, ink: true },
+    { label: "Ran", n: ranN, tone: FAIR, ink: true },
+    { label: "Sold", n: soldN, tone: HEALTHY },
+    { label: "Cancelled", n: cancelled.length, tone: ALERT },
   ]);
 
   const appt = pack([
-    { label: "Passed", n: passed.length, tone: SOFT },
+    { label: "Passed", n: passed.length, tone: STEEL, ink: true },
     { label: "Left", n: left.length, tone: KEY },
   ]);
   const jobSplit = pack([
-    { label: "Done", n: jobsDone, tone: GOOD },
-    { label: "Out", n: Math.max(jobsOut, prod.filter((e) => e.status === "Dispatched").length), tone: KEY },
-    { label: "Pending", n: jobsPending, tone: WASH },
+    { label: "Done", n: jobsDone, tone: HEALTHY },
+    { label: "Out", n: Math.max(jobsOut, prod.filter((e) => e.status === "Dispatched").length), tone: FAIR, ink: true },
+    { label: "Pending", n: jobsPending, tone: WASH, ink: true },
   ]);
   const tix = pack([
     { label: "Open", n: tixOpen, tone: KEY },
-    { label: "Added", n: tixAdded, tone: SOFT },
-    { label: "Closed", n: tixClosed, tone: GOOD },
+    { label: "Added", n: tixAdded, tone: STEEL, ink: true },
+    { label: "Closed", n: tixClosed, tone: HEALTHY },
   ]);
   const leadSplit = pack([
-    { label: "Called", n: snapshot.leadsCalled, tone: SOFT },
-    { label: "Not called", n: snapshot.leadsNotCalled, tone: KEY },
+    { label: "Called", n: snapshot.leadsCalled, tone: HEALTHY },
+    { label: "Not called", n: snapshot.leadsNotCalled, tone: ALERT },
   ]);
 
   return {

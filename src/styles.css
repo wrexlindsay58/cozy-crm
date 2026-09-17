@@ -11,18 +11,18 @@
   --color-line-strong: #b7c5cd;
   --color-page: #e8eef1;
   --color-card: #ffffff;
-  --color-stop: #c2162e;
+  --color-stop: #b01428;
   --color-stop-bg: #f8e6e8;
-  --color-watch: #b45309;
+  --color-watch: #a34c08;
   --color-watch-bg: #f6eadc;
-  --color-go: #1f7a4d;
+  --color-go: #1a6e45;
   --color-go-bg: #e3f2ea;
   --color-info: #0b3a4d;
   --color-info-bg: #e4eef8;
   --color-idle: #8aa0ab;
-  --color-up: #1f7a4d;
+  --color-up: #1a6e45;
   --color-up-bg: #e3f2ea;
-  --color-alert: #c2162e;
+  --color-alert: #b01428;
   --color-alert-bg: #f8e6e8;
   --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
   --text-2xs: 0.6875rem;
@@ -140,12 +140,12 @@
   height: 8px;
   border-radius: 99px;
   background: var(--color-stop);
-  box-shadow: 0 0 0 0 rgba(194, 22, 46, 0.45);
+  box-shadow: 0 0 0 0 rgba(176, 20, 40, 0.45);
   animation: live-pip 1.6s ease-out infinite;
 }
 @keyframes live-pip {
   0% {
-    box-shadow: 0 0 0 0 rgba(194, 22, 46, 0.45);
+    box-shadow: 0 0 0 0 rgba(176, 20, 40, 0.45);
   }
   70% {
     box-shadow: 0 0 0 6px rgba(194, 22, 46, 0);

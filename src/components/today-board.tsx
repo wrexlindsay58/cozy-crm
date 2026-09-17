@@ -40,8 +40,8 @@ function Cell({ label, value, note, delta, stop }: { label: string; value: strin
   );
 }
 
-function lightFill(tone: string) {
-  return /idle|line|page|color-mix/.test(tone);
+function lightFill(row: Split) {
+  return Boolean(row.ink);
 }
 
 function Stack({ title, rows, caption }: { title: string; rows: Split[]; caption?: string }) {
@@ -55,7 +55,7 @@ function Stack({ title, rows, caption }: { title: string; rows: Split[]; caption
           r.n ? (
             <span
               key={r.label}
-              className={cn("grid place-items-center px-1 text-[12px] font-bold tabular-nums", lightFill(r.tone) ? "text-ink" : "text-card")}
+              className={cn("grid place-items-center px-1 text-[12px] font-bold tabular-nums", lightFill(r) ? "text-ink" : "text-card")}
               style={{ width: `${(r.n / total) * 100}%`, background: r.tone }}
               title={`${r.label}: ${r.n} · ${r.pct}%`}
             >
@@ -219,14 +219,14 @@ export function TodayBoard() {
             <div className="mb-3 flex flex-wrap items-end justify-between gap-2">
               <div>
                 <p className="text-[11px] font-bold tracking-wide text-muted uppercase">Appointments and installs by hour</p>
-                <p className="text-[12px] text-muted">Dark navy is sits. Soft green is installs. Line is now ({t.hour > 12 ? `${t.hour - 12}p` : `${t.hour}a`}).</p>
+                <p className="text-[12px] text-muted">Navy is sits. Gray-blue is installs. Line is now ({t.hour > 12 ? `${t.hour - 12}p` : `${t.hour}a`}).</p>
               </div>
               <ul className="flex gap-4 text-[12px]">
                 <li className="inline-flex items-center gap-1.5">
                   <i className="size-2.5 rounded-sm bg-navy" /> Sits
                 </li>
                 <li className="inline-flex items-center gap-1.5">
-                  <i className="size-2.5 rounded-sm" style={{ background: "color-mix(in srgb, var(--color-go) 45%, white)" }} /> Installs
+                  <i className="size-2.5 rounded-sm bg-idle" /> Installs
                 </li>
               </ul>
             </div>
@@ -239,15 +239,7 @@ export function TodayBoard() {
                     style={{ height: `${16 + ((s.sales + s.prod) / stripMax) * 72}px` }}
                     title={`${s.label}: ${s.sales} sits, ${s.prod} installs`}
                   >
-                    {s.prod ? (
-                      <span
-                        className="w-full"
-                        style={{
-                          height: `${(s.prod / Math.max(s.sales + s.prod, 1)) * 100}%`,
-                          background: "color-mix(in srgb, var(--color-go) 45%, white)",
-                        }}
-                      />
-                    ) : null}
+                    {s.prod ? <span className="w-full bg-idle" style={{ height: `${(s.prod / Math.max(s.sales + s.prod, 1)) * 100}%` }} /> : null}
                     {s.sales ? <span className="w-full bg-navy" style={{ height: `${(s.sales / Math.max(s.sales + s.prod, 1)) * 100}%` }} /> : null}
                     {!s.sales && !s.prod ? <span className="h-2 w-full bg-page" /> : null}
                   </div>
