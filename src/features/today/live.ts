@@ -1,4 +1,4 @@
-import { cashOut, referrals, reviews, snapshot } from "@/lib/snapshot";
+import { cashOut, dayGoals, referrals, reviews, snapshot } from "@/lib/snapshot";
 import { tickets, type Lead } from "@/lib/crm-data";
 import type { Resource } from "@/features/book/roster";
 import { familyOf, isWatch, type BookEvent } from "@/features/book/types";
@@ -16,7 +16,8 @@ function pack(rows: { label: string; n: number; tone: string; ink?: boolean; mar
   return rows.map((r) => ({ ...r, pct: total ? Math.round((r.n / total) * 100) : 0 }));
 }
 export type Rank = { id: string; name: string; role: string; amount: number; why: string; href: string };
-export type HourBar = { h: number; label: string; sales: number; prod: number };
+export type Trend = { now: number; yest: number; goal: number; money?: boolean };
+export type HourBar = { h: number; label: string; sales: number; prod: number; yestSales: number; yestProd: number };
 
 function valueOf(e: BookEvent, leads: Lead[]) {
   return leads.find((l) => l.id === e.personId)?.value ?? 0;
@@ -47,18 +48,26 @@ export function buildToday(opts: {
   const yest = events.filter((e) => e.start.slice(0, 10) === yestKey && (office === "all" || e.office === office) && !e.blank);
   const sales = day.filter((e) => familyOf(e.type) === "sales");
   const prod = day.filter((e) => familyOf(e.type) === "production");
-  const soldEv = sales.filter((e) => e.status === "Done");
-  const yestSold = yest.filter((e) => familyOf(e.type) === "sales" && e.status === "Done");
+  const yestSales = yest.filter((e) => familyOf(e.type) === "sales");
+  const yestProd = yest.filter((e) => familyOf(e.type) === "production");
+  const soldEv = sales.filter((e) => e.status === "Done" && hourOf(e.end) <= hour);
+  const yestSoldEv = yestSales.filter((e) => e.status === "Done" && hourOf(e.end) <= hour);
   const sold = soldEv.reduce((s, e) => s + valueOf(e, leads), 0);
   const soldN = soldEv.length;
-  const yesterday = yestSold.reduce((s, e) => s + valueOf(e, leads), 0);
+  const yesterday = yestSoldEv.reduce((s, e) => s + valueOf(e, leads), 0);
   const passed = sales.filter((e) => hourOf(e.end) <= hour);
   const left = sales.filter((e) => hourOf(e.end) > hour);
-  const nosit = day.filter((e) => e.status === "No-sit" || e.status === "No-show");
-  const cancelled = leads.filter((l) => l.status === "Cancelled" || l.status === "Not qualified");
-  const decided = soldN + nosit.length + cancelled.length;
+  const yestPassed = yestSales.filter((e) => hourOf(e.end) <= hour);
+  const yestLeft = yestSales.filter((e) => hourOf(e.end) > hour);
+  const nosit = day.filter((e) => (e.status === "No-sit" || e.status === "No-show") && hourOf(e.end) <= hour);
+  const yestNosit = yest.filter((e) => (e.status === "No-sit" || e.status === "No-show") && hourOf(e.end) <= hour);
+  const cancelled = snapshot.cancelledToday;
+  const decided = soldN + nosit.length + cancelled;
   const closeRate = decided ? Math.round((soldN / decided) * 100) : 0;
-  const jobsDone = prod.filter((e) => e.status === "Done").length;
+  const yestDecided = yestSoldEv.length + yestNosit.length + snapshot.cancelledYest;
+  const yestClose = yestDecided ? Math.round((yestSoldEv.length / yestDecided) * 100) : 0;
+  const jobsDone = prod.filter((e) => e.status === "Done" && hourOf(e.end) <= hour).length;
+  const yestJobsDone = yestProd.filter((e) => e.status === "Done" && hourOf(e.end) <= hour).length;
   const jobsOut = prod.filter((e) => e.status === "Dispatched" || (e.status !== "Done" && e.status !== "Set")).length;
   const jobsPending = prod.filter((e) => e.status === "Set" || e.hold).length;
   const tixOpen = tickets.filter((t) => t.status !== "Complete" && t.status !== "Cancel").length;
@@ -138,6 +147,8 @@ export function buildToday(opts: {
     label: hourLabel(h),
     sales: day.filter((e) => familyOf(e.type) === "sales" && Math.floor(hourOf(e.start)) === h).length,
     prod: day.filter((e) => familyOf(e.type) === "production" && Math.floor(hourOf(e.start)) === h).length,
+    yestSales: yest.filter((e) => familyOf(e.type) === "sales" && Math.floor(hourOf(e.start)) === h).length,
+    yestProd: yest.filter((e) => familyOf(e.type) === "production" && Math.floor(hourOf(e.start)) === h).length,
   }));
 
   const ranN =
@@ -147,7 +158,7 @@ export function buildToday(opts: {
     { label: "Set", n: sales.filter((e) => e.status === "Set").length, tone: WASH, ink: true },
     { label: "Ran", n: ranN, tone: STEEL, ink: true },
     { label: "Sold", n: soldN, tone: KEY, mark: sold > yesterday ? "go" : undefined },
-    { label: "Cancelled", n: cancelled.length, tone: WASH, ink: true, mark: cancelled.length ? "stop" : undefined },
+    { label: "Cancelled", n: cancelled, tone: WASH, ink: true, mark: cancelled ? "stop" : undefined },
   ]);
 
   const appt = pack([
@@ -160,23 +171,39 @@ export function buildToday(opts: {
     { label: "Pending", n: jobsPending, tone: WASH, ink: true, mark: jobsPending > 2 ? "watch" : undefined },
   ]);
   const tix = pack([
-    { label: "Open", n: tixOpen, tone: KEY, mark: tixOpen > 6 ? "watch" : undefined },
+    { label: "Open", n: tixOpen, tone: KEY, mark: tixOpen > snapshot.ticketsOpenYest ? "watch" : undefined },
     { label: "Added", n: tixAdded, tone: STEEL, ink: true },
     { label: "Closed", n: tixClosed, tone: WASH, ink: true },
   ]);
-  const notCalledN = snapshot.leadsNotCalled;
+  const notCalledN = snapshot.notCalledToday;
   const leadSplit = pack([
-    { label: "Called", n: snapshot.leadsCalled, tone: STEEL, ink: true },
-    { label: "Not called", n: notCalledN, tone: KEY, mark: notCalledN > 8 ? "stop" : notCalledN ? "watch" : undefined },
+    { label: "Called", n: snapshot.calledToday, tone: STEEL, ink: true },
+    { label: "Not called", n: notCalledN, tone: KEY, mark: notCalledN ? "watch" : undefined },
   ]);
 
   const behindN = day.filter((e) => familyOf(e.type) === "production" && e.status !== "Done" && hourOf(e.end) <= hour).length;
   const marks = {
-    sales: sold > yesterday ? ("go" as const) : undefined,
+    sales: sold > yesterday ? ("go" as const) : sold < yesterday * 0.8 ? ("watch" as const) : undefined,
     close: closeRate < 25 ? ("stop" as const) : closeRate >= 50 ? ("go" as const) : undefined,
     cashOut: spent > cashIn ? ("stop" as const) : undefined,
     behind: behindN ? ("stop" as const) : undefined,
     mkt: marketingSpend && marketingSold / marketingSpend >= 8 ? ("go" as const) : undefined,
+  };
+
+  const trends = {
+    sales: { now: sold, yest: yesterday, goal: dayGoals.sales, money: true },
+    close: { now: closeRate, yest: yestClose, goal: dayGoals.close },
+    cashIn: { now: cashIn, yest: snapshot.cashInYest, goal: dayGoals.cashIn, money: true },
+    cashOut: { now: spent, yest: snapshot.cashOutYest, goal: dayGoals.cashOut, money: true },
+    sits: { now: passed.length + left.length, yest: yestPassed.length + yestLeft.length, goal: dayGoals.sits },
+    left: { now: left.length, yest: yestLeft.length, goal: 0 },
+    leads: { now: snapshot.leadsToday, yest: snapshot.leadsYest, goal: dayGoals.leads },
+    jobs: { now: jobsDone + jobsOut, yest: yestJobsDone, goal: dayGoals.jobs },
+    tix: { now: tixClosed, yest: snapshot.ticketsClosedYest, goal: dayGoals.ticketsClosed },
+    payroll: { now: payroll, yest: snapshot.payrollYesterday, goal: dayGoals.payroll, money: true },
+    marketing: { now: marketingSold, yest: snapshot.marketingSoldYest, goal: dayGoals.marketing, money: true },
+    reviews: { now: snapshot.reviewsToday, yest: snapshot.reviewsYest, goal: dayGoals.reviews },
+    referrals: { now: snapshot.referralsToday, yest: snapshot.referralsYest, goal: dayGoals.referrals },
   };
 
   return {
@@ -212,10 +239,11 @@ export function buildToday(opts: {
     jobSplit,
     tix,
     leadSplit,
-    leadsIn: snapshot.leadsInWeek,
+    leadsIn: snapshot.leadsToday,
     hour,
     behindN,
     marks,
+    trends,
     unsigned: prod.filter((e) => isWatch(e)).length,
     top: [...c.top, ...k.top, ...s.top],
     bottom: [...c.bottom, ...k.bottom, ...s.bottom],

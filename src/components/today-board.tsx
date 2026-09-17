@@ -6,13 +6,8 @@ import { TODAY, addDays, toIso } from "@/features/book/time";
 import { useBook } from "@/features/book/store";
 import { useRoster } from "@/features/book/roster";
 import { useOps } from "@/features/ops/store";
-import { buildToday, type Mark, type Split } from "@/features/today/live";
+import { buildToday, type Mark, type Split, type Trend } from "@/features/today/live";
 import { useMemo, useState } from "react";
-
-function deltaPct(now: number, was: number) {
-  if (!was) return null;
-  return Math.round(((now - was) / was) * 100);
-}
 
 function markClass(m?: Mark) {
   if (m === "go") return "text-go";
@@ -21,14 +16,53 @@ function markClass(m?: Mark) {
   return "";
 }
 
-function Delta({ n }: { n: number | null }) {
-  if (n == null || n === 0) return null;
-  const mark: Mark | undefined = n >= 15 ? "go" : n <= -20 ? "stop" : n < 0 ? "watch" : undefined;
+function pipMark(now: number, yest: number): Mark | undefined {
+  if (now === yest) return undefined;
+  if (now > yest) return "go";
+  if (now <= yest * 0.8) return "stop";
+  return "watch";
+}
+
+function Pip({ now, yest }: { now: number; yest: number }) {
+  const mark = pipMark(now, yest);
+  const fill = mark === "go" ? "var(--color-go)" : mark === "stop" ? "var(--color-stop)" : mark === "watch" ? "var(--color-watch)" : "var(--color-idle)";
+  const label = now === yest ? "Even with this hour yesterday" : now > yest ? "Ahead of this hour yesterday" : "Behind this hour yesterday";
+  if (now === yest) {
+    return <i className="inline-block size-1.5 rounded-full bg-idle" title={label} />;
+  }
   return (
-    <span className={cn("text-[12px] font-semibold tabular-nums", mark ? markClass(mark) : "text-navy")}>
-      {n > 0 ? "+" : ""}
-      {n}% vs yesterday
-    </span>
+    <svg viewBox="0 0 10 10" className="size-2.5 shrink-0" aria-label={label}>
+      {now > yest ? <path d="M5 1.5 9 8.5H1Z" fill={fill} /> : <path d="M5 8.5 9 1.5H1Z" fill={fill} />}
+    </svg>
+  );
+}
+
+function Track({ now, yest, goal, money: isMoney }: Trend) {
+  const fmt = (n: number) => (isMoney ? money(n) : String(n));
+  if (!goal) {
+    return <p className="mt-2 text-[11px] tabular-nums text-muted">Yest {fmt(yest)} at this hour</p>;
+  }
+  const cap = Math.max(goal, now, yest, 1);
+  return (
+    <div className="mt-2">
+      <div className="relative h-2 rounded-sm bg-page">
+        <i className="absolute inset-y-0 left-0 rounded-sm bg-navy" style={{ width: `${Math.min(100, (now / cap) * 100)}%` }} />
+        <i
+          className="absolute top-[-3px] h-3.5 w-0.5 bg-idle"
+          style={{ left: `clamp(0%, calc(${(yest / cap) * 100}% - 1px), 100%)` }}
+          title={`Yesterday this hour ${fmt(yest)}`}
+        />
+        <i
+          className="absolute top-[-3px] h-3.5 w-0.5 bg-ink"
+          style={{ left: `clamp(0%, calc(${(goal / cap) * 100}% - 1px), 100%)` }}
+          title={`Goal ${fmt(goal)}`}
+        />
+      </div>
+      <p className="mt-1 flex justify-between gap-2 text-[10px] tabular-nums text-muted">
+        <span>Yest {fmt(yest)}</span>
+        <span>Goal {fmt(goal)}</span>
+      </p>
+    </div>
   );
 }
 
@@ -36,25 +70,24 @@ function Cell({
   label,
   value,
   note,
-  delta,
+  trend,
   mark,
 }: {
   label: string;
   value: string;
   note?: string;
-  delta?: number | null;
+  trend: Trend;
   mark?: Mark;
 }) {
   return (
     <div className="bg-card px-5 py-5">
-      <p className="text-[11px] font-bold tracking-wide text-muted uppercase">{label}</p>
+      <p className="flex items-center gap-1.5 text-[11px] font-bold tracking-wide text-muted uppercase">
+        {label}
+        <Pip now={trend.now} yest={trend.yest} />
+      </p>
       <p className={cn("mt-1 text-[28px] leading-none font-bold tabular-nums", markClass(mark))}>{value}</p>
-      {delta != null ? (
-        <p className="mt-1">
-          <Delta n={delta} />
-        </p>
-      ) : null}
-      {note ? <p className={cn("mt-1 text-[12px] text-muted", delta == null && "mt-2")}>{note}</p> : null}
+      <Track {...trend} />
+      {note ? <p className="mt-1 text-[12px] text-muted">{note}</p> : null}
     </div>
   );
 }
@@ -63,11 +96,14 @@ function lightFill(row: Split) {
   return Boolean(row.ink);
 }
 
-function Stack({ title, rows, caption }: { title: string; rows: Split[]; caption?: string }) {
+function Stack({ title, rows, caption, trend }: { title: string; rows: Split[]; caption?: string; trend?: Trend }) {
   const total = Math.max(rows.reduce((s, r) => s + r.n, 0), 1);
   return (
     <section className="rounded-md bg-card px-5 py-4">
-      <p className="text-[11px] font-bold tracking-wide text-muted uppercase">{title}</p>
+      <p className="flex items-center gap-1.5 text-[11px] font-bold tracking-wide text-muted uppercase">
+        {title}
+        {trend ? <Pip now={trend.now} yest={trend.yest} /> : null}
+      </p>
       {caption ? <p className="mt-0.5 text-[12px] text-muted">{caption}</p> : null}
       <div className="mt-3 flex h-10 overflow-hidden rounded-md bg-page">
         {rows.map((r) =>
@@ -94,6 +130,7 @@ function Stack({ title, rows, caption }: { title: string; rows: Split[]; caption
           </li>
         ))}
       </ul>
+      {trend ? <Track {...trend} /> : null}
     </section>
   );
 }
@@ -131,10 +168,8 @@ export function TodayBoard() {
     () => buildToday({ events, leads, roster, dayKey, yestKey, hour: 18, office }),
     [events, leads, roster, dayKey, yestKey, office],
   );
-  const salesDelta = deltaPct(t.sold, t.yesterday);
-  const stripMax = Math.max(...t.strip.map((s) => s.sales + s.prod), 1);
+  const stripMax = Math.max(...t.strip.map((s) => Math.max(s.sales + s.prod, s.yestSales + s.yestProd)), 1);
   const mktMax = Math.max(t.marketingSpend, t.marketingSold, 1);
-  const payDelta = deltaPct(t.payroll, t.payrollYest);
 
   return (
     <div className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden bg-page">
@@ -179,15 +214,18 @@ export function TodayBoard() {
       <div className="min-h-0 flex-1 overflow-auto">
         <div className="space-y-3 bg-page p-3">
           <section className="grid grid-cols-2 gap-px overflow-hidden rounded-md bg-line lg:grid-cols-4">
-            <Cell label="Sales today" value={money(t.sold)} note={`${t.soldN} deals`} delta={salesDelta} mark={t.marks.sales} />
-            <Cell label="Close rate" value={`${t.closeRate}%`} note={`${t.soldN} sold of ${t.decided} decided`} mark={t.marks.close} />
-            <Cell label="Cash in" value={money(t.cashIn)} note={`${money(t.expected)} still expected`} />
-            <Cell label="Sits left" value={String(t.left)} note={`${t.passed} ran · ${t.appt.find((r) => r.label === "Left")?.pct ?? 0}% of the book still out`} />
+            <Cell label="Sales today" value={money(t.sold)} note={`${t.soldN} deals · vs this hour yesterday`} trend={t.trends.sales} mark={t.marks.sales} />
+            <Cell label="Close rate" value={`${t.closeRate}%`} note={`${t.soldN} sold of ${t.decided} decided`} trend={t.trends.close} mark={t.marks.close} />
+            <Cell label="Cash in" value={money(t.cashIn)} note={`${money(t.expected)} still expected`} trend={t.trends.cashIn} />
+            <Cell label="Sits left" value={String(t.left)} note={`${t.passed} ran · ${t.appt.find((r) => r.label === "Left")?.pct ?? 0}% of the book still out`} trend={t.trends.left} />
           </section>
 
           <section className="grid gap-px overflow-hidden rounded-md bg-line lg:grid-cols-3">
             <div className="bg-card px-5 py-5">
-              <p className="text-[11px] font-bold tracking-wide text-muted uppercase">Money today</p>
+              <p className="flex items-center gap-1.5 text-[11px] font-bold tracking-wide text-muted uppercase">
+                Money today
+                <Pip now={t.trends.cashIn.now} yest={t.trends.cashIn.yest} />
+              </p>
               <div className="mt-3 grid grid-cols-3 gap-3">
                 <p>
                   <span className="block text-[11px] font-bold text-muted uppercase">In</span>
@@ -202,10 +240,14 @@ export function TodayBoard() {
                   <span className="text-[20px] font-bold tabular-nums">{money(t.expected)}</span>
                 </p>
               </div>
+              <Track {...t.trends.cashIn} />
               <p className="mt-2 text-[12px] text-muted">{t.cashOut.map((r) => `${r.name} ${money(r.amount)}`).join(" · ")}</p>
             </div>
             <div className="bg-card px-5 py-5">
-              <p className="text-[11px] font-bold tracking-wide text-muted uppercase">Marketing</p>
+              <p className="flex items-center gap-1.5 text-[11px] font-bold tracking-wide text-muted uppercase">
+                Marketing
+                <Pip now={t.trends.marketing.now} yest={t.trends.marketing.yest} />
+              </p>
               <p className="mt-1 text-[28px] font-bold tabular-nums">{money(t.marketingSold)}</p>
               <p className="text-[12px] text-muted">Sold from ads and canvass · spent {money(t.marketingSpend)}</p>
               <div className="mt-3 space-y-1.5">
@@ -225,13 +267,15 @@ export function TodayBoard() {
               <p className={cn("mt-2 text-[12px] font-semibold", markClass(t.marks.mkt))}>
                 {t.marketingSpend ? `${Math.round(t.marketingSold / t.marketingSpend)}x` : "—"} return
               </p>
+              <Track {...t.trends.marketing} />
             </div>
             <div className="bg-card px-5 py-5">
-              <p className="text-[11px] font-bold tracking-wide text-muted uppercase">Payroll today</p>
-              <p className="mt-1 text-[28px] font-bold tabular-nums">{money(t.payroll)}</p>
-              <p className="mt-1">
-                <Delta n={payDelta} />
+              <p className="flex items-center gap-1.5 text-[11px] font-bold tracking-wide text-muted uppercase">
+                Payroll today
+                <Pip now={t.trends.payroll.now} yest={t.trends.payroll.yest} />
               </p>
+              <p className="mt-1 text-[28px] font-bold tabular-nums">{money(t.payroll)}</p>
+              <Track {...t.trends.payroll} />
               <p className="mt-2 text-[12px] text-muted">{t.sold ? `${Math.round((t.payroll / t.sold) * 100)}% of sales` : "No sales yet"}</p>
             </div>
           </section>
@@ -240,14 +284,14 @@ export function TodayBoard() {
             <div className="mb-3 flex flex-wrap items-end justify-between gap-2">
               <div>
                 <p className="text-[11px] font-bold tracking-wide text-muted uppercase">Appointments and installs by hour</p>
-                <p className="text-[12px] text-muted">Navy is sits. Gray-blue is installs. Line is now ({t.hour > 12 ? `${t.hour - 12}p` : `${t.hour}a`}).</p>
+                <p className="text-[12px] text-muted">Navy is today. Gray is yesterday this hour. Line is now ({t.hour > 12 ? `${t.hour - 12}p` : `${t.hour}a`}).</p>
               </div>
               <ul className="flex gap-4 text-[12px]">
                 <li className="inline-flex items-center gap-1.5">
-                  <i className="size-2.5 rounded-sm bg-navy" /> Sits
+                  <i className="size-2.5 rounded-sm bg-navy" /> Today
                 </li>
                 <li className="inline-flex items-center gap-1.5">
-                  <i className="size-2.5 rounded-sm bg-idle" /> Installs
+                  <i className="size-2.5 rounded-sm bg-line-strong" /> Yesterday
                 </li>
               </ul>
             </div>
@@ -256,13 +300,18 @@ export function TodayBoard() {
                 <div key={s.h} className="relative flex min-w-0 flex-1 flex-col items-center justify-end gap-1">
                   {s.h === t.hour ? <i className="absolute inset-x-1/2 -top-1 bottom-5 w-0.5 bg-ink" /> : null}
                   <div
-                    className="flex w-full max-w-5 flex-col justify-end overflow-hidden rounded-sm"
-                    style={{ height: `${16 + ((s.sales + s.prod) / stripMax) * 72}px` }}
-                    title={`${s.label}: ${s.sales} sits, ${s.prod} installs`}
+                    className="relative w-full max-w-5"
+                    style={{ height: `${16 + (Math.max(s.sales + s.prod, s.yestSales + s.yestProd) / stripMax) * 72}px` }}
+                    title={`${s.label}: today ${s.sales} sits / ${s.prod} installs · yest ${s.yestSales} / ${s.yestProd}`}
                   >
-                    {s.prod ? <span className="w-full bg-idle" style={{ height: `${(s.prod / Math.max(s.sales + s.prod, 1)) * 100}%` }} /> : null}
-                    {s.sales ? <span className="w-full bg-navy" style={{ height: `${(s.sales / Math.max(s.sales + s.prod, 1)) * 100}%` }} /> : null}
-                    {!s.sales && !s.prod ? <span className="h-2 w-full bg-page" /> : null}
+                    <span
+                      className="absolute inset-x-0 bottom-0 bg-line-strong"
+                      style={{ height: `${((s.yestSales + s.yestProd) / Math.max(s.sales + s.prod, s.yestSales + s.yestProd, 1)) * 100}%` }}
+                    />
+                    <span
+                      className="absolute inset-x-[15%] bottom-0 flex flex-col justify-end overflow-hidden rounded-sm bg-navy"
+                      style={{ height: `${((s.sales + s.prod) / Math.max(s.sales + s.prod, s.yestSales + s.yestProd, 1)) * 100}%` }}
+                    />
                   </div>
                   <span className={cn("text-[10px] tabular-nums", s.h === t.hour ? "font-bold text-navy" : "text-faint")}>{s.label}</span>
                 </div>
@@ -271,29 +320,38 @@ export function TodayBoard() {
           </section>
 
           <div className="grid gap-3 sm:grid-cols-2">
-            <Stack title="Leads" caption={`${t.leadsIn} in this week`} rows={t.leadSplit} />
-            <Stack title="Appointments" caption="Passed vs still on the book" rows={t.appt} />
-            <Stack title="Jobs" caption="Done, on a house, not started" rows={t.jobSplit} />
-            <Stack title="Tickets" caption="Open pile, added today, closed today" rows={t.tix} />
+            <Stack title="Leads" caption={`${t.leadsIn} in today`} rows={t.leadSplit} trend={t.trends.leads} />
+            <Stack title="Appointments" caption="Passed vs still on the book" rows={t.appt} trend={t.trends.sits} />
+            <Stack title="Jobs" caption="Done, on a house, not started" rows={t.jobSplit} trend={t.trends.jobs} />
+            <Stack title="Tickets" caption="Open pile, added today, closed today" rows={t.tix} trend={t.trends.tix} />
           </div>
 
           <Stack title="Set, ran, sold, cancelled" caption="Share of today's book" rows={t.mix} />
 
           <section className="rounded-md bg-card px-5 py-4">
-            <p className="text-[11px] font-bold tracking-wide text-muted uppercase">Customers</p>
+            <p className="flex items-center gap-1.5 text-[11px] font-bold tracking-wide text-muted uppercase">
+              Customers
+              <Pip now={t.trends.reviews.now} yest={t.trends.reviews.yest} />
+            </p>
             <div className="mt-2 flex flex-wrap items-end gap-8">
               <p className="flex items-center gap-2 text-[28px] font-bold tabular-nums">
                 {t.reviewScore}
                 <Stars n={5} tone="gold" />
               </p>
-              <p>
-                <span className="text-[28px] font-bold tabular-nums">{t.reviewCount}</span>
-                <span className="ml-2 text-[12px] text-muted">reviews on file</span>
-              </p>
-              <p>
-                <span className="text-[28px] font-bold tabular-nums">{t.referrals.length}</span>
-                <span className="ml-2 text-[12px] text-muted">referrals this week</span>
-              </p>
+              <div>
+                <p>
+                  <span className="text-[28px] font-bold tabular-nums">{t.trends.reviews.now}</span>
+                  <span className="ml-2 text-[12px] text-muted">reviews today</span>
+                </p>
+                <Track {...t.trends.reviews} />
+              </div>
+              <div>
+                <p>
+                  <span className="text-[28px] font-bold tabular-nums">{t.trends.referrals.now}</span>
+                  <span className="ml-2 text-[12px] text-muted">referrals today</span>
+                </p>
+                <Track {...t.trends.referrals} />
+              </div>
             </div>
             <ul className="mt-4 divide-y divide-line">
               {t.reviews.slice(0, 3).map((r) => (
