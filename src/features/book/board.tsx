@@ -40,8 +40,8 @@ export function ResourceBoard({
   return (
     <div className="min-h-0 min-w-0 flex-1 overflow-auto">
       <div className="min-w-full">
-        <div className="sticky top-0 z-30 flex border-b border-line bg-card">
-          <div className="sticky left-0 z-40 h-12 w-12 shrink-0 border-r border-line bg-card" />
+        <div className="sticky top-0 z-40 flex border-b border-line bg-card">
+          <div className="sticky left-0 z-50 h-12 w-12 shrink-0 border-r border-line bg-card" />
           {cols.map((u) => {
             const load = loadHours(events, u.id, day);
             return (
@@ -53,7 +53,7 @@ export function ResourceBoard({
           })}
         </div>
         <div className="flex">
-          <div className="sticky left-0 z-20 w-12 shrink-0 bg-card">
+          <div className="sticky left-0 z-30 w-12 shrink-0 bg-card">
             <div className="relative" style={{ height }}>
               {hours.map((h, i) => (
                 <div key={h} className="absolute inset-x-0 border-b border-line px-1 text-right text-[10px] font-bold text-muted" style={{ top: i * ROW, height: ROW }}>
@@ -65,7 +65,7 @@ export function ResourceBoard({
           {cols.map((u) => {
             const mine = events.filter((e) => assignedIds(e).includes(u.id) && e.start.slice(0, 10) === day);
             return (
-              <div key={u.id || "none"} className="relative min-w-40 flex-1 overflow-hidden border-r border-line bg-page" style={{ height }}>
+              <div key={u.id || "none"} className="relative z-0 isolate min-w-40 flex-1 overflow-hidden border-r border-line bg-page" style={{ height }}>
                 {hours.map((h, i) => (
                   <button
                     key={h}

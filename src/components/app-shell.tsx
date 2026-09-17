@@ -155,7 +155,8 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <div className="relative grid h-dvh w-full min-w-0 max-w-full grid-rows-[56px_minmax(0,1fr)] overflow-hidden bg-page text-ink">
-      <header className="z-30 flex min-w-0 items-center gap-3 border-b border-white/10 bg-navy px-3 text-card md:px-4">
+      <header className="z-30 grid min-w-0 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 border-b border-white/10 bg-navy px-3 text-card md:px-4">
+        <div className="flex items-center gap-2">
         <button
           type="button"
           onClick={() => {
@@ -173,10 +174,13 @@ export function AppShell({ children }: { children: ReactNode }) {
         <Link to="/" className="shrink-0">
           <CozyWordmark className="h-6 w-28 md:h-7 md:w-32" />
         </Link>
-        <div className="relative ml-2 hidden min-w-0 flex-1 md:block">
-          <Omnibox />
         </div>
-        <div className="ml-auto flex items-center gap-1">
+        <div className="relative hidden w-full justify-center md:flex">
+          <div className="w-[70%] max-w-md min-w-48">
+            <Omnibox />
+          </div>
+        </div>
+        <div className="flex items-center gap-1">
           <button
             type="button"
             className="grid size-10 place-items-center text-faint hover:text-card md:hidden"

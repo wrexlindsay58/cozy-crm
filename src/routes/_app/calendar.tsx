@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { Plus } from "lucide-react";
+import { Plus, Search } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { PageTitle } from "@/components/ui-bits";
 import { useStaff } from "@/features/staff/store";
@@ -33,6 +33,7 @@ function CalendarPage() {
   const [cursor, setCursor] = useState(() => new Date(TODAY));
   const [picked, setPicked] = useState<string | null>(null);
   const [compose, setCompose] = useState<{ resourceId: string; start: string } | null>(null);
+  const [q, setQ] = useState("");
 
   useEffect(() => {
     const q = window.matchMedia("(max-width: 767px)");
@@ -55,10 +56,12 @@ function CalendarPage() {
   }, [roster, office, group, viewAs]);
 
   const dayKey = toIso(cursor).slice(0, 10);
+  const needle = q.trim().toLowerCase();
   const shown = events.filter((e) => {
     if (office !== "all" && e.office !== office && e.office) return false;
     if (family !== "all" && familyOf(e.type) !== family) return false;
-    return true;
+    if (!needle) return true;
+    return `${e.title} ${e.type} ${e.city} ${e.notes} ${e.scope} ${e.status}`.toLowerCase().includes(needle);
   });
   const selected = shown.find((e) => e.id === picked) ?? null;
   const hours = hoursFor(resources);
@@ -141,6 +144,15 @@ function CalendarPage() {
         <p className="text-sm font-semibold">
           {cursor.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
         </p>
+        <label className="relative ml-auto min-w-40 max-w-64 flex-1">
+          <Search className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-faint" />
+          <input
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Find a sit"
+            className="h-8 w-full rounded-md border border-line bg-card pr-3 pl-8 text-[13px] outline-none placeholder:text-faint"
+          />
+        </label>
       </div>
 
       {view === "resource" ? (
