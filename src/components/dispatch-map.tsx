@@ -3,6 +3,7 @@ import * as maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { offices, shop } from "@/lib/dispatch-data";
 import { HEX } from "@/lib/tokens";
+import cozyMap from "@/features/dispatch/map-style.json";
 
 export type MapView = "base" | "aerial" | "3d";
 export type StreetPath = { unitId: string; color: string; coords: [number, number][] };
@@ -21,23 +22,7 @@ const AERIAL = {
     },
   },
   layers: [{ id: "esri", type: "raster" as const, source: "esri" }],
-};
-
-const INK = {
-  version: 8 as const,
-  sources: {
-    carto: {
-      type: "raster" as const,
-      tiles: [
-        "https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png",
-        "https://b.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png",
-        "https://c.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png",
-      ],
-      tileSize: 256,
-      attribution: "© OpenStreetMap © CARTO",
-    },
-  },
-  layers: [{ id: "carto", type: "raster" as const, source: "carto" }],
+  glyphs: "https://tiles.openfreemap.org/fonts/{fontstack}/{range}.pbf",
 };
 
 function MapCtor() {
@@ -187,14 +172,15 @@ export function DispatchMap({
     const center = office === "all" ? { lat: 33.2, lng: -104.6, zoom: 5.4 } : offices[office];
     const map = new Ctor({
       container: el,
-      style: (view === "aerial" ? AERIAL : INK) as never,
+      style: (view === "aerial" ? AERIAL : cozyMap) as never,
       center: [center.lng, center.lat],
-      zoom: view === "3d" && office !== "all" ? 12.4 : center.zoom,
+      zoom: view === "3d" && office !== "all" ? 14.2 : center.zoom,
       pitch: view === "3d" ? 52 : 0,
       bearing: view === "3d" ? -16 : 0,
       maxPitch: 80,
       attributionControl: { compact: true },
     });
+    el.style.background = "#f7fafb";
     mapRef.current = map;
     const ro = new ResizeObserver(() => map.resize());
     ro.observe(el);
@@ -202,6 +188,32 @@ export function DispatchMap({
     const tick2 = window.setTimeout(() => map.resize(), 400);
 
     function ready() {
+      if (view === "3d") {
+        try {
+          const layers = map.getStyle().layers ?? [];
+          const label = layers.find((l: { type: string; id: string }) => l.type === "symbol")?.id;
+          if (!map.getLayer("3d-buildings") && map.getSource("openmaptiles")) {
+            map.addLayer(
+              {
+                id: "3d-buildings",
+                source: "openmaptiles",
+                "source-layer": "building",
+                type: "fill-extrusion",
+                minzoom: 14,
+                paint: {
+                  "fill-extrusion-color": "#d7e0e5",
+                  "fill-extrusion-height": ["coalesce", ["get", "render_height"], ["get", "height"], 10],
+                  "fill-extrusion-base": ["coalesce", ["get", "render_min_height"], 0],
+                  "fill-extrusion-opacity": 0.85,
+                },
+              },
+              label,
+            );
+          }
+        } catch {
+          /* pitched map still works */
+        }
+      }
       if (map.getSource("routes")) {
         if (map.getLayer("routes-line")) map.removeLayer("routes-line");
         map.removeSource("routes");

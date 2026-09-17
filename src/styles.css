@@ -68,11 +68,14 @@
   }
 }
 
+.dispatch-map,
+.dispatch-map .maplibregl-map,
+.dispatch-map .maplibregl-canvas,
+.dispatch-map .maplibregl-canvas-container {
+  background: #f7fafb;
+}
 .dispatch-map .maplibregl-canvas {
   outline: none;
-}
-.dispatch-map-aerial .maplibregl-canvas {
-  filter: none;
 }
 
 .dispatch-pin {
