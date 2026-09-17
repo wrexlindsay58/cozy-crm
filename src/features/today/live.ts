@@ -131,25 +131,25 @@ export function buildToday(opts: {
   }));
 
   const mix: Split[] = [
-    { label: "Set", n: sales.filter((e) => e.status === "Set").length, tone: "var(--color-line-strong)" },
-    { label: "Confirmed", n: sales.filter((e) => e.status === "Confirmed").length, tone: "var(--color-navy-2)" },
-    { label: "Sold", n: soldN, tone: "var(--color-navy)" },
-    { label: "Cancelled", n: cancelled.length, tone: "var(--color-idle)" },
+    { label: "Set", n: sales.filter((e) => e.status === "Set").length, tone: "var(--color-idle)" },
+    { label: "Confirmed", n: sales.filter((e) => e.status === "Confirmed").length, tone: "var(--color-muted)" },
+    { label: "Sold", n: soldN, tone: "var(--color-go)" },
+    { label: "Cancelled", n: cancelled.length, tone: "var(--color-line-strong)" },
   ];
 
   const appt: Split[] = [
-    { label: "Passed", n: passed.length, tone: "var(--color-navy-2)" },
+    { label: "Passed", n: passed.length, tone: "var(--color-muted)" },
     { label: "Left", n: left.length, tone: "var(--color-navy)" },
   ];
   const jobSplit: Split[] = [
-    { label: "Done", n: jobsDone, tone: "var(--color-navy)" },
-    { label: "Out", n: Math.max(jobsOut, prod.filter((e) => e.status === "Dispatched").length), tone: "var(--color-navy-2)" },
-    { label: "Pending", n: jobsPending, tone: "var(--color-line-strong)" },
+    { label: "Done", n: jobsDone, tone: "var(--color-go)" },
+    { label: "Out", n: Math.max(jobsOut, prod.filter((e) => e.status === "Dispatched").length), tone: "var(--color-navy)" },
+    { label: "Pending", n: jobsPending, tone: "var(--color-idle)" },
   ];
   const tix: Split[] = [
     { label: "Open", n: tixOpen, tone: "var(--color-navy)" },
-    { label: "Added", n: tixAdded, tone: "var(--color-navy-2)" },
-    { label: "Closed", n: tixClosed, tone: "var(--color-line-strong)" },
+    { label: "Added", n: tixAdded, tone: "var(--color-muted)" },
+    { label: "Closed", n: tixClosed, tone: "var(--color-go)" },
   ];
 
   return {

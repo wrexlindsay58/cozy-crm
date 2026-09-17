@@ -40,6 +40,10 @@ function Cell({ label, value, note, delta, stop }: { label: string; value: strin
   );
 }
 
+function lightFill(tone: string) {
+  return tone.includes("idle") || tone.includes("line-strong") || tone.includes("page");
+}
+
 function Stack({ title, rows, caption }: { title: string; rows: Split[]; caption?: string }) {
   const total = Math.max(rows.reduce((s, r) => s + r.n, 0), 1);
   return (
@@ -51,7 +55,7 @@ function Stack({ title, rows, caption }: { title: string; rows: Split[]; caption
           r.n ? (
             <span
               key={r.label}
-              className="grid place-items-center text-[12px] font-bold text-card"
+              className={cn("grid place-items-center text-[12px] font-bold", lightFill(r.tone) ? "text-ink" : "text-card")}
               style={{ width: `${(r.n / total) * 100}%`, background: r.tone }}
               title={`${r.label}: ${r.n}`}
             >
@@ -193,7 +197,7 @@ export function TodayBoard() {
                 <span className="flex items-center gap-2">
                   <span className="w-14 text-[10px] font-bold text-muted uppercase">Spend</span>
                   <span className="h-2 flex-1 overflow-hidden rounded-sm bg-page">
-                    <i className="block h-full bg-navy-2" style={{ width: `${Math.max(8, (t.marketingSpend / mktMax) * 100)}%` }} />
+                    <i className="block h-full bg-idle" style={{ width: `${Math.max(8, (t.marketingSpend / mktMax) * 100)}%` }} />
                   </span>
                 </span>
               </div>
@@ -213,27 +217,27 @@ export function TodayBoard() {
             <div className="mb-3 flex flex-wrap items-end justify-between gap-2">
               <div>
                 <p className="text-[11px] font-bold tracking-wide text-muted uppercase">Appointments and installs by hour</p>
-                <p className="text-[12px] text-muted">Navy is sits. Steel is installs. Line is now ({t.hour > 12 ? `${t.hour - 12}p` : `${t.hour}a`}).</p>
+                <p className="text-[12px] text-muted">Navy is sits. Green is installs. Line is now ({t.hour > 12 ? `${t.hour - 12}p` : `${t.hour}a`}).</p>
               </div>
               <ul className="flex gap-4 text-[12px]">
                 <li className="inline-flex items-center gap-1.5">
                   <i className="size-2.5 rounded-sm bg-navy" /> Sits
                 </li>
                 <li className="inline-flex items-center gap-1.5">
-                  <i className="size-2.5 rounded-sm bg-navy-2" /> Installs
+                  <i className="size-2.5 rounded-sm bg-go" /> Installs
                 </li>
               </ul>
             </div>
             <div className="flex h-28 items-end gap-1">
               {t.strip.map((s) => (
                 <div key={s.h} className="relative flex min-w-0 flex-1 flex-col items-center justify-end gap-1">
-                  {s.h === t.hour ? <i className="absolute inset-x-1/2 -top-1 bottom-5 w-0.5 bg-navy" /> : null}
+                  {s.h === t.hour ? <i className="absolute inset-x-1/2 -top-1 bottom-5 w-0.5 bg-ink" /> : null}
                   <div
                     className="flex w-full max-w-5 flex-col justify-end overflow-hidden rounded-sm"
                     style={{ height: `${16 + ((s.sales + s.prod) / stripMax) * 72}px` }}
                     title={`${s.label}: ${s.sales} sits, ${s.prod} installs`}
                   >
-                    {s.prod ? <span className="w-full bg-navy-2" style={{ height: `${(s.prod / Math.max(s.sales + s.prod, 1)) * 100}%` }} /> : null}
+                    {s.prod ? <span className="w-full bg-go" style={{ height: `${(s.prod / Math.max(s.sales + s.prod, 1)) * 100}%` }} /> : null}
                     {s.sales ? <span className="w-full bg-navy" style={{ height: `${(s.sales / Math.max(s.sales + s.prod, 1)) * 100}%` }} /> : null}
                     {!s.sales && !s.prod ? <span className="h-2 w-full bg-page" /> : null}
                   </div>
