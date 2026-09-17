@@ -1,7 +1,6 @@
 import { useEffect, useRef } from "react";
 import * as maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
-import { cn } from "@/lib/cn";
 import { offices, shop } from "@/lib/dispatch-data";
 import { HEX } from "@/lib/tokens";
 
@@ -12,7 +11,6 @@ export type MapHouse = { id: string; resourceId: string; lat: number; lng: numbe
 
 const AERIAL = {
   version: 8 as const,
-  glyphs: "https://tiles.openfreemap.org/fonts/{fontstack}/{range}.pbf",
   sources: {
     esri: {
       type: "raster" as const,
@@ -25,11 +23,27 @@ const AERIAL = {
   layers: [{ id: "esri", type: "raster" as const, source: "esri" }],
 };
 
-const STYLE: Record<MapView, string | typeof AERIAL> = {
-  base: "https://tiles.openfreemap.org/styles/dark",
-  aerial: AERIAL,
-  "3d": "https://tiles.openfreemap.org/styles/dark",
+const INK = {
+  version: 8 as const,
+  sources: {
+    carto: {
+      type: "raster" as const,
+      tiles: [
+        "https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png",
+        "https://b.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png",
+        "https://c.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png",
+      ],
+      tileSize: 256,
+      attribution: "© OpenStreetMap © CARTO",
+    },
+  },
+  layers: [{ id: "carto", type: "raster" as const, source: "carto" }],
 };
+
+function MapCtor() {
+  const m = maplibregl as unknown as { Map: typeof maplibregl.Map; default?: { Map: typeof maplibregl.Map } };
+  return m.Map ?? m.default?.Map;
+}
 
 function pathData(paths: StreetPath[]) {
   return {
@@ -38,10 +52,33 @@ function pathData(paths: StreetPath[]) {
       .filter((p) => p.coords.length > 1)
       .map((p) => ({
         type: "Feature" as const,
-        properties: { color: p.color },
+        properties: { color: p.color, id: p.unitId },
         geometry: { type: "LineString" as const, coordinates: p.coords },
       })),
   };
+}
+
+function boundsOf(paths: StreetPath[], people: MapPerson[], houses: MapHouse[]) {
+  const Ctor = maplibregl as unknown as { LngLatBounds: typeof maplibregl.LngLatBounds; default?: { LngLatBounds: typeof maplibregl.LngLatBounds } };
+  const Bounds = Ctor.LngLatBounds ?? Ctor.default?.LngLatBounds;
+  if (!Bounds) return null;
+  const b = new Bounds();
+  let n = 0;
+  paths.forEach((p) =>
+    p.coords.forEach((c) => {
+      b.extend(c);
+      n += 1;
+    }),
+  );
+  people.forEach((u) => {
+    b.extend([u.lng, u.lat]);
+    n += 1;
+  });
+  houses.forEach((h) => {
+    b.extend([h.lng, h.lat]);
+    n += 1;
+  });
+  return n ? b : null;
 }
 
 function placeMarks(
@@ -52,13 +89,14 @@ function placeMarks(
   onSelect: (id: string) => void,
   onStop: (resourceId: string, stopId: string) => void,
 ) {
+  const Marker = (maplibregl as unknown as { Marker: typeof maplibregl.Marker; default?: { Marker: typeof maplibregl.Marker } }).Marker ?? (maplibregl as unknown as { default: { Marker: typeof maplibregl.Marker } }).default.Marker;
   const marks: maplibregl.Marker[] = [];
   const shops = office === "all" ? [shop.PHX, shop.DFW] : [shop[office]];
   shops.forEach((shopPt) => {
     const shopEl = document.createElement("div");
     shopEl.className = "dispatch-shop";
     shopEl.title = shopPt.name;
-    marks.push(new maplibregl.Marker({ element: shopEl }).setLngLat([shopPt.lng, shopPt.lat]).addTo(map));
+    marks.push(new Marker({ element: shopEl }).setLngLat([shopPt.lng, shopPt.lat]).addTo(map));
   });
   houses.forEach((s) => {
     const house = document.createElement("button");
@@ -70,7 +108,7 @@ function placeMarks(
       ev.stopPropagation();
       onStop(s.resourceId, s.id);
     });
-    marks.push(new maplibregl.Marker({ element: house, anchor: "bottom" }).setLngLat([s.lng, s.lat]).addTo(map));
+    marks.push(new Marker({ element: house, anchor: "bottom" }).setLngLat([s.lng, s.lat]).addTo(map));
   });
   people.forEach((u) => {
     const pin = document.createElement("button");
@@ -83,7 +121,7 @@ function placeMarks(
       ev.stopPropagation();
       onSelect(u.id);
     });
-    marks.push(new maplibregl.Marker({ element: pin, anchor: "center" }).setLngLat([u.lng, u.lat]).addTo(map));
+    marks.push(new Marker({ element: pin, anchor: "center" }).setLngLat([u.lng, u.lat]).addTo(map));
   });
   return marks;
 }
@@ -96,6 +134,7 @@ export function DispatchMap({
   paths,
   selectedId,
   selectedStopId,
+  showAll,
   onSelect,
   onPickStop,
 }: {
@@ -106,6 +145,7 @@ export function DispatchMap({
   paths: StreetPath[];
   selectedId: string | null;
   selectedStopId: string | null;
+  showAll: boolean;
   onSelect: (id: string) => void;
   onPickStop: (resourceId: string, stopId: string) => void;
 }) {
@@ -128,16 +168,29 @@ export function DispatchMap({
     marksRef.current = placeMarks(map, office, peopleRef.current, housesRef.current, (id) => onSelectRef.current(id), (a, b) => onStopRef.current(a, b));
   }
 
+  function paintLines(map: maplibregl.Map, id: string | null) {
+    if (!map.getLayer("routes-line")) return;
+    map.setPaintProperty("routes-line", "line-opacity", id ? ["match", ["get", "id"], id, 0.95, 0.38] : 0.85);
+    map.setPaintProperty("routes-line", "line-width", id ? ["match", ["get", "id"], id, 5, 2.5] : 3.5);
+  }
+
+  function fitAll(map: maplibregl.Map) {
+    const b = boundsOf(pathsRef.current, peopleRef.current, housesRef.current);
+    if (!b) return;
+    map.fitBounds(b, { padding: 56, maxZoom: 12.2, duration: 500, pitch: view === "3d" ? 48 : 0 });
+  }
+
   useEffect(() => {
     const el = wrap.current;
-    if (!el) return;
+    const Ctor = MapCtor();
+    if (!el || !Ctor) return;
     const center = office === "all" ? { lat: 33.2, lng: -104.6, zoom: 5.4 } : offices[office];
-    const map = new maplibregl.Map({
+    const map = new Ctor({
       container: el,
-      style: STYLE[view] as never,
+      style: (view === "aerial" ? AERIAL : INK) as never,
       center: [center.lng, center.lat],
-      zoom: view === "3d" && office !== "all" ? 15.4 : center.zoom,
-      pitch: view === "3d" ? 58 : 0,
+      zoom: view === "3d" && office !== "all" ? 12.4 : center.zoom,
+      pitch: view === "3d" ? 52 : 0,
       bearing: view === "3d" ? -16 : 0,
       maxPitch: 80,
       attributionControl: { compact: true },
@@ -146,36 +199,11 @@ export function DispatchMap({
     const ro = new ResizeObserver(() => map.resize());
     ro.observe(el);
     const tick = window.setTimeout(() => map.resize(), 80);
+    const tick2 = window.setTimeout(() => map.resize(), 400);
 
     function ready() {
-      if (view === "3d") {
-        try {
-          const layers = map.getStyle().layers ?? [];
-          const label = layers.find((l: { type: string; id: string }) => l.type === "symbol")?.id;
-          if (!map.getLayer("3d-buildings") && map.getSource("openmaptiles")) {
-            map.addLayer(
-              {
-                id: "3d-buildings",
-                source: "openmaptiles",
-                "source-layer": "building",
-                type: "fill-extrusion",
-                minzoom: 14,
-                paint: {
-                  "fill-extrusion-color": "#5a6570",
-                  "fill-extrusion-height": ["coalesce", ["get", "render_height"], ["get", "height"], 10],
-                  "fill-extrusion-base": ["coalesce", ["get", "render_min_height"], 0],
-                  "fill-extrusion-opacity": 0.8,
-                },
-              },
-              label,
-            );
-          }
-        } catch {
-          /* pitched map still works */
-        }
-      }
       if (map.getSource("routes")) {
-        map.removeLayer("routes-line");
+        if (map.getLayer("routes-line")) map.removeLayer("routes-line");
         map.removeSource("routes");
       }
       map.addSource("routes", { type: "geojson", data: pathData(pathsRef.current) });
@@ -183,15 +211,17 @@ export function DispatchMap({
         id: "routes-line",
         type: "line",
         source: "routes",
-        paint: { "line-color": ["get", "color"], "line-width": 4, "line-opacity": 0.9 },
+        paint: { "line-color": ["get", "color"], "line-width": 3.5, "line-opacity": 0.85 },
       });
       drawMarks(map);
       map.resize();
+      fitAll(map);
     }
     map.on("load", ready);
 
     return () => {
       window.clearTimeout(tick);
+      window.clearTimeout(tick2);
       ro.disconnect();
       marksRef.current.forEach((m) => m.remove());
       marksRef.current = [];
@@ -210,22 +240,24 @@ export function DispatchMap({
     const map = mapRef.current;
     const src = map?.getSource("routes") as maplibregl.GeoJSONSource | undefined;
     src?.setData(pathData(paths));
-  }, [paths]);
+    if (map && showAll) fitAll(map);
+  }, [paths, showAll]);
 
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
-    const hit = houses.find((s) => s.id === selectedStopId);
-    if (hit) {
-      map.flyTo({ center: [hit.lng, hit.lat], zoom: 17.2, pitch: view === "3d" ? 60 : 0, duration: 700 });
+    paintLines(map, showAll ? null : selectedId);
+    if (showAll) {
+      fitAll(map);
       return;
     }
-    const u = people.find((x) => x.id === selectedId);
-    if (!u) return;
-    map.flyTo({ center: [u.lng, u.lat], zoom: view === "3d" ? 15.6 : 12.4, pitch: view === "3d" ? 58 : 0, duration: 600 });
-  }, [selectedId, selectedStopId, office, view, houses, people]);
+    const hit = houses.find((s) => s.id === selectedStopId);
+    if (hit) {
+      map.flyTo({ center: [hit.lng, hit.lat], zoom: 16.4, pitch: view === "3d" ? 52 : 0, duration: 500 });
+    }
+  }, [selectedId, selectedStopId, showAll, view, houses]);
 
-  return <div ref={wrap} className={cn("dispatch-map absolute inset-0 h-full w-full", view === "aerial" ? "dispatch-map-aerial" : "dispatch-map-ink")} />;
+  return <div ref={wrap} className="dispatch-map h-full min-h-[22rem] w-full" />;
 }
 
 export function statusColor(status: string) {

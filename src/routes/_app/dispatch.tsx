@@ -115,6 +115,7 @@ function DispatchPage() {
   const [selectedId, setSelectedId] = useState<string | null>("marco");
   const [selectedStopId, setSelectedStopId] = useState<string | null>(null);
   const [drawer, setDrawer] = useState(true);
+  const [showAll, setShowAll] = useState(true);
 
   const here = useMemo(() => roster.filter((r) => office === "all" || r.office === office), [roster, office]);
   const dayJobs = useMemo(
@@ -153,12 +154,14 @@ function DispatchPage() {
     setSelectedId(id);
     setSelectedStopId(null);
     setDrawer(true);
+    setShowAll(false);
   }
 
   function pickStop(resourceId: string, stopId: string) {
     if (resourceId) setSelectedId(resourceId);
     setSelectedStopId(stopId);
     setDrawer(true);
+    setShowAll(false);
   }
 
   function dropOnUnit(unitId: string, e: DragEvent) {
@@ -233,6 +236,13 @@ function DispatchPage() {
           Next
         </button>
         <p className="text-sm font-semibold">{cursor.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</p>
+        <button
+          type="button"
+          className={cn("ml-auto h-8 rounded-md border px-2.5 text-xs font-semibold", showAll ? "border-navy bg-navy text-card" : "border-line")}
+          onClick={() => setShowAll(true)}
+        >
+          All routes
+        </button>
       </div>
 
       <div className="grid min-h-0 min-w-0 flex-1 grid-rows-[auto_minmax(22rem,1fr)] lg:grid-cols-[20rem_minmax(0,1fr)] lg:grid-rows-1">
@@ -300,8 +310,8 @@ function DispatchPage() {
           </ul>
         </aside>
 
-        <div className="relative min-h-[22rem] min-w-0 lg:min-h-0">
-          <DispatchMap office={office} view={view} people={peoplePins} houses={houses} paths={paths} selectedId={selected?.id ?? null} selectedStopId={selectedStopId} onSelect={pick} onPickStop={pickStop} />
+        <div className="relative h-full min-h-[22rem] min-w-0">
+          <DispatchMap office={office} view={view} people={peoplePins} houses={houses} paths={paths} selectedId={selected?.id ?? null} selectedStopId={selectedStopId} showAll={showAll} onSelect={pick} onPickStop={pickStop} />
           {selected && drawer ? (
             <aside className="absolute inset-x-0 bottom-0 z-10 flex max-h-[78%] flex-col overflow-auto border-t border-line bg-card shadow-sm lg:inset-y-0 lg:left-auto lg:max-h-none lg:w-96 lg:border-t-0 lg:border-l">
               <div className="flex min-h-10 items-center justify-end px-2">

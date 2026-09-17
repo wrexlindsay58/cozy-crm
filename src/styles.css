@@ -71,9 +71,6 @@
 .dispatch-map .maplibregl-canvas {
   outline: none;
 }
-.dispatch-map-ink .maplibregl-canvas {
-  filter: saturate(0.28) contrast(1.12) brightness(0.78);
-}
 .dispatch-map-aerial .maplibregl-canvas {
   filter: none;
 }
