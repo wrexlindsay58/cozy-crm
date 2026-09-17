@@ -7,9 +7,10 @@ import { hourOf } from "@/features/book/time";
 export type Mark = "go" | "watch" | "stop";
 export type Split = { label: string; n: number; pct: number; tone: string; ink?: boolean; mark?: Mark };
 
-const KEY = "var(--color-navy)";
 const STEEL = "var(--color-idle)";
 const WASH = "var(--color-line-strong)";
+const MID = "var(--color-muted)";
+const LIVE = "var(--color-navy)";
 
 function pack(rows: { label: string; n: number; tone: string; ink?: boolean; mark?: Mark }[]): Split[] {
   const total = rows.reduce((s, r) => s + r.n, 0);
@@ -157,28 +158,28 @@ export function buildToday(opts: {
   const mix = pack([
     { label: "Set", n: sales.filter((e) => e.status === "Set").length, tone: WASH, ink: true },
     { label: "Ran", n: ranN, tone: STEEL, ink: true },
-    { label: "Sold", n: soldN, tone: KEY, mark: sold > yesterday ? "go" : undefined },
+    { label: "Sold", n: soldN, tone: sold > yesterday ? LIVE : MID, mark: sold > yesterday ? "go" : undefined },
     { label: "Cancelled", n: cancelled, tone: WASH, ink: true, mark: cancelled ? "stop" : undefined },
   ]);
 
   const appt = pack([
     { label: "Passed", n: passed.length, tone: STEEL, ink: true },
-    { label: "Left", n: left.length, tone: KEY },
+    { label: "Left", n: left.length, tone: MID },
   ]);
   const jobSplit = pack([
-    { label: "Done", n: jobsDone, tone: KEY },
+    { label: "Done", n: jobsDone, tone: MID },
     { label: "Out", n: Math.max(jobsOut, prod.filter((e) => e.status === "Dispatched").length), tone: STEEL, ink: true },
     { label: "Pending", n: jobsPending, tone: WASH, ink: true, mark: jobsPending > 2 ? "watch" : undefined },
   ]);
   const tix = pack([
-    { label: "Open", n: tixOpen, tone: KEY, mark: tixOpen > snapshot.ticketsOpenYest ? "watch" : undefined },
+    { label: "Open", n: tixOpen, tone: MID, mark: tixOpen > snapshot.ticketsOpenYest ? "watch" : undefined },
     { label: "Added", n: tixAdded, tone: STEEL, ink: true },
     { label: "Closed", n: tixClosed, tone: WASH, ink: true },
   ]);
   const notCalledN = snapshot.notCalledToday;
   const leadSplit = pack([
     { label: "Called", n: snapshot.calledToday, tone: STEEL, ink: true },
-    { label: "Not called", n: notCalledN, tone: KEY, mark: notCalledN ? "watch" : undefined },
+    { label: "Not called", n: notCalledN, tone: MID, mark: notCalledN ? "watch" : undefined },
   ]);
 
   const behindN = day.filter((e) => familyOf(e.type) === "production" && e.status !== "Done" && hourOf(e.end) <= hour).length;

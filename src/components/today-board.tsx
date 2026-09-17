@@ -46,7 +46,10 @@ function Track({ now, yest, goal, money: isMoney }: Trend) {
   return (
     <div className="mt-2">
       <div className="relative h-2 rounded-sm bg-page">
-        <i className="absolute inset-y-0 left-0 rounded-sm bg-navy" style={{ width: `${Math.min(100, (now / cap) * 100)}%` }} />
+        <i
+          className={cn("absolute inset-y-0 left-0 rounded-sm", now >= goal ? "bg-navy" : "bg-idle")}
+          style={{ width: `${Math.min(100, (now / cap) * 100)}%` }}
+        />
         <i
           className="absolute top-[-3px] h-3.5 w-0.5 bg-idle"
           style={{ left: `clamp(0%, calc(${(yest / cap) * 100}% - 1px), 100%)` }}
@@ -192,11 +195,11 @@ export function TodayBoard() {
       </header>
 
       <p className="shrink-0 border-b border-line bg-card px-4 py-2.5 text-center text-[15px] tabular-nums">
-        <span className="font-bold text-navy">{money(t.sold)} sold</span>
+        <span className="font-bold">{money(t.sold)} sold</span>
         <span className="text-muted"> · </span>
         <span className="font-bold">{t.closeRate}% close</span>
         <span className="text-muted"> · </span>
-        <span className="font-bold text-navy-2">{t.left} sits left</span>
+        <span className="font-bold">{t.left} sits left</span>
         {t.behindN ? (
           <>
             <span className="text-muted"> · </span>
@@ -248,7 +251,7 @@ export function TodayBoard() {
                 <span className="flex items-center gap-2">
                   <span className="w-14 text-[10px] font-bold text-muted uppercase">Sold</span>
                   <span className="h-2 flex-1 overflow-hidden rounded-sm bg-page">
-                    <i className="block h-full bg-navy" style={{ width: `${(t.marketingSold / mktMax) * 100}%` }} />
+                    <i className="block h-full bg-muted" style={{ width: `${(t.marketingSold / mktMax) * 100}%` }} />
                   </span>
                 </span>
                 <span className="flex items-center gap-2">
@@ -278,14 +281,17 @@ export function TodayBoard() {
             <div className="mb-3 flex flex-wrap items-end justify-between gap-2">
               <div>
                 <p className="text-[11px] font-bold tracking-wide text-muted uppercase">Appointments and installs by hour</p>
-                <p className="text-[12px] text-muted">Navy is today. Gray is yesterday this hour. Line is now ({t.hour > 12 ? `${t.hour - 12}p` : `${t.hour}a`}).</p>
+                <p className="text-[12px] text-muted">Steel is today. Gray is yesterday. Navy is now ({t.hour > 12 ? `${t.hour - 12}p` : `${t.hour}a`}).</p>
               </div>
               <ul className="flex gap-4 text-[12px]">
                 <li className="inline-flex items-center gap-1.5">
-                  <i className="size-2.5 rounded-sm bg-navy" /> Today
+                  <i className="size-2.5 rounded-sm bg-muted" /> Today
                 </li>
                 <li className="inline-flex items-center gap-1.5">
                   <i className="size-2.5 rounded-sm bg-line-strong" /> Yesterday
+                </li>
+                <li className="inline-flex items-center gap-1.5">
+                  <i className="size-2.5 rounded-sm bg-navy" /> Now
                 </li>
               </ul>
             </div>
@@ -303,7 +309,7 @@ export function TodayBoard() {
                         title={`${s.label} yesterday: ${s.yestSales} sits, ${s.yestProd} installs`}
                       />
                       <span
-                        className="w-[45%] rounded-sm bg-navy"
+                        className={cn("w-[45%] rounded-sm", s.h === t.hour ? "bg-navy" : "bg-muted")}
                         style={{ height: todayN ? `${Math.max(8, (todayN / stripMax) * 100)}%` : 0 }}
                         title={`${s.label} today: ${s.sales} sits, ${s.prod} installs`}
                       />
