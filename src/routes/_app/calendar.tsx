@@ -13,6 +13,7 @@ import { addHrs, durationHrs, hourOf, TODAY, toIso } from "@/features/book/time"
 import { BookPick } from "@/features/book/pick";
 import { familyOf } from "@/features/book/types";
 import { moveBook, useBook } from "@/features/book/store";
+import { setBookDay, useBookDay } from "@/features/book/day";
 
 export const Route = createFileRoute("/_app/calendar")({
   component: CalendarPage,
@@ -30,7 +31,7 @@ function CalendarPage() {
   const [office, setOffice] = useState<"all" | "PHX" | "DFW">("PHX");
   const [group, setGroup] = useState<"all" | "sales" | "crews" | "mine">(viewAs === "Closer" || viewAs === "Setter" ? "sales" : viewAs === "PM" || viewAs === "Crew" ? "crews" : "all");
   const [family, setFamily] = useState<"all" | "sales" | "production" | "shop">("all");
-  const [cursor, setCursor] = useState(() => new Date(TODAY));
+  const cursor = useBookDay();
   const [picked, setPicked] = useState<string | null>(null);
   const [compose, setCompose] = useState<{ resourceId: string; start: string } | null>(null);
   const [q, setQ] = useState("");
@@ -132,13 +133,13 @@ function CalendarPage() {
       </header>
 
       <div className="flex shrink-0 items-center gap-2 border-b border-line bg-card px-4 py-2">
-        <button type="button" className="h-8 rounded-md border border-line px-2 text-xs font-semibold" onClick={() => setCursor(new Date(cursor.getFullYear(), cursor.getMonth(), cursor.getDate() - (view === "week" ? 7 : view === "three" ? 3 : 1)))}>
+        <button type="button" className="h-8 rounded-md border border-line px-2 text-xs font-semibold" onClick={() => setBookDay(new Date(cursor.getFullYear(), cursor.getMonth(), cursor.getDate() - (view === "week" ? 7 : view === "three" ? 3 : 1)))}>
           Prev
         </button>
-        <button type="button" className="h-8 rounded-md border border-line px-2 text-xs font-semibold" onClick={() => setCursor(new Date(TODAY))}>
+        <button type="button" className="h-8 rounded-md border border-line px-2 text-xs font-semibold" onClick={() => setBookDay(new Date(TODAY))}>
           Today
         </button>
-        <button type="button" className="h-8 rounded-md border border-line px-2 text-xs font-semibold" onClick={() => setCursor(new Date(cursor.getFullYear(), cursor.getMonth(), cursor.getDate() + (view === "week" ? 7 : view === "three" ? 3 : 1)))}>
+        <button type="button" className="h-8 rounded-md border border-line px-2 text-xs font-semibold" onClick={() => setBookDay(new Date(cursor.getFullYear(), cursor.getMonth(), cursor.getDate() + (view === "week" ? 7 : view === "three" ? 3 : 1)))}>
           Next
         </button>
         <p className="text-sm font-semibold">
@@ -183,7 +184,7 @@ function CalendarPage() {
           events={shown}
           selectedDay={cursor.getDate()}
           onDay={(d) => {
-            setCursor(new Date(cursor.getFullYear(), cursor.getMonth(), d));
+            setBookDay(new Date(cursor.getFullYear(), cursor.getMonth(), d));
             setView("three");
           }}
         />

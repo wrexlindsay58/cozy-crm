@@ -5,7 +5,10 @@ import { DispatchMap, streetViewSrc, unitColor, type MapView, type StreetPath } 
 import { cn } from "@/lib/cn";
 import { money } from "@/lib/crm-data";
 import { PageTitle } from "@/components/ui-bits";
-import { offices, statusLabel, statusTone, units, type Unit } from "@/lib/dispatch-data";
+import { statusLabel, statusTone, units, type Unit } from "@/lib/dispatch-data";
+import { BookPick } from "@/features/book/pick";
+import { setBookDay, shiftBookDay, useBookDay } from "@/features/book/day";
+import { TODAY } from "@/features/book/time";
 import { applyOrder, assignWork, isBehind, kindLabel, openWork, reorderWork, unitWork, useWork, type Work } from "@/features/dispatch/store";
 import { fetchPath, mins, optimizeStops, rushLabel } from "@/features/dispatch/osrm";
 
@@ -29,20 +32,21 @@ const VIEWS: { id: MapView; label: string }[] = [
 
 const HOUR = 18;
 
-function inOffice(w: Work, office: "PHX" | "DFW") {
+function inOffice(w: Work, office: "PHX" | "DFW" | "all") {
+  if (office === "all") return true;
   if (w.unitId) return units.find((u) => u.id === w.unitId)?.office === office;
   const dfw = w.city === "Dallas" || w.city === "Fort Worth";
   return office === "DFW" ? dfw : !dfw;
 }
 
-function useStreetPaths(office: "PHX" | "DFW", jobs: Work[]) {
+function useStreetPaths(office: "PHX" | "DFW" | "all", jobs: Work[]) {
   const [paths, setPaths] = useState<StreetPath[]>([]);
   const [drive, setDrive] = useState<Record<string, { mins: number; miles: number }>>({});
   const sig = jobs.map((j) => `${j.id}:${j.unitId}`).join("|");
   useEffect(() => {
     let dead = false;
     (async () => {
-      const here = units.filter((u) => u.office === office);
+      const here = units.filter((u) => office === "all" || u.office === office);
       const next: StreetPath[] = [];
       const d: Record<string, { mins: number; miles: number }> = {};
       for (const u of here) {
@@ -67,12 +71,13 @@ function useStreetPaths(office: "PHX" | "DFW", jobs: Work[]) {
 
 function DispatchPage() {
   const all = useWork();
-  const [office, setOffice] = useState<"PHX" | "DFW">("PHX");
+  const cursor = useBookDay();
+  const [office, setOffice] = useState<"all" | "PHX" | "DFW">("PHX");
   const [view, setView] = useState<MapView>("base");
   const [selectedId, setSelectedId] = useState<string | null>("marco");
   const [selectedStopId, setSelectedStopId] = useState<string | null>(null);
   const [drawer, setDrawer] = useState(true);
-  const here = useMemo(() => units.filter((u) => u.office === office), [office]);
+  const here = useMemo(() => units.filter((u) => office === "all" || u.office === office), [office]);
   const jobs = useMemo(() => all.filter((w) => inOffice(w, office)), [all, office]);
   const open = openWork(jobs);
   const selected = here.find((u) => u.id === selectedId) ?? null;
@@ -130,24 +135,21 @@ function DispatchPage() {
                   </button>
                 ))}
               </div>
-              <div className="flex rounded-md bg-page p-0.5">
-                {(Object.keys(offices) as Array<"PHX" | "DFW">).map((k) => (
-                  <button
-                    key={k}
-                    type="button"
-                    onClick={() => {
-                      setOffice(k);
-                      const first = units.find((u) => u.office === k)?.id ?? null;
-                      setSelectedId(first);
-                      setSelectedStopId(null);
-                      setDrawer(true);
-                    }}
-                    className={cn("h-8 px-2.5 text-[13px] font-semibold", office === k ? "bg-navy text-card" : "text-muted")}
-                  >
-                    {offices[k].label}
-                  </button>
-                ))}
-              </div>
+              <BookPick
+                value={office}
+                onChange={(v) => {
+                  setOffice(v);
+                  const first = units.find((u) => v === "all" || u.office === v)?.id ?? null;
+                  setSelectedId(first);
+                  setSelectedStopId(null);
+                  setDrawer(true);
+                }}
+                items={[
+                  { id: "all", label: "All markets" },
+                  { id: "PHX", label: "Phoenix" },
+                  { id: "DFW", label: "Dallas" },
+                ]}
+              />
               <p className="text-[13px] tabular-nums">
                 <span className="font-bold">{live}</span>
                 <span className="text-muted"> moving · {rushLabel(HOUR)}</span>
@@ -156,6 +158,21 @@ function DispatchPage() {
           }
         />
       </header>
+
+      <div className="flex shrink-0 items-center gap-2 border-b border-line bg-card px-4 py-2">
+        <button type="button" className="h-8 rounded-md border border-line px-2 text-xs font-semibold" onClick={() => shiftBookDay(-1)}>
+          Prev
+        </button>
+        <button type="button" className="h-8 rounded-md border border-line px-2 text-xs font-semibold" onClick={() => setBookDay(new Date(TODAY))}>
+          Today
+        </button>
+        <button type="button" className="h-8 rounded-md border border-line px-2 text-xs font-semibold" onClick={() => shiftBookDay(1)}>
+          Next
+        </button>
+        <p className="text-sm font-semibold">
+          {cursor.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+        </p>
+      </div>
 
       <div className="grid min-h-0 min-w-0 flex-1 grid-rows-[auto_minmax(22rem,1fr)] lg:grid-cols-[20rem_minmax(0,1fr)] lg:grid-rows-1">
         <aside className="min-h-0 overflow-auto bg-page p-2 lg:border-r lg:border-line">

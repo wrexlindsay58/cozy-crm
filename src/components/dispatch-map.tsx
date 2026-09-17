@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import * as maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
+import { cn } from "@/lib/cn";
 import { offices, shop, units, type Unit } from "@/lib/dispatch-data";
 import { HEX } from "@/lib/tokens";
 import type { JobKind, Work } from "@/features/dispatch/store";
@@ -24,9 +25,9 @@ const AERIAL = {
 };
 
 const STYLE: Record<MapView, string | typeof AERIAL> = {
-  base: "https://tiles.openfreemap.org/styles/positron",
+  base: "https://tiles.openfreemap.org/styles/dark",
   aerial: AERIAL,
-  "3d": "https://tiles.openfreemap.org/styles/positron",
+  "3d": "https://tiles.openfreemap.org/styles/dark",
 };
 
 const STATUS_HEX: Record<string, string> = {
@@ -59,14 +60,16 @@ function pathData(paths: StreetPath[]) {
   };
 }
 
-function placeMarks(map: maplibregl.Map, office: "PHX" | "DFW", jobs: Work[], onSelect: (id: string) => void, onStop: (unitId: string, stopId: string) => void) {
-  const here = units.filter((u) => u.office === office);
+function placeMarks(map: maplibregl.Map, office: "PHX" | "DFW" | "all", jobs: Work[], onSelect: (id: string) => void, onStop: (unitId: string, stopId: string) => void) {
+  const here = units.filter((u) => office === "all" || u.office === office);
   const marks: maplibregl.Marker[] = [];
-  const shopPt = shop[office];
-  const shopEl = document.createElement("div");
-  shopEl.className = "dispatch-shop";
-  shopEl.title = shopPt.name;
-  marks.push(new maplibregl.Marker({ element: shopEl }).setLngLat([shopPt.lng, shopPt.lat]).addTo(map));
+  const shops = office === "all" ? [shop.PHX, shop.DFW] : [shop[office]];
+  shops.forEach((shopPt) => {
+    const shopEl = document.createElement("div");
+    shopEl.className = "dispatch-shop";
+    shopEl.title = shopPt.name;
+    marks.push(new maplibregl.Marker({ element: shopEl }).setLngLat([shopPt.lng, shopPt.lat]).addTo(map));
+  });
   jobs
     .filter((j) => here.some((u) => u.id === j.unitId) || !j.unitId)
     .forEach((s) => {
@@ -107,7 +110,7 @@ export function DispatchMap({
   onSelect,
   onPickStop,
 }: {
-  office: "PHX" | "DFW";
+  office: "PHX" | "DFW" | "all";
   view: MapView;
   jobs: Work[];
   paths: StreetPath[];
@@ -130,12 +133,12 @@ export function DispatchMap({
   useEffect(() => {
     const el = wrap.current;
     if (!el) return;
-    const center = offices[office];
+    const center = office === "all" ? { lat: 33.2, lng: -104.6, zoom: 5.4 } : offices[office];
     const map = new maplibregl.Map({
       container: el,
       style: STYLE[view] as never,
       center: [center.lng, center.lat],
-      zoom: view === "3d" ? 15.4 : center.zoom,
+      zoom: view === "3d" && office !== "all" ? 15.4 : center.zoom,
       pitch: view === "3d" ? 58 : 0,
       bearing: view === "3d" ? -16 : 0,
       maxPitch: 80,
@@ -162,7 +165,7 @@ export function DispatchMap({
                 type: "fill-extrusion",
                 minzoom: 14,
                 paint: {
-                  "fill-extrusion-color": "#b8c0c6",
+                  "fill-extrusion-color": "#5a6570",
                   "fill-extrusion-height": ["coalesce", ["get", "render_height"], ["get", "height"], 10],
                   "fill-extrusion-base": ["coalesce", ["get", "render_min_height"], 0],
                   "fill-extrusion-opacity": 0.8,
@@ -215,11 +218,11 @@ export function DispatchMap({
       return;
     }
     const u = units.find((x) => x.id === selectedId);
-    if (!u || u.office !== office) return;
+    if (!u || (office !== "all" && u.office !== office)) return;
     map.flyTo({ center: [u.lng, u.lat], zoom: view === "3d" ? 15.6 : 12.4, pitch: view === "3d" ? 58 : 0, duration: 600 });
   }, [selectedId, selectedStopId, office, view, jobs]);
 
-  return <div ref={wrap} className="dispatch-map absolute inset-0 h-full w-full" />;
+  return <div ref={wrap} className={cn("dispatch-map absolute inset-0 h-full w-full", view === "aerial" ? "dispatch-map-aerial" : "dispatch-map-ink")} />;
 }
 
 export function unitColor(u: Unit) {
