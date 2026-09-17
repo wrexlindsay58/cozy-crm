@@ -6,7 +6,7 @@ import { HEX } from "@/lib/tokens";
 
 export type MapView = "base" | "aerial" | "3d";
 export type StreetPath = { unitId: string; color: string; coords: [number, number][] };
-export type MapPerson = { id: string; name: string; initials: string; lat: number; lng: number; color: string };
+export type MapPerson = { id: string; name: string; initials: string; lat: number; lng: number; color: string; late?: boolean };
 export type MapHouse = { id: string; resourceId: string; lat: number; lng: number; label: string; color: string };
 
 const AERIAL = {
@@ -113,7 +113,7 @@ function placeMarks(
   people.forEach((u) => {
     const pin = document.createElement("button");
     pin.type = "button";
-    pin.className = "dispatch-pin";
+    pin.className = u.late ? "dispatch-pin is-behind" : "dispatch-pin";
     pin.style.background = u.color;
     pin.textContent = u.initials;
     pin.title = u.name;

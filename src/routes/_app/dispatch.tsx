@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState, type DragEvent } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { X } from "lucide-react";
-import { DispatchMap, statusColor, streetViewSrc, type MapView, type StreetPath } from "@/components/dispatch-map";
+import { DispatchMap, streetViewSrc, type MapView, type StreetPath } from "@/components/dispatch-map";
 import { cn } from "@/lib/cn";
+import { HEX } from "@/lib/tokens";
 import { PageTitle } from "@/components/ui-bits";
 import { BookPick } from "@/features/book/pick";
 import { setBookDay, shiftBookDay, useBookDay } from "@/features/book/day";
@@ -10,7 +11,7 @@ import { TODAY, addHrs, hourOf, toIso } from "@/features/book/time";
 import { familyOf, type BookEvent } from "@/features/book/types";
 import { moveBook, useBook } from "@/features/book/store";
 import { useRoster, type Resource, type ResourceKind } from "@/features/book/roster";
-import { geoOf, isField, phoneOf, pingOf, pinColor } from "@/features/dispatch/geo";
+import { geoOf, isField, phoneOf, pingOf, pinColor, routeColor } from "@/features/dispatch/geo";
 import { fetchPath, mins, optimizeStops, rushLabel } from "@/features/dispatch/osrm";
 
 export const Route = createFileRoute("/_app/dispatch")({
@@ -89,7 +90,7 @@ function useStreetPaths(people: Resource[], jobs: BookEvent[]) {
         if (!list.length) continue;
         const path = await fetchPath([pingOf(u), ...list.map(geoOf)], 18);
         if (!path) continue;
-        next.push({ unitId: u.id, color: statusColor(behind(list, 18) ? "Behind" : "Dispatched"), coords: path.coords });
+        next.push({ unitId: u.id, color: routeColor(u.id), coords: path.coords });
         d[u.id] = { mins: mins(path.seconds), miles: path.miles };
       }
       if (!dead) {
@@ -141,7 +142,8 @@ function DispatchPage() {
       initials: initials(u.name),
       lat: ping.lat,
       lng: ping.lng,
-      color: statusColor(behind(mine, hour) ? "Behind" : mine.some((e) => e.status === "Dispatched") ? "Dispatched" : mine.length ? "Set" : "idle"),
+      color: HEX.navy,
+      late: behind(mine, hour),
     };
   });
   const houses = dayJobs.filter(isField).map((e) => {
@@ -187,7 +189,7 @@ function DispatchPage() {
   }
 
   return (
-    <div className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden">
+    <div className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden bg-page">
       <header className="flex min-h-14 shrink-0 flex-wrap items-center gap-2 border-b border-line bg-card px-4">
         <PageTitle
           title="Map"
@@ -246,13 +248,13 @@ function DispatchPage() {
       </div>
 
       <div className="grid min-h-0 min-w-0 flex-1 grid-rows-[auto_minmax(22rem,1fr)] lg:grid-cols-[20rem_minmax(0,1fr)] lg:grid-rows-1">
-        <aside className="min-h-0 overflow-auto bg-page p-2 lg:border-r lg:border-line">
+        <aside className="min-h-0 overflow-auto border-b border-line bg-card lg:border-r lg:border-b-0">
           {open.length ? (
-            <div className="mb-3">
-              <p className="px-1 pb-1 text-[11px] font-bold tracking-wide text-muted uppercase">Open</p>
-              <ul className="space-y-2">
+            <div className="border-b border-line">
+              <p className="px-3 py-2 text-[11px] font-bold tracking-wide text-muted uppercase">Open</p>
+              <ul>
                 {open.map((s) => (
-                  <li key={s.id}>
+                  <li key={s.id} className="border-b border-line last:border-b-0">
                     <button
                       type="button"
                       draggable
@@ -261,14 +263,17 @@ function DispatchPage() {
                         e.dataTransfer.setData("text/book-id", s.id);
                       }}
                       onClick={() => pickStop("", s.id)}
-                      className="w-full rounded-md border border-line bg-card px-3 py-2.5 text-left"
+                      className="flex w-full items-start gap-2 border-l-4 border-l-transparent px-3 py-2.5 text-left"
                     >
-                      <span className="flex items-baseline justify-between gap-2">
-                        <span className="truncate text-sm font-semibold">{s.title}</span>
-                        <span className="text-[11px] font-bold text-muted uppercase">{s.type}</span>
-                      </span>
-                      <span className="mt-0.5 block truncate text-[11px] text-muted">
-                        {s.city || "No city"} · {s.status}
+                      <span className="grid size-9 shrink-0 place-items-center rounded-md bg-navy text-[10px] font-bold text-card">{s.title.slice(0, 1)}</span>
+                      <span className="min-w-0 flex-1">
+                        <span className="flex items-baseline justify-between gap-2">
+                          <span className="truncate text-sm font-semibold">{s.title}</span>
+                          <span className="text-[11px] font-semibold text-muted">{s.type}</span>
+                        </span>
+                        <span className="mt-0.5 block truncate text-[11px] text-muted">
+                          {s.city || "No city"} · {s.status}
+                        </span>
                       </span>
                     </button>
                   </li>
@@ -276,27 +281,29 @@ function DispatchPage() {
               </ul>
             </div>
           ) : null}
-          <p className="px-1 pb-1 text-[11px] font-bold tracking-wide text-muted uppercase">People</p>
-          <ul className="space-y-2">
+          <p className="px-3 py-2 text-[11px] font-bold tracking-wide text-muted uppercase">People</p>
+          <ul>
             {here.map((u) => {
               const mine = dayJobs.filter((e) => e.resourceId === u.id);
               const late = behind(mine, hour);
+              const on = selected?.id === u.id;
               return (
-                <li key={u.id}>
+                <li key={u.id} className={cn("border-b border-line", on && "bg-page")}>
                   <button
                     type="button"
                     onClick={() => pick(u.id)}
                     onDragOver={(e) => e.preventDefault()}
                     onDrop={(e) => dropOnUnit(u.id, e)}
-                    className={cn("flex w-full items-start gap-2 rounded-md border bg-card px-3 py-3 text-left", selected?.id === u.id ? "border-navy" : "border-line")}
+                    className={cn("flex w-full items-start gap-2 border-l-4 px-3 py-2.5 text-left", on ? "border-l-navy" : "border-l-transparent")}
                   >
-                    <span className="mt-0.5 grid size-9 shrink-0 place-items-center rounded-md text-[10px] font-bold text-card" style={{ background: statusColor(late ? "Behind" : mine.length ? "Dispatched" : "idle") }}>
+                    <span className="relative mt-0.5 grid size-9 shrink-0 place-items-center rounded-md bg-navy text-[10px] font-bold text-card">
                       {initials(u.name)}
+                      {late ? <i className="absolute -top-1 -right-1 size-2.5 rounded-full border-2 border-card bg-stop" /> : null}
                     </span>
                     <span className="min-w-0 flex-1">
                       <span className="flex items-baseline justify-between gap-2">
                         <span className="truncate text-sm font-semibold">{u.name}</span>
-                        <span className={cn("shrink-0 text-[11px] font-bold uppercase", late ? "text-stop" : "text-muted")}>{late ? "Behind" : mine.length ? `${mine.length}` : "Open"}</span>
+                        <span className={cn("shrink-0 text-[11px] font-semibold", late ? "text-stop" : "text-muted")}>{late ? "Behind" : mine.length ? `${mine.length}` : "Open"}</span>
                       </span>
                       <span className="mt-0.5 block truncate text-[11px] text-muted">
                         {mine.length ? `${mine.length} stop${mine.length === 1 ? "" : "s"}` : "No stops"}
@@ -330,7 +337,7 @@ function DispatchPage() {
                   </p>
                 ) : null}
                 {behind(selectedStops, hour) && helper ? (
-                  <button type="button" className="mt-3 h-10 w-full rounded-md bg-stop text-sm font-semibold text-card" onClick={() => sendRest(helper.id)}>
+                  <button type="button" className="mt-3 h-10 w-full rounded-md bg-navy text-sm font-semibold text-card" onClick={() => sendRest(helper.id)}>
                     Send remaining to {helper.name.split(" ")[0]}
                   </button>
                 ) : null}
@@ -342,7 +349,7 @@ function DispatchPage() {
                   ) : (
                     <span className="grid h-10 flex-1 place-items-center rounded-md bg-navy text-[13px] font-semibold text-card">Call</span>
                   )}
-                  <button type="button" className="grid h-10 flex-1 place-items-center rounded-md bg-page text-[13px] font-semibold" onClick={() => void optimize()}>
+                  <button type="button" className="grid h-10 flex-1 place-items-center rounded-md border border-line text-[13px] font-semibold" onClick={() => void optimize()}>
                     Optimize
                   </button>
                 </div>

@@ -1,8 +1,7 @@
 import { shop, stops, units } from "@/lib/dispatch-data";
 import type { Resource } from "@/features/book/roster";
-import type { BookEvent } from "@/features/book/types";
+import { familyOf, isWatch, type BookEvent } from "@/features/book/types";
 import { HEX } from "@/lib/tokens";
-import { TYPE_TONE } from "@/features/book/tone";
 
 const CITY: Record<string, { lat: number; lng: number }> = {
   Surprise: { lat: 33.629, lng: -112.368 },
@@ -43,7 +42,19 @@ export function pingOf(r: Resource) {
 }
 
 export function pinColor(e: BookEvent) {
-  return TYPE_TONE[e.type]?.bar ?? HEX.navy;
+  if (e.hold || isWatch(e)) return HEX.watch;
+  const f = familyOf(e.type);
+  if (f === "sales") return HEX.navy;
+  if (f === "shop") return HEX.idle;
+  return "#0f4a62";
+}
+
+const LINES = [HEX.navy, "#0f4a62", "#1f7a4d", "#3e5360", "#5c7380"] as const;
+
+export function routeColor(id: string) {
+  let n = 0;
+  for (let i = 0; i < id.length; i += 1) n = (n * 33 + id.charCodeAt(i)) >>> 0;
+  return LINES[n % LINES.length];
 }
 
 export function isField(e: BookEvent) {
