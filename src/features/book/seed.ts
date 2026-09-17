@@ -68,7 +68,6 @@ export const extraBook: BookEvent[] = [
   row("BK-15m", "Membership", "Cole Trust tune-up", "crew-marco", "2026-09-15T13:00", "2026-09-15T14:30", { jobId: "P-318", city: "Phoenix", woSigned: true }),
 
   row("BK-16a", "Sales", "Moreno close", "marco", "2026-09-16T17:00", "2026-09-16T19:00", { personId: "L-4748", city: "Surprise", status: "Confirmed" }),
-  row("BK-16-open", "Sales", "Walk-in Surprise", "", "2026-09-16T18:30", "2026-09-16T20:00", { city: "Surprise", status: "Set", blank: false }),
   row("BK-16b", "Callback", "Santos packet", "marco", "2026-09-16T11:00", "2026-09-16T11:30", { personId: "L-4718", city: "Surprise" }),
   row("BK-16c", "Sales", "Kerr Saturday?", "dana", "2026-09-16T17:30", "2026-09-16T19:30", { personId: "L-4726", city: "Scottsdale", status: "Set" }),
   row("BK-16d", "Assessment", "Hale condenser", "dana", "2026-09-16T13:00", "2026-09-16T14:30", { personId: "L-4819", city: "Scottsdale" }),
