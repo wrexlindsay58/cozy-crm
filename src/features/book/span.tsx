@@ -76,7 +76,7 @@ export function DaySpan({
                   const hrs = Math.max(0.45, hourOf(p.e.end) - hourOf(p.e.start));
                   return (
                     <div key={p.e.id} style={packStyle(p, top, hrs * ROW - 4)}>
-                      <EventChip e={p.e} selected={selectedId === p.e.id} thin={p.cols > 1 || hrs * ROW < 40} onClick={() => onSelect(p.e.id)} />
+                      <EventChip e={p.e} selected={selectedId === p.e.id} thin={hrs * ROW < 40} onClick={() => onSelect(p.e.id)} />
                     </div>
                   );
                 })}
