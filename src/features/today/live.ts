@@ -5,7 +5,7 @@ import { familyOf, isWatch, type BookEvent } from "@/features/book/types";
 import { hourOf, labelTime } from "@/features/book/time";
 
 export type Fire = { id: string; title: string; detail: string; href: string; stop: boolean };
-export type SitRow = { id: string; time: string; name: string; who: string; city: string; status: string; href: string; amount: number };
+export type SitRow = { id: string; time: string; name: string; who: string; city: string; status: string; href: string; amount: number; startH: number; endH: number };
 export type Meter = { label: string; fact: string; score: number };
 
 function active(e: BookEvent) {
@@ -135,6 +135,8 @@ export function buildToday(opts: {
     status: e.status,
     href: e.href || "/calendar",
     amount: valueOf(e, leads),
+    startH: hourOf(e.start),
+    endH: hourOf(e.end),
   }));
   const streetRows: SitRow[] = street.map((e) => ({
     id: e.id,
@@ -145,6 +147,8 @@ export function buildToday(opts: {
     status: e.hold ? "Hold" : e.status,
     href: e.href || (e.jobId ? `/projects/${e.jobId}` : "/projects"),
     amount: 0,
+    startH: hourOf(e.start),
+    endH: hourOf(e.end),
   }));
 
   const people = [
@@ -185,7 +189,7 @@ export function buildToday(opts: {
   const meters: Meter[] = [
     { label: "Money", fact: sold ? `$${Math.round(sold / 1000)}k · ${soldN} sold` : onBook ? `$${Math.round(onBook / 1000)}k on the book` : "$0 sold", score: moneyScore },
     { label: "Book", fact: `${sitsLeft.length} sit${sitsLeft.length === 1 ? "" : "s"} left`, score: bookScore },
-    { label: "Street", fact: behindN ? `${behindN} behind` : `${street.length} out`, score: streetScore },
+    { label: "Installs", fact: behindN ? `${behindN} behind` : `${street.length} out`, score: streetScore },
     { label: "People", fact: idle.length ? `${idle.length} idle` : "Working", score: peopleScore },
   ];
 
