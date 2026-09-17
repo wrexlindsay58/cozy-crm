@@ -12,7 +12,7 @@ import { familyOf, type BookEvent } from "@/features/book/types";
 import { moveBook, useBook } from "@/features/book/store";
 import { useRoster, type Resource, type ResourceKind } from "@/features/book/roster";
 import { geoOf, isField, phoneOf, pingOf, pinColor, routeColor } from "@/features/dispatch/geo";
-import { fetchPath, mins, optimizeStops, rushLabel } from "@/features/dispatch/osrm";
+import { fetchPath, mins, optimizeStops } from "@/features/dispatch/osrm";
 
 export const Route = createFileRoute("/_app/dispatch")({
   component: DispatchPage,
@@ -218,16 +218,16 @@ function DispatchPage() {
                   { id: "DFW", label: "Dallas" },
                 ]}
               />
-              <p className="text-[13px] tabular-nums">
-                <span className="font-bold">{live}</span>
-                <span className="text-muted"> moving · {rushLabel(hour)}</span>
-              </p>
             </>
           }
         />
       </header>
 
       <div className="flex shrink-0 items-center gap-2 border-b border-line bg-card px-4 py-2">
+        <p className="text-[13px] tabular-nums">
+          <span className="font-bold">{live}</span>
+          <span className="text-muted"> moving</span>
+        </p>
         <button type="button" className="h-8 rounded-md border border-line px-2 text-xs font-semibold" onClick={() => shiftBookDay(-1)}>
           Prev
         </button>
@@ -333,7 +333,7 @@ function DispatchPage() {
                 <p className={cn("text-[13px] font-semibold", behind(selectedStops, hour) ? "text-stop" : "text-muted")}>{behind(selectedStops, hour) ? "Behind" : selectedStops.length ? "On the book" : "Open"}</p>
                 {drive[selected.id] ? (
                   <p className="mt-1 text-[12px] text-muted">
-                    {drive[selected.id].mins} min drive · {drive[selected.id].miles.toFixed(1)} mi · {rushLabel(hour)}
+                    {drive[selected.id].mins} min drive · {drive[selected.id].miles.toFixed(1)} mi
                   </p>
                 ) : null}
                 {behind(selectedStops, hour) && helper ? (
