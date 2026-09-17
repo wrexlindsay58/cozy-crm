@@ -1,0 +1,170 @@
+[
+  {
+    "name": "today",
+    "width": 375,
+    "title": "Today",
+    "clip": "pass",
+    "scrollWidth": 375,
+    "clientWidth": 375
+  },
+  {
+    "name": "book",
+    "width": 375,
+    "title": "Book",
+    "clip": "pass",
+    "scrollWidth": 375,
+    "clientWidth": 375
+  },
+  {
+    "name": "map",
+    "width": 375,
+    "title": "Map",
+    "clip": "pass",
+    "scrollWidth": 375,
+    "clientWidth": 375
+  },
+  {
+    "name": "inbox",
+    "width": 375,
+    "title": "Inbox",
+    "clip": "pass",
+    "scrollWidth": 375,
+    "clientWidth": 375
+  },
+  {
+    "name": "sales",
+    "width": 375,
+    "title": "Sales",
+    "clip": "pass",
+    "scrollWidth": 375,
+    "clientWidth": 375
+  },
+  {
+    "name": "today",
+    "width": 768,
+    "title": "Today",
+    "clip": "pass",
+    "scrollWidth": 768,
+    "clientWidth": 768
+  },
+  {
+    "name": "book",
+    "width": 768,
+    "title": "Book",
+    "clip": "pass",
+    "scrollWidth": 768,
+    "clientWidth": 768
+  },
+  {
+    "name": "map",
+    "width": 768,
+    "title": "Map",
+    "clip": "pass",
+    "scrollWidth": 768,
+    "clientWidth": 768
+  },
+  {
+    "name": "inbox",
+    "width": 768,
+    "title": "Inbox",
+    "clip": "pass",
+    "scrollWidth": 768,
+    "clientWidth": 768
+  },
+  {
+    "name": "sales",
+    "width": 768,
+    "title": "Sales",
+    "clip": "pass",
+    "scrollWidth": 768,
+    "clientWidth": 768
+  },
+  {
+    "name": "today",
+    "width": 1280,
+    "title": "Today",
+    "clip": "pass",
+    "scrollWidth": 1280,
+    "clientWidth": 1280
+  },
+  {
+    "name": "book",
+    "width": 1280,
+    "title": "Book",
+    "clip": "pass",
+    "scrollWidth": 1280,
+    "clientWidth": 1280
+  },
+  {
+    "name": "map",
+    "width": 1280,
+    "title": "Map",
+    "clip": "pass",
+    "scrollWidth": 1280,
+    "clientWidth": 1280
+  },
+  {
+    "name": "inbox",
+    "width": 1280,
+    "title": "Inbox",
+    "clip": "pass",
+    "scrollWidth": 1280,
+    "clientWidth": 1280
+  },
+  {
+    "name": "sales",
+    "width": 1280,
+    "title": "Sales",
+    "clip": "pass",
+    "scrollWidth": 1280,
+    "clientWidth": 1280
+  },
+  {
+    "name": "today",
+    "width": 1440,
+    "title": "Today",
+    "clip": "pass",
+    "scrollWidth": 1440,
+    "clientWidth": 1440
+  },
+  {
+    "name": "book",
+    "width": 1440,
+    "title": "Book",
+    "clip": "pass",
+    "scrollWidth": 1440,
+    "clientWidth": 1440
+  },
+  {
+    "name": "map",
+    "width": 1440,
+    "title": "Map",
+    "clip": "pass",
+    "scrollWidth": 1440,
+    "clientWidth": 1440
+  },
+  {
+    "name": "inbox",
+    "width": 1440,
+    "title": "Inbox",
+    "clip": "pass",
+    "scrollWidth": 1440,
+    "clientWidth": 1440
+  },
+  {
+    "name": "sales",
+    "width": 1440,
+    "title": "Sales",
+    "clip": "pass",
+    "scrollWidth": 1440,
+    "clientWidth": 1440
+  },
+  {
+    "clickPath": {
+      "leadOk": true,
+      "bookOk": true,
+      "mapOk": true,
+      "inboxOk": true
+    }
+  }
+]

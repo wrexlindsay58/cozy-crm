@@ -2,12 +2,13 @@ import { useEffect, useRef } from "react";
 import * as maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { cn } from "@/lib/cn";
-import { offices, shop, units, type Unit } from "@/lib/dispatch-data";
+import { offices, shop } from "@/lib/dispatch-data";
 import { HEX } from "@/lib/tokens";
-import type { JobKind, Work } from "@/features/dispatch/store";
 
 export type MapView = "base" | "aerial" | "3d";
 export type StreetPath = { unitId: string; color: string; coords: [number, number][] };
+export type MapPerson = { id: string; name: string; initials: string; lat: number; lng: number; color: string };
+export type MapHouse = { id: string; resourceId: string; lat: number; lng: number; label: string; color: string };
 
 const AERIAL = {
   version: 8 as const,
@@ -30,23 +31,6 @@ const STYLE: Record<MapView, string | typeof AERIAL> = {
   "3d": "https://tiles.openfreemap.org/styles/dark",
 };
 
-const STATUS_HEX: Record<string, string> = {
-  idle: HEX.idle,
-  "en-route": HEX.watch,
-  "on-site": HEX.navy,
-  late: HEX.stop,
-  done: HEX.go,
-};
-
-const KIND_HEX: Record<JobKind, string> = {
-  run: HEX.navy,
-  install: HEX.stop,
-  "follow-up": HEX.watch,
-  service: HEX.go,
-  callback: HEX.watch,
-  materials: HEX.idle,
-};
-
 function pathData(paths: StreetPath[]) {
   return {
     type: "FeatureCollection" as const,
@@ -60,8 +44,14 @@ function pathData(paths: StreetPath[]) {
   };
 }
 
-function placeMarks(map: maplibregl.Map, office: "PHX" | "DFW" | "all", jobs: Work[], onSelect: (id: string) => void, onStop: (unitId: string, stopId: string) => void) {
-  const here = units.filter((u) => office === "all" || u.office === office);
+function placeMarks(
+  map: maplibregl.Map,
+  office: "PHX" | "DFW" | "all",
+  people: MapPerson[],
+  houses: MapHouse[],
+  onSelect: (id: string) => void,
+  onStop: (resourceId: string, stopId: string) => void,
+) {
   const marks: maplibregl.Marker[] = [];
   const shops = office === "all" ? [shop.PHX, shop.DFW] : [shop[office]];
   shops.forEach((shopPt) => {
@@ -70,25 +60,23 @@ function placeMarks(map: maplibregl.Map, office: "PHX" | "DFW" | "all", jobs: Wo
     shopEl.title = shopPt.name;
     marks.push(new maplibregl.Marker({ element: shopEl }).setLngLat([shopPt.lng, shopPt.lat]).addTo(map));
   });
-  jobs
-    .filter((j) => here.some((u) => u.id === j.unitId) || !j.unitId)
-    .forEach((s) => {
-      const house = document.createElement("button");
-      house.type = "button";
-      house.className = "dispatch-house";
-      house.title = s.name;
-      house.innerHTML = `<span style="background:${KIND_HEX[s.kind]}">${s.name.slice(0, 1)}</span>`;
-      house.addEventListener("click", (ev) => {
-        ev.stopPropagation();
-        onStop(s.unitId ?? "", s.id);
-      });
-      marks.push(new maplibregl.Marker({ element: house, anchor: "bottom" }).setLngLat([s.lng, s.lat]).addTo(map));
+  houses.forEach((s) => {
+    const house = document.createElement("button");
+    house.type = "button";
+    house.className = "dispatch-house";
+    house.title = s.label;
+    house.innerHTML = `<span style="background:${s.color}">${s.label.slice(0, 1)}</span>`;
+    house.addEventListener("click", (ev) => {
+      ev.stopPropagation();
+      onStop(s.resourceId, s.id);
     });
-  here.forEach((u) => {
+    marks.push(new maplibregl.Marker({ element: house, anchor: "bottom" }).setLngLat([s.lng, s.lat]).addTo(map));
+  });
+  people.forEach((u) => {
     const pin = document.createElement("button");
     pin.type = "button";
     pin.className = "dispatch-pin";
-    pin.style.background = STATUS_HEX[u.status];
+    pin.style.background = u.color;
     pin.textContent = u.initials;
     pin.title = u.name;
     pin.addEventListener("click", (ev) => {
@@ -103,7 +91,8 @@ function placeMarks(map: maplibregl.Map, office: "PHX" | "DFW" | "all", jobs: Wo
 export function DispatchMap({
   office,
   view,
-  jobs,
+  people,
+  houses,
   paths,
   selectedId,
   selectedStopId,
@@ -112,23 +101,32 @@ export function DispatchMap({
 }: {
   office: "PHX" | "DFW" | "all";
   view: MapView;
-  jobs: Work[];
+  people: MapPerson[];
+  houses: MapHouse[];
   paths: StreetPath[];
   selectedId: string | null;
   selectedStopId: string | null;
   onSelect: (id: string) => void;
-  onPickStop: (unitId: string, stopId: string) => void;
+  onPickStop: (resourceId: string, stopId: string) => void;
 }) {
   const wrap = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
-  const jobsRef = useRef(jobs);
+  const marksRef = useRef<maplibregl.Marker[]>([]);
+  const peopleRef = useRef(people);
+  const housesRef = useRef(houses);
   const pathsRef = useRef(paths);
   const onSelectRef = useRef(onSelect);
   const onStopRef = useRef(onPickStop);
-  jobsRef.current = jobs;
+  peopleRef.current = people;
+  housesRef.current = houses;
   pathsRef.current = paths;
   onSelectRef.current = onSelect;
   onStopRef.current = onPickStop;
+
+  function drawMarks(map: maplibregl.Map) {
+    marksRef.current.forEach((m) => m.remove());
+    marksRef.current = placeMarks(map, office, peopleRef.current, housesRef.current, (id) => onSelectRef.current(id), (a, b) => onStopRef.current(a, b));
+  }
 
   useEffect(() => {
     const el = wrap.current;
@@ -145,13 +143,11 @@ export function DispatchMap({
       attributionControl: { compact: true },
     });
     mapRef.current = map;
-    const marks: maplibregl.Marker[] = [];
     const ro = new ResizeObserver(() => map.resize());
     ro.observe(el);
     const tick = window.setTimeout(() => map.resize(), 80);
 
     function ready() {
-      marks.splice(0).forEach((m) => m.remove());
       if (view === "3d") {
         try {
           const layers = map.getStyle().layers ?? [];
@@ -189,7 +185,7 @@ export function DispatchMap({
         source: "routes",
         paint: { "line-color": ["get", "color"], "line-width": 4, "line-opacity": 0.9 },
       });
-      marks.push(...placeMarks(map, office, jobsRef.current, (id) => onSelectRef.current(id), (a, b) => onStopRef.current(a, b)));
+      drawMarks(map);
       map.resize();
     }
     map.on("load", ready);
@@ -197,11 +193,18 @@ export function DispatchMap({
     return () => {
       window.clearTimeout(tick);
       ro.disconnect();
-      marks.forEach((m) => m.remove());
+      marksRef.current.forEach((m) => m.remove());
+      marksRef.current = [];
       map.remove();
       mapRef.current = null;
     };
   }, [office, view]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    drawMarks(map);
+  }, [people, houses, office]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -212,21 +215,25 @@ export function DispatchMap({
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
-    const hit = jobs.find((s) => s.id === selectedStopId);
+    const hit = houses.find((s) => s.id === selectedStopId);
     if (hit) {
       map.flyTo({ center: [hit.lng, hit.lat], zoom: 17.2, pitch: view === "3d" ? 60 : 0, duration: 700 });
       return;
     }
-    const u = units.find((x) => x.id === selectedId);
-    if (!u || (office !== "all" && u.office !== office)) return;
+    const u = people.find((x) => x.id === selectedId);
+    if (!u) return;
     map.flyTo({ center: [u.lng, u.lat], zoom: view === "3d" ? 15.6 : 12.4, pitch: view === "3d" ? 58 : 0, duration: 600 });
-  }, [selectedId, selectedStopId, office, view, jobs]);
+  }, [selectedId, selectedStopId, office, view, houses, people]);
 
   return <div ref={wrap} className={cn("dispatch-map absolute inset-0 h-full w-full", view === "aerial" ? "dispatch-map-aerial" : "dispatch-map-ink")} />;
 }
 
-export function unitColor(u: Unit) {
-  return STATUS_HEX[u.status];
+export function statusColor(status: string) {
+  if (status === "late" || status === "Behind") return HEX.stop;
+  if (status === "en-route" || status === "Dispatched") return HEX.watch;
+  if (status === "on-site") return HEX.navy;
+  if (status === "done" || status === "Done") return HEX.go;
+  return HEX.idle;
 }
 
 export function streetViewSrc(lat: number, lng: number) {

@@ -94,7 +94,12 @@ export function patchBook(id: string, row: Partial<BookEvent>) {
   return events.find((e) => e.id === id);
 }
 export function moveBook(id: string, start: string, end: string, resourceId: string) {
-  return patchBook(id, { start, end, resourceId });
+  const cur = events.find((e) => e.id === id);
+  if (!cur) return;
+  let status = cur.status;
+  if (resourceId && status !== "Done" && status !== "No-sit" && status !== "No-show") status = "Dispatched";
+  if (!resourceId && status === "Dispatched") status = "Confirmed";
+  return patchBook(id, { start, end, resourceId, status });
 }
 export function setBookStatus(id: string, status: BookStatus) {
   return patchBook(id, { status });

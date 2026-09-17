@@ -1,28 +1,21 @@
 import { useEffect, useMemo, useState, type DragEvent } from "react";
-import { Link, createFileRoute } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { X } from "lucide-react";
-import { DispatchMap, streetViewSrc, unitColor, type MapView, type StreetPath } from "@/components/dispatch-map";
+import { DispatchMap, statusColor, streetViewSrc, type MapView, type StreetPath } from "@/components/dispatch-map";
 import { cn } from "@/lib/cn";
-import { money } from "@/lib/crm-data";
 import { PageTitle } from "@/components/ui-bits";
-import { statusLabel, statusTone, units, type Unit } from "@/lib/dispatch-data";
 import { BookPick } from "@/features/book/pick";
 import { setBookDay, shiftBookDay, useBookDay } from "@/features/book/day";
-import { TODAY } from "@/features/book/time";
-import { applyOrder, assignWork, isBehind, kindLabel, openWork, reorderWork, unitWork, useWork, type Work } from "@/features/dispatch/store";
+import { TODAY, addHrs, hourOf, toIso } from "@/features/book/time";
+import { familyOf, type BookEvent } from "@/features/book/types";
+import { moveBook, useBook } from "@/features/book/store";
+import { useRoster, type Resource, type ResourceKind } from "@/features/book/roster";
+import { geoOf, isField, phoneOf, pingOf, pinColor } from "@/features/dispatch/geo";
 import { fetchPath, mins, optimizeStops, rushLabel } from "@/features/dispatch/osrm";
 
 export const Route = createFileRoute("/_app/dispatch")({
   component: DispatchPage,
 });
-
-const TONE = {
-  stop: "text-stop",
-  watch: "text-watch",
-  go: "text-go",
-  info: "text-info",
-  none: "text-muted",
-} as const;
 
 const VIEWS: { id: MapView; label: string }[] = [
   { id: "base", label: "Base" },
@@ -30,31 +23,73 @@ const VIEWS: { id: MapView; label: string }[] = [
   { id: "3d", label: "3D" },
 ];
 
-const HOUR = 18;
-
-function inOffice(w: Work, office: "PHX" | "DFW" | "all") {
-  if (office === "all") return true;
-  if (w.unitId) return units.find((u) => u.id === w.unitId)?.office === office;
-  const dfw = w.city === "Dallas" || w.city === "Fort Worth";
-  return office === "DFW" ? dfw : !dfw;
+function initials(name: string) {
+  const p = name.replace(/^Crew \d+ — /, "").split(" ").filter(Boolean);
+  return ((p[0]?.[0] ?? "") + (p[1]?.[0] ?? "")).toUpperCase() || name.slice(0, 2).toUpperCase();
 }
 
-function useStreetPaths(office: "PHX" | "DFW" | "all", jobs: Work[]) {
+function familyOk(type: BookEvent["type"], kind: ResourceKind) {
+  const f = familyOf(type);
+  if (f === "sales") return kind === "closer" || kind === "setter";
+  if (f === "production") return kind === "crew";
+  return true;
+}
+
+function clockHour(cursor: Date) {
+  const a = toIso(cursor).slice(0, 10);
+  const b = toIso(TODAY).slice(0, 10);
+  if (a === b) return 18;
+  if (a < b) return 22;
+  return 6;
+}
+
+function active(e: BookEvent) {
+  return e.status !== "Done" && e.status !== "No-sit" && e.status !== "No-show";
+}
+
+function behind(list: BookEvent[], hour: number) {
+  return list.some((e) => active(e) && hourOf(e.start) < hour);
+}
+
+async function packRoute(resource: Resource, list: BookEvent[], day: string) {
+  let cursor = resource.kind === "crew" ? 7 : 8;
+  const ping = pingOf(resource);
+  for (let i = 0; i < list.length; i += 1) {
+    const e = list[i];
+    const hrs = Math.max(0.5, (new Date(e.end).getTime() - new Date(e.start).getTime()) / 36e5);
+    const start = addHrs(`${day}T00:00`, cursor);
+    moveBook(e.id, start, addHrs(start, hrs), resource.id);
+    const next = list[i + 1];
+    if (!next) continue;
+    const path = await fetchPath([geoOf(e), geoOf(next)], clockHour(new Date(day)));
+    cursor = hourOf(addHrs(start, hrs)) + (path ? path.seconds / 3600 : 0.25);
+  }
+  if (!list.length) return;
+  const first = await fetchPath([ping, geoOf(list[0])], 18);
+  if (first && list[0]) {
+    const e = list[0];
+    const hrs = Math.max(0.5, (new Date(e.end).getTime() - new Date(e.start).getTime()) / 36e5);
+    const startH = (resource.kind === "crew" ? 7 : 8) + first.seconds / 3600;
+    const start = addHrs(`${day}T00:00`, startH);
+    moveBook(e.id, start, addHrs(start, hrs), resource.id);
+  }
+}
+
+function useStreetPaths(people: Resource[], jobs: BookEvent[]) {
   const [paths, setPaths] = useState<StreetPath[]>([]);
   const [drive, setDrive] = useState<Record<string, { mins: number; miles: number }>>({});
-  const sig = jobs.map((j) => `${j.id}:${j.unitId}`).join("|");
+  const sig = jobs.map((j) => `${j.id}:${j.resourceId}:${j.start}`).join("|");
   useEffect(() => {
     let dead = false;
     (async () => {
-      const here = units.filter((u) => office === "all" || u.office === office);
       const next: StreetPath[] = [];
       const d: Record<string, { mins: number; miles: number }> = {};
-      for (const u of here) {
-        const list = jobs.filter((j) => j.unitId === u.id);
+      for (const u of people) {
+        const list = jobs.filter((j) => j.resourceId === u.id && isField(j)).sort((a, b) => a.start.localeCompare(b.start));
         if (!list.length) continue;
-        const path = await fetchPath([{ lng: u.lng, lat: u.lat }, ...list], HOUR);
+        const path = await fetchPath([pingOf(u), ...list.map(geoOf)], 18);
         if (!path) continue;
-        next.push({ unitId: u.id, color: unitColor(u), coords: path.coords });
+        next.push({ unitId: u.id, color: statusColor(behind(list, 18) ? "Behind" : "Dispatched"), coords: path.coords });
         d[u.id] = { mins: mins(path.seconds), miles: path.miles };
       }
       if (!dead) {
@@ -65,28 +100,54 @@ function useStreetPaths(office: "PHX" | "DFW" | "all", jobs: Work[]) {
     return () => {
       dead = true;
     };
-  }, [office, sig, jobs]);
+  }, [people, sig, jobs]);
   return { paths, drive };
 }
 
 function DispatchPage() {
-  const all = useWork();
+  const events = useBook();
+  const roster = useRoster();
   const cursor = useBookDay();
+  const dayKey = toIso(cursor).slice(0, 10);
+  const hour = clockHour(cursor);
   const [office, setOffice] = useState<"all" | "PHX" | "DFW">("PHX");
   const [view, setView] = useState<MapView>("base");
   const [selectedId, setSelectedId] = useState<string | null>("marco");
   const [selectedStopId, setSelectedStopId] = useState<string | null>(null);
   const [drawer, setDrawer] = useState(true);
-  const here = useMemo(() => units.filter((u) => office === "all" || u.office === office), [office]);
-  const jobs = useMemo(() => all.filter((w) => inOffice(w, office)), [all, office]);
-  const open = openWork(jobs);
-  const selected = here.find((u) => u.id === selectedId) ?? null;
-  const selectedStops = selected ? unitWork(selected.id, jobs) : [];
-  const selectedStop = jobs.find((s) => s.id === selectedStopId) ?? selectedStops[0] ?? null;
-  const live = here.filter((u) => u.status === "en-route" || u.status === "on-site" || u.status === "late").length;
-  const { paths, drive } = useStreetPaths(office, jobs);
-  const street = selectedStop ?? (selected ? { lat: selected.lat, lng: selected.lng, name: selected.name, address: selected.next ?? "", city: "" } : null);
-  const helper = selected ? here.find((u) => u.id !== selected.id && (u.status === "idle" || u.status === "done") && u.role === selected.role) : null;
+
+  const here = useMemo(() => roster.filter((r) => office === "all" || r.office === office), [roster, office]);
+  const dayJobs = useMemo(
+    () => events.filter((e) => e.start.slice(0, 10) === dayKey && (office === "all" || e.office === office) && isField(e)),
+    [events, dayKey, office],
+  );
+  const open = dayJobs.filter((e) => !e.resourceId);
+  const selected = here.find((u) => u.id === selectedId) ?? here[0] ?? null;
+  const selectedStops = selected ? dayJobs.filter((e) => e.resourceId === selected.id).sort((a, b) => a.start.localeCompare(b.start)) : [];
+  const selectedStop = dayJobs.find((s) => s.id === selectedStopId) ?? selectedStops[0] ?? null;
+  const live = here.filter((u) => dayJobs.some((e) => e.resourceId === u.id && e.status === "Dispatched")).length;
+  const { paths, drive } = useStreetPaths(here, dayJobs);
+  const helper = selected
+    ? here.find((u) => u.id !== selected.id && !dayJobs.some((e) => e.resourceId === u.id && active(e)) && (u.kind === selected.kind || (selected.kind === "closer" && u.kind === "setter")))
+    : null;
+
+  const peoplePins = here.map((u) => {
+    const mine = dayJobs.filter((e) => e.resourceId === u.id);
+    const ping = pingOf(u);
+    return {
+      id: u.id,
+      name: u.name,
+      initials: initials(u.name),
+      lat: ping.lat,
+      lng: ping.lng,
+      color: statusColor(behind(mine, hour) ? "Behind" : mine.some((e) => e.status === "Dispatched") ? "Dispatched" : mine.length ? "Set" : "idle"),
+    };
+  });
+  const houses = dayJobs.filter(isField).map((e) => {
+    const g = geoOf(e);
+    return { id: e.id, resourceId: e.resourceId, lat: g.lat, lng: g.lng, label: e.title, color: pinColor(e) };
+  });
+  const street = selectedStop ? { ...geoOf(selectedStop), name: selectedStop.title, city: selectedStop.city } : selected ? { ...pingOf(selected), name: selected.name, city: "" } : null;
 
   function pick(id: string) {
     setSelectedId(id);
@@ -94,30 +155,32 @@ function DispatchPage() {
     setDrawer(true);
   }
 
-  function pickStop(unitId: string, stopId: string) {
-    if (unitId) setSelectedId(unitId);
+  function pickStop(resourceId: string, stopId: string) {
+    if (resourceId) setSelectedId(resourceId);
     setSelectedStopId(stopId);
     setDrawer(true);
   }
 
   function dropOnUnit(unitId: string, e: DragEvent) {
     e.preventDefault();
-    const id = e.dataTransfer.getData("text/stop");
-    if (id) assignWork(id, unitId);
+    const id = e.dataTransfer.getData("text/stop") || e.dataTransfer.getData("text/book-id");
+    const row = dayJobs.find((x) => x.id === id) ?? events.find((x) => x.id === id);
+    if (!row) return;
+    moveBook(id, row.start, row.end, unitId);
   }
 
   async function optimize() {
     if (!selected) return;
-    const list = unitWork(selected.id);
-    const ids = await optimizeStops(selected, list);
-    if (ids?.length) applyOrder(selected.id, ids);
+    const list = selectedStops.filter(active);
+    const ids = await optimizeStops(pingOf(selected), list.map((e) => ({ id: e.id, ...geoOf(e) })));
+    const ordered = (ids ?? list.map((e) => e.id)).map((id) => list.find((e) => e.id === id)).filter(Boolean) as BookEvent[];
+    await packRoute(selected, ordered, dayKey);
   }
 
   function sendRest(toId: string) {
-    if (!selected) return;
-    unitWork(selected.id)
-      .filter((s) => s.status !== "Ran")
-      .forEach((s) => assignWork(s.id, toId));
+    const to = here.find((u) => u.id === toId);
+    if (!selected || !to) return;
+    selectedStops.filter(active).forEach((s) => moveBook(s.id, s.start, s.end, toId));
   }
 
   return (
@@ -139,7 +202,7 @@ function DispatchPage() {
                 value={office}
                 onChange={(v) => {
                   setOffice(v);
-                  const first = units.find((u) => v === "all" || u.office === v)?.id ?? null;
+                  const first = roster.find((u) => v === "all" || u.office === v)?.id ?? null;
                   setSelectedId(first);
                   setSelectedStopId(null);
                   setDrawer(true);
@@ -152,7 +215,7 @@ function DispatchPage() {
               />
               <p className="text-[13px] tabular-nums">
                 <span className="font-bold">{live}</span>
-                <span className="text-muted"> moving · {rushLabel(HOUR)}</span>
+                <span className="text-muted"> moving · {rushLabel(hour)}</span>
               </p>
             </>
           }
@@ -169,9 +232,7 @@ function DispatchPage() {
         <button type="button" className="h-8 rounded-md border border-line px-2 text-xs font-semibold" onClick={() => shiftBookDay(1)}>
           Next
         </button>
-        <p className="text-sm font-semibold">
-          {cursor.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
-        </p>
+        <p className="text-sm font-semibold">{cursor.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</p>
       </div>
 
       <div className="grid min-h-0 min-w-0 flex-1 grid-rows-[auto_minmax(22rem,1fr)] lg:grid-cols-[20rem_minmax(0,1fr)] lg:grid-rows-1">
@@ -185,16 +246,19 @@ function DispatchPage() {
                     <button
                       type="button"
                       draggable
-                      onDragStart={(e) => e.dataTransfer.setData("text/stop", s.id)}
+                      onDragStart={(e) => {
+                        e.dataTransfer.setData("text/stop", s.id);
+                        e.dataTransfer.setData("text/book-id", s.id);
+                      }}
                       onClick={() => pickStop("", s.id)}
                       className="w-full rounded-md border border-line bg-card px-3 py-2.5 text-left"
                     >
                       <span className="flex items-baseline justify-between gap-2">
-                        <span className="truncate text-sm font-semibold">{s.name}</span>
-                        <span className="text-[11px] font-bold text-muted uppercase">{kindLabel(s.kind)}</span>
+                        <span className="truncate text-sm font-semibold">{s.title}</span>
+                        <span className="text-[11px] font-bold text-muted uppercase">{s.type}</span>
                       </span>
                       <span className="mt-0.5 block truncate text-[11px] text-muted">
-                        {s.job} · {s.city}
+                        {s.city || "No city"} · {s.status}
                       </span>
                     </button>
                   </li>
@@ -205,8 +269,8 @@ function DispatchPage() {
           <p className="px-1 pb-1 text-[11px] font-bold tracking-wide text-muted uppercase">People</p>
           <ul className="space-y-2">
             {here.map((u) => {
-              const n = unitWork(u.id, jobs).length;
-              const behind = isBehind(u.id, HOUR);
+              const mine = dayJobs.filter((e) => e.resourceId === u.id);
+              const late = behind(mine, hour);
               return (
                 <li key={u.id}>
                   <button
@@ -216,16 +280,16 @@ function DispatchPage() {
                     onDrop={(e) => dropOnUnit(u.id, e)}
                     className={cn("flex w-full items-start gap-2 rounded-md border bg-card px-3 py-3 text-left", selected?.id === u.id ? "border-navy" : "border-line")}
                   >
-                    <span className="mt-0.5 grid size-9 shrink-0 place-items-center rounded-md text-[10px] font-bold text-card" style={{ background: unitColor(u) }}>
-                      {u.initials}
+                    <span className="mt-0.5 grid size-9 shrink-0 place-items-center rounded-md text-[10px] font-bold text-card" style={{ background: statusColor(late ? "Behind" : mine.length ? "Dispatched" : "idle") }}>
+                      {initials(u.name)}
                     </span>
                     <span className="min-w-0 flex-1">
                       <span className="flex items-baseline justify-between gap-2">
                         <span className="truncate text-sm font-semibold">{u.name}</span>
-                        <span className={cn("shrink-0 text-[11px] font-bold uppercase", behind ? "text-stop" : TONE[statusTone(u.status)])}>{behind ? "Behind" : statusLabel(u.status)}</span>
+                        <span className={cn("shrink-0 text-[11px] font-bold uppercase", late ? "text-stop" : "text-muted")}>{late ? "Behind" : mine.length ? `${mine.length}` : "Open"}</span>
                       </span>
                       <span className="mt-0.5 block truncate text-[11px] text-muted">
-                        {n ? `${n} stop${n === 1 ? "" : "s"}` : "Open"}
+                        {mine.length ? `${mine.length} stop${mine.length === 1 ? "" : "s"}` : "No stops"}
                         {drive[u.id] ? ` · ${drive[u.id].mins} min` : ""}
                       </span>
                     </span>
@@ -237,7 +301,7 @@ function DispatchPage() {
         </aside>
 
         <div className="relative min-h-[22rem] min-w-0 lg:min-h-0">
-          <DispatchMap office={office} view={view} jobs={jobs} paths={paths} selectedId={selected?.id ?? null} selectedStopId={selectedStopId} onSelect={pick} onPickStop={pickStop} />
+          <DispatchMap office={office} view={view} people={peoplePins} houses={houses} paths={paths} selectedId={selected?.id ?? null} selectedStopId={selectedStopId} onSelect={pick} onPickStop={pickStop} />
           {selected && drawer ? (
             <aside className="absolute inset-x-0 bottom-0 z-10 flex max-h-[78%] flex-col overflow-auto border-t border-line bg-card shadow-sm lg:inset-y-0 lg:left-auto lg:max-h-none lg:w-96 lg:border-t-0 lg:border-l">
               <div className="flex min-h-10 items-center justify-end px-2">
@@ -246,38 +310,37 @@ function DispatchPage() {
                 </button>
               </div>
               <div className="px-4 pb-4">
-                {street ? <StreetPane lat={street.lat} lng={street.lng} name={"name" in street ? street.name : selected.name} address={"address" in street ? street.address : ""} city={"city" in street ? street.city : ""} /> : null}
+                {street ? <StreetPane lat={street.lat} lng={street.lng} name={street.name} city={street.city} /> : null}
                 <p className="text-[11px] font-bold tracking-wide text-muted uppercase">{selected.role}</p>
                 <h2 className="text-[16px] font-bold">{selected.name}</h2>
-                <p className={cn("text-[13px] font-semibold", isBehind(selected.id, HOUR) ? "text-stop" : TONE[statusTone(selected.status)])}>{isBehind(selected.id, HOUR) ? "Behind" : statusLabel(selected.status)}</p>
-                <p className="mt-1 text-[13px] text-muted">{selected.note}</p>
+                <p className={cn("text-[13px] font-semibold", behind(selectedStops, hour) ? "text-stop" : "text-muted")}>{behind(selectedStops, hour) ? "Behind" : selectedStops.length ? "On the book" : "Open"}</p>
                 {drive[selected.id] ? (
                   <p className="mt-1 text-[12px] text-muted">
-                    {drive[selected.id].mins} min drive · {drive[selected.id].miles.toFixed(1)} mi · {rushLabel(HOUR)}
+                    {drive[selected.id].mins} min drive · {drive[selected.id].miles.toFixed(1)} mi · {rushLabel(hour)}
                   </p>
                 ) : null}
-                {isBehind(selected.id, HOUR) && helper ? (
+                {behind(selectedStops, hour) && helper ? (
                   <button type="button" className="mt-3 h-10 w-full rounded-md bg-stop text-sm font-semibold text-card" onClick={() => sendRest(helper.id)}>
                     Send remaining to {helper.name.split(" ")[0]}
                   </button>
                 ) : null}
                 <div className="mt-3 flex gap-2">
-                  <a href={`tel:${selected.phone}`} className="grid h-10 flex-1 place-items-center rounded-md bg-navy text-[13px] font-semibold text-card">
-                    Call
-                  </a>
+                  {phoneOf(selected.id) ? (
+                    <a href={`tel:${phoneOf(selected.id)}`} className="grid h-10 flex-1 place-items-center rounded-md bg-navy text-[13px] font-semibold text-card">
+                      Call
+                    </a>
+                  ) : (
+                    <span className="grid h-10 flex-1 place-items-center rounded-md bg-navy text-[13px] font-semibold text-card">Call</span>
+                  )}
                   <button type="button" className="grid h-10 flex-1 place-items-center rounded-md bg-page text-[13px] font-semibold" onClick={() => void optimize()}>
                     Optimize
                   </button>
                 </div>
                 <h3 className="mt-4 mb-1 text-[11px] font-bold tracking-wide text-muted uppercase">Route</h3>
                 {selectedStops.length === 0 ? <p className="text-[13px] text-muted">No stops. Drop open work here.</p> : null}
-                <ul
-                  className="divide-y divide-line"
-                  onDragOver={(e) => e.preventDefault()}
-                  onDrop={(e) => dropOnUnit(selected.id, e)}
-                >
+                <ul className="divide-y divide-line" onDragOver={(e) => e.preventDefault()} onDrop={(e) => dropOnUnit(selected.id, e)}>
                   {selectedStops.map((s, i) => (
-                    <StopRow key={s.id} s={s} n={i + 1} people={here} active={selectedStopId === s.id} onPick={() => pickStop(selected.id, s.id)} onReorder={(from, to) => reorderWork(selected.id, from, to)} />
+                    <StopRow key={s.id} s={s} n={i + 1} people={here} activeId={selectedStopId === s.id} warn={!familyOk(s.type, selected.kind)} onPick={() => pickStop(selected.id, s.id)} />
                   ))}
                 </ul>
               </div>
@@ -293,74 +356,73 @@ function StopRow({
   s,
   n,
   people,
-  active,
+  activeId,
+  warn,
   onPick,
-  onReorder,
 }: {
-  s: Work;
+  s: BookEvent;
   n: number;
-  people: Unit[];
-  active: boolean;
+  people: Resource[];
+  activeId: boolean;
+  warn: boolean;
   onPick: () => void;
-  onReorder: (from: string, to: string) => void;
 }) {
   return (
     <li
       draggable
-      onDragStart={(e) => e.dataTransfer.setData("text/stop", s.id)}
+      onDragStart={(e) => {
+        e.dataTransfer.setData("text/stop", s.id);
+        e.dataTransfer.setData("text/book-id", s.id);
+      }}
       onDragOver={(e) => e.preventDefault()}
       onDrop={(e) => {
         e.preventDefault();
-        const from = e.dataTransfer.getData("text/stop");
-        if (from) onReorder(from, s.id);
+        const from = e.dataTransfer.getData("text/stop") || e.dataTransfer.getData("text/book-id");
+        if (!from || from === s.id) return;
+        const src = { start: s.start, end: s.end };
+        moveBook(from, src.start, src.end, s.resourceId);
       }}
     >
-      <div className={cn("flex gap-2 py-2", active ? "bg-page" : "")}>
+      <div className={cn("flex gap-2 py-2", activeId ? "bg-page" : "")}>
         <button type="button" onClick={onPick} className="min-w-0 flex-1 text-left">
           <p className="text-[13px] font-semibold">
-            {n}. {s.name}
+            {n}. {s.title}
           </p>
           <p className="text-[11px] text-muted">
-            {kindLabel(s.kind)} · {s.time} · {s.city}
+            {s.type} · {s.city} · {s.status}
           </p>
-          {s.amount ? (
-            <p className="text-[11px] tabular-nums">
-              {money(s.amount)} · {s.status}
-            </p>
-          ) : (
-            <p className="text-[11px] text-muted">{s.status}</p>
-          )}
+          {warn ? <p className="text-[11px] font-semibold text-watch">Wrong crew type</p> : null}
         </button>
         <select
           aria-label="Hand off"
-          className="h-8 max-w-24 self-center rounded-md border border-line bg-card text-[11px] font-semibold"
-          value={s.unitId ?? ""}
-          onChange={(e) => assignWork(s.id, e.target.value || null)}
+          className="h-8 max-w-28 self-center rounded-md border border-line bg-card text-[11px] font-semibold"
+          value={s.resourceId}
+          onChange={(e) => moveBook(s.id, s.start, s.end, e.target.value)}
         >
           <option value="">Open</option>
           {people.map((u) => (
             <option key={u.id} value={u.id}>
-              {u.name.split(" ")[0]}
+              {u.name.replace(/^Crew \d+ — /, "").split(" ")[0]}
             </option>
           ))}
         </select>
       </div>
-      {s.leadId ? (
-        <Link to="/leads/$leadId" params={{ leadId: s.leadId }} className="mb-2 block text-[11px] font-semibold text-navy">
+      {s.href ? (
+        <a href={s.href} className="mb-2 block text-[11px] font-semibold text-navy">
           Open file
-        </Link>
+        </a>
       ) : null}
     </li>
   );
 }
 
-function StreetPane({ lat, lng, name, address, city }: { lat: number; lng: number; name: string; address: string; city: string }) {
+function StreetPane({ lat, lng, name, city }: { lat: number; lng: number; name: string; city: string }) {
   return (
     <div className="mb-3 overflow-hidden rounded-md border border-line bg-page">
       <iframe title={`Street view ${name}`} src={streetViewSrc(lat, lng)} className="h-48 w-full border-0" loading="lazy" referrerPolicy="no-referrer-when-downgrade" allowFullScreen />
       <div className="flex items-center justify-between gap-2 px-3 py-2">
         <p className="min-w-0 truncate text-[12px] font-semibold">
-          {address || name}
+          {name}
           {city ? ` · ${city}` : ""}
         </p>
         <a href={`https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${lat},${lng}`} target="_blank" rel="noreferrer" className="shrink-0 text-[11px] font-semibold text-navy">
