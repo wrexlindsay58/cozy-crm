@@ -70,6 +70,7 @@
 
 .dispatch-map .maplibregl-canvas {
   outline: none;
+  filter: grayscale(1) contrast(1.14) brightness(1.03);
 }
 
 .dispatch-pin {

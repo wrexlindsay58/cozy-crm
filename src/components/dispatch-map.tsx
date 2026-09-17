@@ -1,10 +1,12 @@
 import { useEffect, useRef } from "react";
 import * as maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
-import { offices, routes, shop, stops, units, type Unit } from "@/lib/dispatch-data";
+import { offices, shop, units, type Unit } from "@/lib/dispatch-data";
 import { HEX } from "@/lib/tokens";
+import type { JobKind, Work } from "@/features/dispatch/store";
 
 export type MapView = "base" | "aerial" | "3d";
+export type StreetPath = { unitId: string; color: string; coords: [number, number][] };
 
 const AERIAL = {
   version: 8 as const,
@@ -22,9 +24,9 @@ const AERIAL = {
 };
 
 const STYLE: Record<MapView, string | typeof AERIAL> = {
-  base: "https://tiles.openfreemap.org/styles/liberty",
+  base: "https://tiles.openfreemap.org/styles/positron",
   aerial: AERIAL,
-  "3d": "https://tiles.openfreemap.org/styles/liberty",
+  "3d": "https://tiles.openfreemap.org/styles/positron",
 };
 
 const STATUS_HEX: Record<string, string> = {
@@ -35,69 +37,51 @@ const STATUS_HEX: Record<string, string> = {
   done: HEX.go,
 };
 
-function paint(map: maplibregl.Map, office: "PHX" | "DFW", view: MapView, onSelect: (id: string) => void, onStop: (unitId: string, stopId: string) => void) {
-  const here = units.filter((u) => u.office === office);
-  if (view === "3d") {
-    try {
-      const layers = map.getStyle().layers ?? [];
-      const label = layers.find((l: { type: string; id: string }) => l.type === "symbol")?.id;
-      if (!map.getLayer("3d-buildings") && map.getSource("openmaptiles")) {
-        map.addLayer(
-          {
-            id: "3d-buildings",
-            source: "openmaptiles",
-            "source-layer": "building",
-            type: "fill-extrusion",
-            minzoom: 14,
-            paint: {
-              "fill-extrusion-color": "#c5ccd3",
-              "fill-extrusion-height": ["coalesce", ["get", "render_height"], ["get", "height"], 10],
-              "fill-extrusion-base": ["coalesce", ["get", "render_min_height"], 0],
-              "fill-extrusion-opacity": 0.86,
-            },
-          },
-          label,
-        );
-      }
-    } catch {
-      /* pitched map still works */
-    }
-  }
-  const feats = here
-    .filter((u) => routes[u.id])
-    .map((u) => ({
-      type: "Feature" as const,
-      properties: { id: u.id },
-      geometry: { type: "LineString" as const, coordinates: routes[u.id] },
-    }));
-  if (map.getSource("routes")) map.removeLayer("routes-line"), map.removeSource("routes");
-  map.addSource("routes", { type: "geojson", data: { type: "FeatureCollection", features: feats } });
-  map.addLayer({
-    id: "routes-line",
-    type: "line",
-    source: "routes",
-    paint: { "line-color": HEX.navy, "line-width": 3, "line-opacity": 0.75 },
-  });
+const KIND_HEX: Record<JobKind, string> = {
+  run: HEX.navy,
+  install: HEX.stop,
+  "follow-up": HEX.watch,
+  service: HEX.go,
+  callback: HEX.watch,
+  materials: HEX.idle,
+};
 
+function pathData(paths: StreetPath[]) {
+  return {
+    type: "FeatureCollection" as const,
+    features: paths
+      .filter((p) => p.coords.length > 1)
+      .map((p) => ({
+        type: "Feature" as const,
+        properties: { color: p.color },
+        geometry: { type: "LineString" as const, coordinates: p.coords },
+      })),
+  };
+}
+
+function placeMarks(map: maplibregl.Map, office: "PHX" | "DFW", jobs: Work[], onSelect: (id: string) => void, onStop: (unitId: string, stopId: string) => void) {
+  const here = units.filter((u) => u.office === office);
   const marks: maplibregl.Marker[] = [];
   const shopPt = shop[office];
   const shopEl = document.createElement("div");
   shopEl.className = "dispatch-shop";
   shopEl.title = shopPt.name;
   marks.push(new maplibregl.Marker({ element: shopEl }).setLngLat([shopPt.lng, shopPt.lat]).addTo(map));
-  here.forEach((u) => {
-    (stops[u.id] ?? []).forEach((s) => {
+  jobs
+    .filter((j) => here.some((u) => u.id === j.unitId) || !j.unitId)
+    .forEach((s) => {
       const house = document.createElement("button");
       house.type = "button";
       house.className = "dispatch-house";
       house.title = s.name;
-      house.innerHTML = `<span>${s.name.slice(0, 1)}</span>`;
+      house.innerHTML = `<span style="background:${KIND_HEX[s.kind]}">${s.name.slice(0, 1)}</span>`;
       house.addEventListener("click", (ev) => {
         ev.stopPropagation();
-        onStop(u.id, s.id);
+        onStop(s.unitId ?? "", s.id);
       });
       marks.push(new maplibregl.Marker({ element: house, anchor: "bottom" }).setLngLat([s.lng, s.lat]).addTo(map));
     });
+  here.forEach((u) => {
     const pin = document.createElement("button");
     pin.type = "button";
     pin.className = "dispatch-pin";
@@ -116,6 +100,8 @@ function paint(map: maplibregl.Map, office: "PHX" | "DFW", view: MapView, onSele
 export function DispatchMap({
   office,
   view,
+  jobs,
+  paths,
   selectedId,
   selectedStopId,
   onSelect,
@@ -123,6 +109,8 @@ export function DispatchMap({
 }: {
   office: "PHX" | "DFW";
   view: MapView;
+  jobs: Work[];
+  paths: StreetPath[];
   selectedId: string | null;
   selectedStopId: string | null;
   onSelect: (id: string) => void;
@@ -130,8 +118,12 @@ export function DispatchMap({
 }) {
   const wrap = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
+  const jobsRef = useRef(jobs);
+  const pathsRef = useRef(paths);
   const onSelectRef = useRef(onSelect);
   const onStopRef = useRef(onPickStop);
+  jobsRef.current = jobs;
+  pathsRef.current = paths;
   onSelectRef.current = onSelect;
   onStopRef.current = onPickStop;
 
@@ -157,7 +149,44 @@ export function DispatchMap({
 
     function ready() {
       marks.splice(0).forEach((m) => m.remove());
-      marks.push(...paint(map, office, view, (id) => onSelectRef.current(id), (a, b) => onStopRef.current(a, b)));
+      if (view === "3d") {
+        try {
+          const layers = map.getStyle().layers ?? [];
+          const label = layers.find((l: { type: string; id: string }) => l.type === "symbol")?.id;
+          if (!map.getLayer("3d-buildings") && map.getSource("openmaptiles")) {
+            map.addLayer(
+              {
+                id: "3d-buildings",
+                source: "openmaptiles",
+                "source-layer": "building",
+                type: "fill-extrusion",
+                minzoom: 14,
+                paint: {
+                  "fill-extrusion-color": "#b8c0c6",
+                  "fill-extrusion-height": ["coalesce", ["get", "render_height"], ["get", "height"], 10],
+                  "fill-extrusion-base": ["coalesce", ["get", "render_min_height"], 0],
+                  "fill-extrusion-opacity": 0.8,
+                },
+              },
+              label,
+            );
+          }
+        } catch {
+          /* pitched map still works */
+        }
+      }
+      if (map.getSource("routes")) {
+        map.removeLayer("routes-line");
+        map.removeSource("routes");
+      }
+      map.addSource("routes", { type: "geojson", data: pathData(pathsRef.current) });
+      map.addLayer({
+        id: "routes-line",
+        type: "line",
+        source: "routes",
+        paint: { "line-color": ["get", "color"], "line-width": 4, "line-opacity": 0.9 },
+      });
+      marks.push(...placeMarks(map, office, jobsRef.current, (id) => onSelectRef.current(id), (a, b) => onStopRef.current(a, b)));
       map.resize();
     }
     map.on("load", ready);
@@ -173,18 +202,22 @@ export function DispatchMap({
 
   useEffect(() => {
     const map = mapRef.current;
+    const src = map?.getSource("routes") as maplibregl.GeoJSONSource | undefined;
+    src?.setData(pathData(paths));
+  }, [paths]);
+
+  useEffect(() => {
+    const map = mapRef.current;
     if (!map) return;
-    if (selectedStopId) {
-      const hit = Object.values(stops)
-        .flat()
-        .find((s) => s.id === selectedStopId);
-      if (hit) map.flyTo({ center: [hit.lng, hit.lat], zoom: 17.2, pitch: view === "3d" ? 60 : 0, duration: 700 });
+    const hit = jobs.find((s) => s.id === selectedStopId);
+    if (hit) {
+      map.flyTo({ center: [hit.lng, hit.lat], zoom: 17.2, pitch: view === "3d" ? 60 : 0, duration: 700 });
       return;
     }
     const u = units.find((x) => x.id === selectedId);
     if (!u || u.office !== office) return;
     map.flyTo({ center: [u.lng, u.lat], zoom: view === "3d" ? 15.6 : 12.4, pitch: view === "3d" ? 58 : 0, duration: 600 });
-  }, [selectedId, selectedStopId, office, view]);
+  }, [selectedId, selectedStopId, office, view, jobs]);
 
   return <div ref={wrap} className="dispatch-map absolute inset-0 h-full w-full" />;
 }
