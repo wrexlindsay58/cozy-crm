@@ -92,10 +92,6 @@ function Cell({
   );
 }
 
-function lightFill(row: Split) {
-  return Boolean(row.ink);
-}
-
 function Stack({ title, rows, caption, trend }: { title: string; rows: Split[]; caption?: string; trend?: Trend }) {
   const total = Math.max(rows.reduce((s, r) => s + r.n, 0), 1);
   return (
@@ -105,17 +101,15 @@ function Stack({ title, rows, caption, trend }: { title: string; rows: Split[]; 
         {trend ? <Pip now={trend.now} yest={trend.yest} /> : null}
       </p>
       {caption ? <p className="mt-0.5 text-[12px] text-muted">{caption}</p> : null}
-      <div className="mt-3 flex h-10 overflow-hidden rounded-md bg-page">
+      <div className="mt-3 flex h-5 overflow-hidden rounded-sm bg-page">
         {rows.map((r) =>
           r.n ? (
             <span
               key={r.label}
-              className={cn("grid place-items-center px-1 text-[12px] font-bold tabular-nums", lightFill(r) ? "text-ink" : "text-card")}
+              className="h-full"
               style={{ width: `${(r.n / total) * 100}%`, background: r.tone }}
               title={`${r.label}: ${r.n} · ${r.pct}%`}
-            >
-              {r.pct >= 12 ? `${r.pct}%` : r.n}
-            </span>
+            />
           ) : null,
         )}
       </div>
@@ -295,27 +289,29 @@ export function TodayBoard() {
                 </li>
               </ul>
             </div>
-            <div className="flex h-28 items-end gap-1">
-              {t.strip.map((s) => (
-                <div key={s.h} className="relative flex min-w-0 flex-1 flex-col items-center justify-end gap-1">
-                  {s.h === t.hour ? <i className="absolute inset-x-1/2 -top-1 bottom-5 w-0.5 bg-ink" /> : null}
-                  <div
-                    className="relative w-full max-w-5"
-                    style={{ height: `${16 + (Math.max(s.sales + s.prod, s.yestSales + s.yestProd) / stripMax) * 72}px` }}
-                    title={`${s.label}: today ${s.sales} sits / ${s.prod} installs · yest ${s.yestSales} / ${s.yestProd}`}
-                  >
-                    <span
-                      className="absolute inset-x-0 bottom-0 bg-line-strong"
-                      style={{ height: `${((s.yestSales + s.yestProd) / Math.max(s.sales + s.prod, s.yestSales + s.yestProd, 1)) * 100}%` }}
-                    />
-                    <span
-                      className="absolute inset-x-[15%] bottom-0 flex flex-col justify-end overflow-hidden rounded-sm bg-navy"
-                      style={{ height: `${((s.sales + s.prod) / Math.max(s.sales + s.prod, s.yestSales + s.yestProd, 1)) * 100}%` }}
-                    />
+            <div className="flex h-32 items-end gap-1.5">
+              {t.strip.map((s) => {
+                const todayN = s.sales + s.prod;
+                const yestN = s.yestSales + s.yestProd;
+                return (
+                  <div key={s.h} className="relative flex min-w-0 flex-1 flex-col items-center justify-end gap-1">
+                    {s.h === t.hour ? <i className="absolute inset-x-1/2 top-0 bottom-6 w-px bg-ink/40" /> : null}
+                    <div className="flex h-24 w-full max-w-7 items-end justify-center gap-0.5">
+                      <span
+                        className="w-[45%] rounded-sm bg-line-strong"
+                        style={{ height: yestN ? `${Math.max(8, (yestN / stripMax) * 100)}%` : 0 }}
+                        title={`${s.label} yesterday: ${s.yestSales} sits, ${s.yestProd} installs`}
+                      />
+                      <span
+                        className="w-[45%] rounded-sm bg-navy"
+                        style={{ height: todayN ? `${Math.max(8, (todayN / stripMax) * 100)}%` : 0 }}
+                        title={`${s.label} today: ${s.sales} sits, ${s.prod} installs`}
+                      />
+                    </div>
+                    <span className={cn("text-[10px] tabular-nums", s.h === t.hour ? "font-bold text-navy" : "text-faint")}>{s.label}</span>
                   </div>
-                  <span className={cn("text-[10px] tabular-nums", s.h === t.hour ? "font-bold text-navy" : "text-faint")}>{s.label}</span>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </section>
 
