@@ -6,7 +6,7 @@ import { TODAY, addDays, toIso } from "@/features/book/time";
 import { useBook } from "@/features/book/store";
 import { useRoster } from "@/features/book/roster";
 import { useOps } from "@/features/ops/store";
-import { buildToday, type Split } from "@/features/today/live";
+import { buildToday, type Mark, type Split } from "@/features/today/live";
 import { useMemo, useState } from "react";
 
 function deltaPct(now: number, was: number) {
@@ -14,22 +14,41 @@ function deltaPct(now: number, was: number) {
   return Math.round(((now - was) / was) * 100);
 }
 
+function markClass(m?: Mark) {
+  if (m === "go") return "text-go";
+  if (m === "watch") return "text-watch";
+  if (m === "stop") return "text-stop";
+  return "";
+}
+
 function Delta({ n }: { n: number | null }) {
-  if (n == null) return null;
-  const up = n >= 0;
+  if (n == null || n === 0) return null;
+  const mark: Mark | undefined = n >= 15 ? "go" : n <= -20 ? "stop" : n < 0 ? "watch" : undefined;
   return (
-    <span className={cn("text-[12px] font-semibold tabular-nums", up ? "text-navy" : "text-stop")}>
-      {up ? "+" : ""}
+    <span className={cn("text-[12px] font-semibold tabular-nums", mark ? markClass(mark) : "text-navy")}>
+      {n > 0 ? "+" : ""}
       {n}% vs yesterday
     </span>
   );
 }
 
-function Cell({ label, value, note, delta, stop }: { label: string; value: string; note?: string; delta?: number | null; stop?: boolean }) {
+function Cell({
+  label,
+  value,
+  note,
+  delta,
+  mark,
+}: {
+  label: string;
+  value: string;
+  note?: string;
+  delta?: number | null;
+  mark?: Mark;
+}) {
   return (
     <div className="bg-card px-5 py-5">
       <p className="text-[11px] font-bold tracking-wide text-muted uppercase">{label}</p>
-      <p className={cn("mt-1 text-[28px] leading-none font-bold tabular-nums", stop && "text-stop")}>{value}</p>
+      <p className={cn("mt-1 text-[28px] leading-none font-bold tabular-nums", markClass(mark))}>{value}</p>
       {delta != null ? (
         <p className="mt-1">
           <Delta n={delta} />
@@ -69,7 +88,7 @@ function Stack({ title, rows, caption }: { title: string; rows: Split[]; caption
           <li key={r.label} className="inline-flex items-center gap-1.5">
             <i className="size-2.5 rounded-sm" style={{ background: r.tone }} />
             <span className="font-semibold">{r.label}</span>
-            <span className="tabular-nums text-muted">
+            <span className={cn("tabular-nums", r.mark ? markClass(r.mark) : "text-muted")}>
               {r.n} · {r.pct}%
             </span>
           </li>
@@ -160,8 +179,8 @@ export function TodayBoard() {
       <div className="min-h-0 flex-1 overflow-auto">
         <div className="space-y-3 bg-page p-3">
           <section className="grid grid-cols-2 gap-px overflow-hidden rounded-md bg-line lg:grid-cols-4">
-            <Cell label="Sales today" value={money(t.sold)} note={`${t.soldN} deals`} delta={salesDelta} />
-            <Cell label="Close rate" value={`${t.closeRate}%`} note={`${t.soldN} sold of ${t.decided} decided`} />
+            <Cell label="Sales today" value={money(t.sold)} note={`${t.soldN} deals`} delta={salesDelta} mark={t.marks.sales} />
+            <Cell label="Close rate" value={`${t.closeRate}%`} note={`${t.soldN} sold of ${t.decided} decided`} mark={t.marks.close} />
             <Cell label="Cash in" value={money(t.cashIn)} note={`${money(t.expected)} still expected`} />
             <Cell label="Sits left" value={String(t.left)} note={`${t.passed} ran · ${t.appt.find((r) => r.label === "Left")?.pct ?? 0}% of the book still out`} />
           </section>
@@ -176,7 +195,7 @@ export function TodayBoard() {
                 </p>
                 <p>
                   <span className="block text-[11px] font-bold text-muted uppercase">Out</span>
-                  <span className={cn("text-[20px] font-bold tabular-nums", t.spent > t.cashIn && "text-stop")}>{money(t.spent)}</span>
+                  <span className={cn("text-[20px] font-bold tabular-nums", markClass(t.marks.cashOut))}>{money(t.spent)}</span>
                 </p>
                 <p>
                   <span className="block text-[11px] font-bold text-muted uppercase">Expected</span>
@@ -203,7 +222,9 @@ export function TodayBoard() {
                   </span>
                 </span>
               </div>
-              <p className="mt-2 text-[12px] font-semibold">{t.marketingSpend ? `${Math.round(t.marketingSold / t.marketingSpend)}x` : "—"} return</p>
+              <p className={cn("mt-2 text-[12px] font-semibold", markClass(t.marks.mkt))}>
+                {t.marketingSpend ? `${Math.round(t.marketingSold / t.marketingSpend)}x` : "—"} return
+              </p>
             </div>
             <div className="bg-card px-5 py-5">
               <p className="text-[11px] font-bold tracking-wide text-muted uppercase">Payroll today</p>
@@ -315,7 +336,9 @@ export function TodayBoard() {
                         {p.role} · {p.why}
                       </span>
                     </span>
-                    <span className="shrink-0 text-[15px] font-bold tabular-nums text-stop">{p.role === "Closer" ? money(p.amount) : p.amount}</span>
+                    <span className={cn("shrink-0 text-[15px] font-bold tabular-nums", p.amount === 0 && "text-stop")}>
+                      {p.role === "Closer" ? money(p.amount) : p.amount}
+                    </span>
                   </li>
                 ))}
               </ul>

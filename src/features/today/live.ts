@@ -4,16 +4,14 @@ import type { Resource } from "@/features/book/roster";
 import { familyOf, isWatch, type BookEvent } from "@/features/book/types";
 import { hourOf } from "@/features/book/time";
 
-export type Split = { label: string; n: number; pct: number; tone: string; ink?: boolean };
+export type Mark = "go" | "watch" | "stop";
+export type Split = { label: string; n: number; pct: number; tone: string; ink?: boolean; mark?: Mark };
 
 const KEY = "var(--color-navy)";
 const STEEL = "var(--color-idle)";
 const WASH = "var(--color-line-strong)";
-const HEALTHY = "color-mix(in srgb, var(--color-go) 78%, #082418)";
-const FAIR = "color-mix(in srgb, var(--color-watch) 58%, white)";
-const ALERT = "color-mix(in srgb, var(--color-stop) 72%, #4a0c14)";
 
-function pack(rows: { label: string; n: number; tone: string; ink?: boolean }[]): Split[] {
+function pack(rows: { label: string; n: number; tone: string; ink?: boolean; mark?: Mark }[]): Split[] {
   const total = rows.reduce((s, r) => s + r.n, 0);
   return rows.map((r) => ({ ...r, pct: total ? Math.round((r.n / total) * 100) : 0 }));
 }
@@ -147,9 +145,9 @@ export function buildToday(opts: {
     sales.filter((e) => e.status !== "Done" && e.status !== "Set" && hourOf(e.end) <= hour).length;
   const mix = pack([
     { label: "Set", n: sales.filter((e) => e.status === "Set").length, tone: WASH, ink: true },
-    { label: "Ran", n: ranN, tone: FAIR, ink: true },
-    { label: "Sold", n: soldN, tone: HEALTHY },
-    { label: "Cancelled", n: cancelled.length, tone: ALERT },
+    { label: "Ran", n: ranN, tone: STEEL, ink: true },
+    { label: "Sold", n: soldN, tone: KEY, mark: sold > yesterday ? "go" : undefined },
+    { label: "Cancelled", n: cancelled.length, tone: WASH, ink: true, mark: cancelled.length ? "stop" : undefined },
   ]);
 
   const appt = pack([
@@ -157,19 +155,29 @@ export function buildToday(opts: {
     { label: "Left", n: left.length, tone: KEY },
   ]);
   const jobSplit = pack([
-    { label: "Done", n: jobsDone, tone: HEALTHY },
-    { label: "Out", n: Math.max(jobsOut, prod.filter((e) => e.status === "Dispatched").length), tone: FAIR, ink: true },
-    { label: "Pending", n: jobsPending, tone: WASH, ink: true },
+    { label: "Done", n: jobsDone, tone: KEY },
+    { label: "Out", n: Math.max(jobsOut, prod.filter((e) => e.status === "Dispatched").length), tone: STEEL, ink: true },
+    { label: "Pending", n: jobsPending, tone: WASH, ink: true, mark: jobsPending > 2 ? "watch" : undefined },
   ]);
   const tix = pack([
-    { label: "Open", n: tixOpen, tone: KEY },
+    { label: "Open", n: tixOpen, tone: KEY, mark: tixOpen > 6 ? "watch" : undefined },
     { label: "Added", n: tixAdded, tone: STEEL, ink: true },
-    { label: "Closed", n: tixClosed, tone: HEALTHY },
+    { label: "Closed", n: tixClosed, tone: WASH, ink: true },
   ]);
+  const notCalledN = snapshot.leadsNotCalled;
   const leadSplit = pack([
-    { label: "Called", n: snapshot.leadsCalled, tone: HEALTHY },
-    { label: "Not called", n: snapshot.leadsNotCalled, tone: ALERT },
+    { label: "Called", n: snapshot.leadsCalled, tone: STEEL, ink: true },
+    { label: "Not called", n: notCalledN, tone: KEY, mark: notCalledN > 8 ? "stop" : notCalledN ? "watch" : undefined },
   ]);
+
+  const behindN = day.filter((e) => familyOf(e.type) === "production" && e.status !== "Done" && hourOf(e.end) <= hour).length;
+  const marks = {
+    sales: sold > yesterday ? ("go" as const) : undefined,
+    close: closeRate < 25 ? ("stop" as const) : closeRate >= 50 ? ("go" as const) : undefined,
+    cashOut: spent > cashIn ? ("stop" as const) : undefined,
+    behind: behindN ? ("stop" as const) : undefined,
+    mkt: marketingSpend && marketingSold / marketingSpend >= 8 ? ("go" as const) : undefined,
+  };
 
   return {
     sold,
@@ -206,7 +214,8 @@ export function buildToday(opts: {
     leadSplit,
     leadsIn: snapshot.leadsInWeek,
     hour,
-    behindN: day.filter((e) => familyOf(e.type) === "production" && e.status !== "Done" && hourOf(e.end) <= hour).length,
+    behindN,
+    marks,
     unsigned: prod.filter((e) => isWatch(e)).length,
     top: [...c.top, ...k.top, ...s.top],
     bottom: [...c.bottom, ...k.bottom, ...s.bottom],
