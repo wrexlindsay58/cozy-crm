@@ -36,18 +36,16 @@ export function EventChip({
           : { background: tone.bg, borderColor: tone.bar, color: "var(--color-ink)" }
       }
       className={cn(
-        "h-full w-full overflow-hidden rounded-md border px-1.5 py-0.5 text-left shadow-sm",
+        "flex h-full w-full flex-col items-start justify-start overflow-hidden rounded-md border px-1.5 pt-0.5 text-left leading-tight shadow-sm",
         e.blank && !selected ? "border-dashed" : "",
         watch && !selected ? "ring-1 ring-alert/40" : "",
       )}
     >
-      <p className="truncate text-[10px] font-bold tracking-wide uppercase opacity-70">{e.type}</p>
-      <p className="truncate text-[12px] font-semibold leading-tight">{name}</p>
-      {compact || thin ? null : (
-        <p className="truncate text-[11px] opacity-80">
-          {labelTime(e.start)} · {e.city || e.status}
-        </p>
-      )}
+      <p className="w-full truncate text-[12px] font-semibold">{name}</p>
+      <p className="w-full truncate text-[10px] opacity-80">
+        {e.type} · {labelTime(e.start)}
+        {e.city ? ` · ${e.city}` : ""}
+      </p>
     </button>
   );
   return (

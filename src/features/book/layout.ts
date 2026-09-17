@@ -56,13 +56,14 @@ export function pack(events: BookEvent[]): Packed[] {
 }
 
 export function packStyle(p: Packed, top: number, height: number): CSSProperties {
-  const gap = 3;
+  const shift = p.cols > 1 ? (p.col / p.cols) * 46 : 0;
   return {
     top,
     height: Math.max(height, 24),
-    left: `calc(${(p.col / p.cols) * 100}% + ${gap}px)`,
-    width: `calc(${(p.span / p.cols) * 100}% - ${gap * 2}px)`,
+    left: `calc(${shift}% + 2px)`,
+    width: `calc(${100 - shift}% - 4px)`,
     position: "absolute",
-    zIndex: 1,
+    zIndex: 1 + p.col,
+    boxShadow: p.col ? "0 1px 3px rgba(22, 50, 63, 0.18)" : undefined,
   };
 }
