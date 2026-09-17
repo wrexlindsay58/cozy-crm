@@ -2,7 +2,6 @@ import { cn } from "@/lib/cn";
 import { money } from "@/lib/crm-data";
 import { PageTitle } from "@/components/ui-bits";
 import { BookPick } from "@/features/book/pick";
-import { setBookDay, shiftBookDay, useBookDay } from "@/features/book/day";
 import { TODAY, addDays, toIso } from "@/features/book/time";
 import { useBook } from "@/features/book/store";
 import { useRoster } from "@/features/book/roster";
@@ -10,24 +9,15 @@ import { useOps } from "@/features/ops/store";
 import { buildToday } from "@/features/today/live";
 import { useMemo, useState } from "react";
 
-function clockHour(cursor: Date) {
-  const a = toIso(cursor).slice(0, 10);
-  const b = toIso(TODAY).slice(0, 10);
-  if (a === b) return 18;
-  if (a < b) return 22;
-  return 6;
-}
-
 function initials(name: string) {
   const p = name.replace(/^Crew \d+ — /, "").split(" ").filter(Boolean);
   return ((p[0]?.[0] ?? "") + (p[1]?.[0] ?? "")).toUpperCase() || name.slice(0, 2).toUpperCase();
 }
 
-function Meter({ label, fact, score }: { label: string; fact: string; score: number }) {
+function Meter({ label, fact, score, tone }: { label: string; fact: string; score: number; tone: string }) {
   const r = 34;
   const c = 2 * Math.PI * r;
   const dash = (score / 100) * c;
-  const tone = score < 40 ? "var(--color-stop)" : score < 65 ? "var(--color-watch)" : "var(--color-navy)";
   return (
     <div className="flex items-center gap-4 px-5 py-5">
       <svg width="92" height="92" viewBox="0 0 92 92" aria-hidden className="shrink-0">
@@ -59,118 +49,157 @@ export function TodayBoard() {
   const events = useBook();
   const roster = useRoster();
   const { leads } = useOps();
-  const cursor = useBookDay();
   const [office, setOffice] = useState<"all" | "PHX" | "DFW">("all");
-  const dayKey = toIso(cursor).slice(0, 10);
-  const yestKey = toIso(addDays(cursor, -1)).slice(0, 10);
-  const hour = clockHour(cursor);
+  const dayKey = toIso(TODAY).slice(0, 10);
+  const yestKey = toIso(addDays(TODAY, -1)).slice(0, 10);
+  const hour = 18;
   const t = useMemo(
     () => buildToday({ events, leads, roster, dayKey, yestKey, hour, office }),
-    [events, leads, roster, dayKey, yestKey, hour, office],
+    [events, leads, roster, dayKey, yestKey, office],
   );
   const maxBar = Math.max(t.sold, t.yesterday, 1);
   const mixMax = Math.max(...t.mix.map((m) => m.n), 1);
   const stripMax = Math.max(...t.strip.map((s) => s.n), 1);
+  const topAmt = Math.max(...t.board.filter((r) => r.role === "Closer").map((r) => r.amount), 1);
 
   return (
     <div className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden bg-page">
       <header className="flex min-h-14 shrink-0 flex-wrap items-center gap-2 border-b border-line bg-card px-4">
         <PageTitle
-          title="Today"
+          title="Live Board"
           flush
           actions={
-            <BookPick
-              value={office}
-              onChange={setOffice}
-              items={[
-                { id: "all", label: "All markets" },
-                { id: "PHX", label: "Phoenix" },
-                { id: "DFW", label: "Dallas" },
-              ]}
-            />
+            <span className="flex items-center gap-3">
+              <span className="inline-flex items-center gap-2 text-[12px] font-semibold text-muted">
+                <i className="live-pip" />
+                Live
+              </span>
+              <BookPick
+                value={office}
+                onChange={setOffice}
+                items={[
+                  { id: "all", label: "All markets" },
+                  { id: "PHX", label: "Phoenix" },
+                  { id: "DFW", label: "Dallas" },
+                ]}
+              />
+            </span>
           }
         />
       </header>
 
-      <div className="flex shrink-0 items-center gap-2 border-b border-line bg-card px-4 py-2">
-        <button type="button" className="h-8 rounded-md border border-line px-2 text-xs font-semibold" onClick={() => shiftBookDay(-1)}>
-          Prev
-        </button>
-        <button type="button" className="h-8 rounded-md border border-line px-2 text-xs font-semibold" onClick={() => setBookDay(new Date(TODAY))}>
-          Today
-        </button>
-        <button type="button" className="h-8 rounded-md border border-line px-2 text-xs font-semibold" onClick={() => shiftBookDay(1)}>
-          Next
-        </button>
-        <p className="text-sm font-semibold">{cursor.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</p>
-      </div>
-
       <p className="shrink-0 border-b border-line bg-card px-4 py-1.5 text-center text-[13px] tabular-nums">
-        <span className="font-bold">{t.soldN}</span>
-        <span className="text-muted"> sold</span>
+        <span className="font-bold text-navy">{t.soldN} sold</span>
         <span className="text-muted"> · </span>
-        <span className="font-bold">{money(t.onBook)}</span>
-        <span className="text-muted"> on the book</span>
+        <span className="font-bold text-navy-2">{money(t.onBook)} on the book</span>
         {t.behindN ? (
           <>
             <span className="text-muted"> · </span>
-            <span className="font-bold text-stop">{t.behindN}</span>
-            <span className="text-muted"> behind</span>
+            <span className="font-bold text-stop">{t.behindN} behind</span>
           </>
         ) : null}
         <span className="text-muted"> · </span>
-        <span className="font-bold">{t.sitsLeft.length}</span>
-        <span className="text-muted"> sits left</span>
+        <span className="font-bold">{t.sitsLeft.length} sits left</span>
       </p>
 
       <div className="min-h-0 flex-1 overflow-auto">
         <div className="space-y-3 bg-page p-3">
-        <section className="overflow-hidden rounded-md bg-card">
-          <div className="grid grid-cols-2 divide-x divide-y divide-line lg:grid-cols-4 lg:divide-y-0">
-            {t.meters.map((m) => (
-              <Meter key={m.label} {...m} />
-            ))}
-          </div>
-        </section>
+          <section className="overflow-hidden rounded-md bg-card">
+            <div className="grid grid-cols-2 divide-x divide-y divide-line lg:grid-cols-4 lg:divide-y-0">
+              {t.meters.map((m) => (
+                <Meter key={m.label} {...m} />
+              ))}
+            </div>
+          </section>
 
-        <section className="rounded-md bg-card px-5 py-4">
-          <div className="mb-3 flex items-baseline justify-between gap-3">
-            <p className="text-[11px] font-bold tracking-wide text-muted uppercase">Day</p>
-            <p className="text-[12px] text-muted">Now {t.hour}:00</p>
-          </div>
-          <div className="relative flex h-24 items-end gap-1">
-            {t.strip.map((s) => (
-              <div key={s.h} className="relative flex min-w-0 flex-1 flex-col items-center justify-end gap-1.5">
-                {s.h === t.hour ? <i className="absolute inset-x-0 -top-1 bottom-4 border-l-2 border-navy" /> : null}
-                <div
-                  className={cn(
-                    "w-full max-w-5 rounded-sm",
-                    s.h === t.hour ? "bg-navy" : s.prod ? "bg-navy-2" : s.sales ? "bg-navy/80" : "bg-page",
-                  )}
-                  style={{ height: `${12 + (s.n / stripMax) * 56}px` }}
-                  title={`${s.h}:00 · ${s.n}`}
-                />
-                <span className={cn("text-[10px] tabular-nums", s.h === t.hour ? "font-bold text-navy" : "text-faint")}>{s.h}</span>
-              </div>
-            ))}
-          </div>
-        </section>
+          <section className="rounded-md bg-card px-5 py-4">
+            <div className="mb-3 flex items-baseline justify-between gap-3">
+              <p className="text-[11px] font-bold tracking-wide text-muted uppercase">Day</p>
+              <p className="text-[12px] text-muted">Now {t.hour}:00</p>
+            </div>
+            <div className="relative flex h-24 items-end gap-1">
+              {t.strip.map((s) => (
+                <div key={s.h} className="relative flex min-w-0 flex-1 flex-col items-center justify-end gap-1.5">
+                  {s.h === t.hour ? <i className="absolute inset-x-0 -top-1 bottom-4 border-l-2 border-navy" /> : null}
+                  <div
+                    className={cn("w-full max-w-5 rounded-sm", s.h === t.hour ? "bg-navy" : s.prod ? "bg-navy-2" : s.sales ? "bg-navy/80" : "bg-page")}
+                    style={{ height: `${12 + (s.n / stripMax) * 56}px` }}
+                    title={`${s.h}:00 · ${s.n}`}
+                  />
+                  <span className={cn("text-[10px] tabular-nums", s.h === t.hour ? "font-bold text-navy" : "text-faint")}>{s.h}</span>
+                </div>
+              ))}
+            </div>
+          </section>
 
-        <section className="grid grid-cols-2 gap-px overflow-hidden rounded-md bg-line lg:grid-cols-4">
-          <MoneyCell label="On the book" value={t.onBook} note={`${t.sitsLeft.length} sits left`} />
-          <MoneyCell label="Sold" value={t.sold} note={`${t.soldN} deals · Yesterday ${money(t.yesterday)}`} bar={t.sold / maxBar} prior={t.yesterday / maxBar} />
-          <MoneyCell label="In" value={t.cashIn} note="Deposits and funded" />
-          <MoneyCell label="Out" value={t.spent} hot={t.spent > t.cashIn} note={t.cashOut.map((r) => r.name).join(" · ")} />
-        </section>
+          <section className="grid grid-cols-2 gap-px overflow-hidden rounded-md bg-line lg:grid-cols-4">
+            <MoneyCell label="On the book" value={t.onBook} note={`${t.sitsLeft.length} sits left`} />
+            <MoneyCell label="Sold" value={t.sold} note={`${t.soldN} deals · Yesterday ${money(t.yesterday)}`} bar={t.sold / maxBar} prior={t.yesterday / maxBar} />
+            <MoneyCell label="In" value={t.cashIn} note="Deposits and funded" />
+            <MoneyCell label="Out" value={t.spent} hot={t.spent > t.cashIn} note={t.cashOut.map((r) => r.name).join(" · ")} />
+          </section>
         </div>
 
         <div className="grid lg:grid-cols-2">
-          <ListBlock title="Late" count={t.fire.length}>
-            {t.fire.length === 0 ? <p className="px-4 py-3 text-[13px] text-muted">Board is clean.</p> : null}
+          <ListBlock title="Won" count={t.wins.length}>
+            {t.wins.length === 0 ? <p className="px-4 py-3 text-[13px] text-muted">Nothing closed yet.</p> : null}
+            <ul>
+              {t.wins.map((w) => (
+                <li key={w.id} className="border-b border-line last:border-b-0">
+                  <a href={w.href} className="flex items-start gap-3 px-3 py-2.5 hover:bg-page">
+                    <i className="mt-1 h-8 w-1 shrink-0 bg-navy" />
+                    <span className="min-w-0 flex-1">
+                      <span className="flex items-baseline justify-between gap-2">
+                        <span className="truncate text-sm font-semibold">{w.title}</span>
+                        {w.amount ? <span className="shrink-0 text-[12px] font-bold tabular-nums text-navy">{money(w.amount)}</span> : null}
+                      </span>
+                      <span className="block truncate text-[11px] text-muted">{w.detail}</span>
+                    </span>
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </ListBlock>
+          <ListBlock title="Deployed" count={t.board.length}>
+            <ul>
+              {t.board.map((p, i) => (
+                <li key={p.id} className="border-b border-line last:border-b-0">
+                  <a href={p.href} className="flex items-start gap-3 px-3 py-2.5 hover:bg-page">
+                    <span className="grid size-10 shrink-0 place-items-center rounded-md bg-navy text-[10px] font-bold text-card">
+                      {p.role === "Closer" ? i + 1 : initials(p.name)}
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="flex items-baseline justify-between gap-2">
+                        <span className="truncate text-sm font-semibold">{p.name}</span>
+                        <span className="shrink-0 text-[12px] font-bold tabular-nums">
+                          {p.role === "Closer" ? money(p.amount) : `${p.amount} job${p.amount === 1 ? "" : "s"}`}
+                        </span>
+                      </span>
+                      <span className="block truncate text-[11px] text-muted">
+                        {p.role} · {p.why}
+                      </span>
+                      {p.role === "Closer" ? (
+                        <span className="mt-1.5 block h-1.5 overflow-hidden rounded-sm bg-page">
+                          <i className="block h-full bg-navy" style={{ width: `${Math.max(8, (p.amount / topAmt) * 100)}%` }} />
+                        </span>
+                      ) : (
+                        <Window start={6} end={15} now={t.hour} />
+                      )}
+                    </span>
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </ListBlock>
+        </div>
+
+        <div className="grid lg:grid-cols-2">
+          <ListBlock title="Issues" count={t.fire.length}>
+            {t.fire.length === 0 ? <p className="px-4 py-3 text-[13px] text-muted">No issues.</p> : null}
             <ul>
               {t.fire.map((f) => (
                 <li key={f.id} className="border-b border-line last:border-b-0">
-                  <a href={f.href} className={cn("flex items-start gap-3 px-3 py-2.5 hover:bg-page", f.stop && "bg-stop-bg/40")}>
+                  <a href={f.href} className="flex items-start gap-3 px-3 py-2.5 hover:bg-page">
                     <i className={cn("mt-1 h-8 w-1 shrink-0", f.stop ? "bg-stop" : "bg-watch")} />
                     <span className="min-w-0">
                       <span className="block text-sm font-semibold">{f.title}</span>
@@ -181,74 +210,16 @@ export function TodayBoard() {
               ))}
             </ul>
           </ListBlock>
-          <ListBlock title="Sits" count={t.sitsLeft.length}>
-            {t.sitsLeft.length === 0 ? <p className="px-4 py-3 text-[13px] text-muted">No sits left.</p> : null}
+          <ListBlock title="Leaking" count={t.leaks.length}>
+            {t.leaks.length === 0 ? <p className="px-4 py-3 text-[13px] text-muted">No leaks.</p> : null}
             <ul>
-              {t.sitsLeft.map((s) => (
-                <li key={s.id} className="border-b border-line last:border-b-0">
-                  <a href={s.href} className="flex items-start gap-3 px-3 py-2.5 hover:bg-page">
-                    <span className="grid h-10 w-12 shrink-0 place-items-center rounded-md bg-navy text-[11px] font-bold text-card tabular-nums">{s.time}</span>
-                    <span className="min-w-0 flex-1">
-                      <span className="flex items-baseline justify-between gap-2">
-                        <span className="truncate text-sm font-semibold">{s.name}</span>
-                        {s.amount ? <span className="shrink-0 text-[12px] font-bold tabular-nums">{money(s.amount)}</span> : null}
-                      </span>
-                      <span className="block truncate text-[11px] text-muted">
-                        {s.city} · {s.who} · {s.status}
-                      </span>
-                      <Window start={s.startH} end={s.endH} now={t.hour} />
-                    </span>
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </ListBlock>
-        </div>
-
-        <div className="grid lg:grid-cols-2">
-          <ListBlock title="Installs" count={t.street.length}>
-            {t.street.length === 0 ? <p className="px-4 py-3 text-[13px] text-muted">No installs today.</p> : null}
-            <ul>
-              {t.street.map((s) => (
-                <li key={s.id} className="border-b border-line last:border-b-0">
-                  <a href={s.href} className="flex items-start gap-3 px-3 py-2.5 hover:bg-page">
-                    <span className="relative grid size-10 shrink-0 place-items-center rounded-md bg-navy text-[10px] font-bold text-card">
-                      {initials(s.who)}
-                      {s.endH <= t.hour ? <i className="absolute -top-1 -right-1 size-2.5 rounded-full border-2 border-card bg-stop" /> : null}
-                    </span>
-                    <span className="min-w-0 flex-1">
-                      <span className="flex items-baseline justify-between gap-2">
-                        <span className="truncate text-sm font-semibold">{s.name}</span>
-                        <span className="shrink-0 text-[11px] font-semibold tabular-nums text-muted">{s.time}</span>
-                      </span>
-                      <span className="block truncate text-[11px] text-muted">
-                        {s.who} · {s.city} · {s.status}
-                      </span>
-                      <Window start={s.startH} end={s.endH} now={t.hour} />
-                    </span>
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </ListBlock>
-          <ListBlock title="People" count={t.people.length}>
-            <ul>
-              {t.people.map((p) => (
-                <li key={p.id} className="border-b border-line last:border-b-0">
-                  <a href={p.href} className="flex items-start gap-3 px-3 py-2.5 hover:bg-page">
-                    <span className="relative grid size-10 shrink-0 place-items-center rounded-md bg-navy text-[10px] font-bold text-card">
-                      {initials(p.name)}
-                      {p.late ? <i className="absolute -top-1 -right-1 size-2.5 rounded-full border-2 border-card bg-stop" /> : null}
-                    </span>
-                    <span className="min-w-0 flex-1">
-                      <span className="flex items-baseline justify-between gap-2">
-                        <span className="truncate text-sm font-semibold">{p.name}</span>
-                        <span className={cn("text-[11px] font-semibold", p.late ? "text-stop" : "text-muted")}>{p.fact}</span>
-                      </span>
-                      <span className="text-[11px] text-muted">{p.role}</span>
-                      <span className="mt-1 block h-1.5 overflow-hidden rounded-sm bg-page">
-                        <i className={cn("block h-full", p.late ? "bg-stop" : p.fact === "Idle" || p.fact === "At shop" ? "bg-line-strong" : "bg-navy")} style={{ width: p.late ? "100%" : p.fact === "Idle" || p.fact === "At shop" ? "12%" : "70%" }} />
-                      </span>
+              {t.leaks.map((f) => (
+                <li key={f.id} className="border-b border-line last:border-b-0">
+                  <a href={f.href} className="flex items-start gap-3 px-3 py-2.5 hover:bg-page">
+                    <i className={cn("mt-1 h-8 w-1 shrink-0", f.stop ? "bg-stop" : "bg-watch")} />
+                    <span className="min-w-0">
+                      <span className="block text-sm font-semibold">{f.title}</span>
+                      <span className="block text-[11px] text-muted">{f.detail}</span>
                     </span>
                   </a>
                 </li>
@@ -260,18 +231,18 @@ export function TodayBoard() {
         <section className="border-t border-line bg-card px-5 py-4">
           <p className="mb-3 text-[11px] font-bold tracking-wide text-muted uppercase">Set, ran, sold</p>
           <div className="mb-4 flex h-8 overflow-hidden rounded-md bg-page">
-            {t.mix.map((m) =>
+            {t.mix.map((m, i) =>
               m.n ? (
                 <span
                   key={m.label}
                   className="grid place-items-center text-[11px] font-bold text-card"
                   style={{
                     width: `${(m.n / Math.max(t.mix.reduce((s, x) => s + x.n, 0), 1)) * 100}%`,
-                    background: m.label === "No-sit" ? "var(--color-stop)" : m.label === "Sold" ? "var(--color-navy)" : m.label === "Out" ? "var(--color-navy-2)" : "var(--color-line-strong)",
+                    background: i === t.mix.length - 1 ? "var(--color-navy)" : i === 0 ? "var(--color-line-strong)" : i === 1 ? "#5c7380" : "var(--color-navy-2)",
                   }}
                   title={`${m.label} ${m.n}`}
                 >
-                  {m.n > 0 ? m.n : ""}
+                  {m.n}
                 </span>
               ) : null,
             )}
@@ -290,7 +261,7 @@ export function TodayBoard() {
         </section>
 
         <div className="grid border-t border-line lg:grid-cols-2">
-          <ListBlock title="Reviews" count={t.reviews.length}>
+          <ListBlock title="Customers" count={t.reviews.length + t.referrals.length}>
             <ul>
               {t.reviews.map((r) => (
                 <li key={r.id} className="border-b border-line px-4 py-2.5 last:border-b-0">
@@ -301,6 +272,14 @@ export function TodayBoard() {
                   <p className="mt-1 text-[11px] text-muted">{r.text}</p>
                 </li>
               ))}
+              {t.referrals.map((r) => (
+                <li key={r.id} className="border-b border-line px-4 py-2.5 last:border-b-0">
+                  <p className="text-sm font-semibold">
+                    {r.from} → {r.to}
+                  </p>
+                  <p className="text-[11px] text-muted">Referral · {r.status}</p>
+                </li>
+              ))}
             </ul>
           </ListBlock>
           <ListBlock title="Tickets" count={t.tickets.length}>
@@ -308,7 +287,7 @@ export function TodayBoard() {
               {t.tickets.map((k) => (
                 <li key={k.id} className="border-b border-line last:border-b-0">
                   <a href="/tickets" className="flex items-start gap-3 px-3 py-2.5 hover:bg-page">
-                    <i className={cn("mt-1 h-8 w-1 shrink-0", k.priority === "High" ? "bg-stop" : k.priority === "Normal" ? "bg-navy" : "bg-idle")} />
+                    <i className={cn("mt-1 h-8 w-1 shrink-0", k.priority === "High" ? "bg-stop" : "bg-navy")} />
                     <span className="min-w-0 flex-1">
                       <span className="flex items-baseline justify-between gap-2">
                         <span className="truncate text-sm font-semibold">{k.title}</span>
@@ -329,7 +308,7 @@ export function TodayBoard() {
 
 function MoneyCell({ label, value, note, hot, bar, prior }: { label: string; value: number; note?: string; hot?: boolean; bar?: number; prior?: number }) {
   return (
-    <div className={cn("bg-card px-5 py-5", hot && "bg-stop-bg")}>
+    <div className="bg-card px-5 py-5">
       <p className="text-[11px] font-bold tracking-wide text-muted uppercase">{label}</p>
       <p className={cn("mt-1 text-[28px] leading-none font-bold tabular-nums", hot && "text-stop")}>{money(value)}</p>
       {bar != null ? (
@@ -382,7 +361,7 @@ function Stars({ n }: { n: number }) {
   return (
     <span className="inline-flex gap-0.5" aria-label={`${n} stars`}>
       {[1, 2, 3, 4, 5].map((i) => (
-        <i key={i} className={cn("size-2.5 rounded-[1px]", i <= n ? "bg-navy" : "bg-page")} />
+        <i key={i} className={cn("size-2.5 rounded-[1px]", i <= n ? (n === 1 ? "bg-stop" : "bg-navy") : "bg-page")} />
       ))}
     </span>
   );

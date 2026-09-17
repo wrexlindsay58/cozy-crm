@@ -135,8 +135,31 @@
   font-size: 11px;
 }
 
+.live-pip {
+  width: 8px;
+  height: 8px;
+  border-radius: 99px;
+  background: var(--color-stop);
+  box-shadow: 0 0 0 0 rgba(194, 22, 46, 0.45);
+  animation: live-pip 1.6s ease-out infinite;
+}
+@keyframes live-pip {
+  0% {
+    box-shadow: 0 0 0 0 rgba(194, 22, 46, 0.45);
+  }
+  70% {
+    box-shadow: 0 0 0 6px rgba(194, 22, 46, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(194, 22, 46, 0);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   * {
     transition: none !important;
+  }
+  .live-pip {
+    animation: none;
   }
 }

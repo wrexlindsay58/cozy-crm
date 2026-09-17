@@ -1,4 +1,4 @@
-import { cashOut, reviews, snapshot } from "@/lib/snapshot";
+import { cashOut, referrals, reviews, snapshot } from "@/lib/snapshot";
 import { tickets, type Lead } from "@/lib/crm-data";
 import type { Resource } from "@/features/book/roster";
 import { familyOf, isWatch, type BookEvent } from "@/features/book/types";
@@ -6,7 +6,9 @@ import { hourOf, labelTime } from "@/features/book/time";
 
 export type Fire = { id: string; title: string; detail: string; href: string; stop: boolean };
 export type SitRow = { id: string; time: string; name: string; who: string; city: string; status: string; href: string; amount: number; startH: number; endH: number };
-export type Meter = { label: string; fact: string; score: number };
+export type Meter = { label: string; fact: string; score: number; tone: string };
+export type Rank = { id: string; name: string; role: string; amount: number; why: string; href: string };
+export type Win = { id: string; title: string; detail: string; href: string; amount?: number };
 
 function active(e: BookEvent) {
   return e.status !== "Done" && e.status !== "No-sit" && e.status !== "No-show";
@@ -151,18 +153,79 @@ export function buildToday(opts: {
     endH: hourOf(e.end),
   }));
 
-  const people = [
-    ...closers.map((r) => {
-      const mine = sales.filter((e) => e.resourceId === r.id);
-      const left = mine.filter((e) => active(e) && hourOf(e.end) > hour).length;
-      const late = mine.some((e) => active(e) && hourOf(e.end) <= hour);
-      return { id: r.id, name: r.name, role: "Closer", fact: left ? `${left} sit${left === 1 ? "" : "s"} left` : mine.length ? "Clear" : "Idle", late, href: "/calendar" };
-    }),
-    ...crews.map((r) => {
+  const board: Rank[] = [
+    ...closers
+      .map((r) => {
+        const mine = sales.filter((e) => e.resourceId === r.id);
+        const soldAmt = mine.filter((e) => e.status === "Done").reduce((s, e) => s + valueOf(e, leads), 0);
+        const left = mine.filter((e) => active(e) && hourOf(e.end) > hour);
+        const bookAmt = left.reduce((s, e) => s + valueOf(e, leads), 0);
+        const amount = soldAmt + bookAmt;
+        const why = soldAmt
+          ? `${mine.filter((e) => e.status === "Done").length} sold${left.length ? ` · ${left.length} left` : ""}`
+          : left.length
+            ? `${left.length} sit${left.length === 1 ? "" : "s"} left`
+            : "";
+        return { id: r.id, name: r.name, role: "Closer", amount, why, href: "/calendar" };
+      })
+      .filter((r) => r.amount > 0)
+      .sort((a, b) => b.amount - a.amount),
+    ...crews.flatMap((r) => {
       const mine = street.filter((e) => e.resourceId === r.id);
-      const late = mine.some((e) => hourOf(e.end) <= hour);
-      return { id: r.id, name: r.name, role: "Crew", fact: mine[0] ? mine[0].title : "At shop", late, href: "/dispatch" };
+      if (!mine.length) return [];
+      return [{ id: r.id, name: r.name, role: "Crew", amount: mine.length, why: mine.map((e) => e.title).join(", "), href: "/dispatch" }];
     }),
+  ];
+
+  const wins: Win[] = [
+    ...soldEv.map((e) => ({
+      id: `s-${e.id}`,
+      title: `${e.title} sold`,
+      detail: whoName(e.resourceId, roster),
+      href: e.href || "/calendar",
+      amount: valueOf(e, leads),
+    })),
+    ...prod
+      .filter((e) => e.status === "Done")
+      .map((e) => ({
+        id: `d-${e.id}`,
+        title: `${e.title} done`,
+        detail: whoName(e.resourceId, roster),
+        href: e.href || "/projects",
+      })),
+    ...reviews.filter((r) => r.stars >= 5).map((r) => ({ id: r.id, title: `${r.name} · 5 stars`, detail: r.text, href: "/accounts" })),
+    ...referrals.map((r) => ({ id: r.id, title: `${r.from} sent ${r.to}`, detail: r.status, href: "/leads" })),
+  ];
+
+  const leaks: Fire[] = [
+    ...nosit.map((e) => ({
+      id: `ns-${e.id}`,
+      title: `${e.title} no-sit`,
+      detail: `${whoName(e.resourceId, roster)} · ${e.city}`,
+      href: e.href || "/calendar",
+      stop: true,
+    })),
+    ...idle.map((r) => ({
+      id: `i-${r.id}`,
+      title: `${r.name} idle`,
+      detail: r.role,
+      href: "/calendar",
+      stop: false,
+    })),
+    ...unmarked.map((l) => ({
+      id: `um-${l.id}`,
+      title: `${l.name} unmarked`,
+      detail: `${l.city} · ${l.closer}`,
+      href: `/leads/${l.id}`,
+      stop: true,
+    })),
+    ...unsigned.map((e) => ({
+      id: `wo-${e.id}`,
+      title: `${e.title} no work order`,
+      detail: whoName(e.resourceId, roster),
+      href: e.href || "/projects",
+      stop: false,
+    })),
   ];
 
   const mix = [
@@ -170,7 +233,6 @@ export function buildToday(opts: {
     { label: "Confirmed", n: sales.filter((e) => e.status === "Confirmed").length },
     { label: "Out", n: sales.filter((e) => e.status === "Dispatched").length },
     { label: "Sold", n: soldN },
-    { label: "No-sit", n: nosit.length },
   ];
 
   const hours = Array.from({ length: 16 }, (_, i) => i + 6);
@@ -187,10 +249,10 @@ export function buildToday(opts: {
   const peopleScore = clamp(100 - idle.length * 12 - notCalled.length * 4);
 
   const meters: Meter[] = [
-    { label: "Money", fact: sold ? `$${Math.round(sold / 1000)}k · ${soldN} sold` : onBook ? `$${Math.round(onBook / 1000)}k on the book` : "$0 sold", score: moneyScore },
-    { label: "Book", fact: `${sitsLeft.length} sit${sitsLeft.length === 1 ? "" : "s"} left`, score: bookScore },
-    { label: "Installs", fact: behindN ? `${behindN} behind` : `${street.length} out`, score: streetScore },
-    { label: "People", fact: idle.length ? `${idle.length} idle` : "Working", score: peopleScore },
+    { label: "Money", fact: sold ? `$${Math.round(sold / 1000)}k · ${soldN} sold` : "$0 sold", score: moneyScore, tone: "var(--color-navy)" },
+    { label: "Book", fact: `${sitsLeft.length} sit${sitsLeft.length === 1 ? "" : "s"} left`, score: bookScore, tone: "var(--color-navy-2)" },
+    { label: "Installs", fact: `${street.length} out`, score: streetScore, tone: "#3e5360" },
+    { label: "People", fact: `${board.filter((r) => r.role === "Closer").length} deployed`, score: peopleScore, tone: "#5c7380" },
   ];
 
   return {
@@ -206,12 +268,15 @@ export function buildToday(opts: {
     street: streetRows,
     behindN,
     fire,
-    people,
+    board,
+    wins,
+    leaks,
     mix,
     strip,
     hour,
     meters,
     reviews,
+    referrals,
     tickets: openTickets,
     notCalled: notCalled.length,
   };

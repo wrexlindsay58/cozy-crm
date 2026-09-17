@@ -13,12 +13,12 @@ import {
   Map,
   MessageSquare,
   PanelLeft,
+  Radio,
   Receipt,
   Search,
   Settings,
   ShoppingCart,
   Star,
-  Sun,
   Ticket,
   Trophy,
   UserRound,
@@ -34,7 +34,7 @@ import { NAV_COLLAPSE_PX } from "@/lib/chrome";
 import { incidents, notCalled } from "@/lib/snapshot";
 
 const DAILY = [
-  { icon: Sun, label: "Today", to: "/" },
+  { icon: Radio, label: "Live Board", to: "/", live: true },
   { icon: MessageSquare, label: "Inbox", to: "/conversations", badge: unreadConversations },
   { icon: Calendar, label: "Book", to: "/calendar" },
   { icon: Map, label: "Map", to: "/dispatch" },
@@ -117,11 +117,13 @@ export function AppShell({ children }: { children: ReactNode }) {
     label,
     icon: Icon,
     badge,
+    live,
   }: {
     to: string;
     label: string;
     icon: LucideIcon;
     badge?: number;
+    live?: boolean;
   }) {
     const on = activePath(pathname, to);
     return (
@@ -138,7 +140,9 @@ export function AppShell({ children }: { children: ReactNode }) {
           )}
         >
           <Icon className={cn("shrink-0", shut ? "size-5" : "size-4")} />
+          {shut && live ? <span className="live-pip absolute top-1.5 right-1.5" /> : null}
           {!shut ? <span className="flex-1">{label}</span> : null}
+          {!shut && live ? <span className="live-pip" /> : null}
           {badge ? (
             shut ? (
               <span className="absolute top-1.5 right-1.5 size-1.5 rounded-full bg-stop" />
