@@ -68,7 +68,7 @@ export function TaskFile({ task, onBack }: { task: Task; onBack: () => void }) {
         {task.status === "Complete" ? "Reopen" : "Complete"}
       </button>
       <div className="mt-4">
-        <PhotoRail personId={task.id} />
+        <PhotoRail personId={task.personId} actionId={task.id} actionKind="task" actionIds={[task.id]} scope="action" />
       </div>
       <div className="mt-4 h-64 overflow-hidden rounded-md border border-line">
         <ThreadPane personId={task.id} mode="internal" />

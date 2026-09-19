@@ -20,7 +20,7 @@ export function CommentBox({
 
   function post() {
     if (!draft.trim()) return;
-    sendMessage(personId, draft, "internal", { nest });
+    sendMessage(personId, draft, "internal", { nest, actionId: nest.id, actionKind: nest.kind });
     addHistory(personId, SHOP_ACTOR, `Comment on ${nest.kind}.`);
     setDraft("");
   }

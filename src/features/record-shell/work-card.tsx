@@ -2,39 +2,38 @@ import { useRef, useState } from "react";
 import { Paperclip } from "lucide-react";
 import { canEditWork, liveStatus, WORK_STATUSES, type WorkStatus } from "@/lib/chrome";
 import { addPhoto, kindFromFile, usePhotos } from "@/features/photos/store";
-import { deleteTask, deleteTicket, patchTask, patchTicket, setWorkStatus } from "@/features/ops/store";
-import type { Task } from "@/features/ops/store";
-import type { Ticket } from "@/lib/crm-data";
+import { deleteAction, patchAction, setWorkStatus } from "@/features/ops/store";
+import { ACTION_LABEL, type ShopAction } from "@/features/action/types";
 import { Tip } from "@/components/tip";
 import { CommentBox } from "./comment-box";
 import { cn } from "@/lib/cn";
 
 export function WorkCard({
   personId,
-  kind,
-  ticket,
-  task,
+  action,
+  actions = [],
+  compact,
 }: {
   personId: string;
-  kind: "ticket" | "task";
-  ticket?: Ticket;
-  task?: Task;
+  action: ShopAction;
+  actions?: ShopAction[];
+  compact?: boolean;
 }) {
-  const row = (ticket ?? task)!;
-  const status = liveStatus(row.status, row.due);
-  const edit = canEditWork(row.owner);
-  const [title, setTitle] = useState(row.title);
+  const status = liveStatus(action.status, action.due);
+  const edit = canEditWork(action.owner);
+  const [title, setTitle] = useState(action.title);
   const [editing, setEditing] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
-  const files = usePhotos(row.id);
+  const files = usePhotos(personId).filter((p) => p.actionId === action.id);
+  const kids = actions.filter((a) => a.parentId === action.id);
+  const word = ACTION_LABEL[action.kind].toLowerCase();
 
   function saveTitle() {
     setEditing(false);
     const next = title.trim();
-    if (!next || next === row.title) return;
-    if (kind === "ticket") patchTicket(row.id, { title: next });
-    else patchTask(row.id, { title: next });
+    if (!next || next === action.title) return;
+    patchAction(action.id, { title: next });
   }
 
   function move(next: WorkStatus | "Delete") {
@@ -42,7 +41,7 @@ export function WorkCard({
       setConfirmDelete(true);
       return;
     }
-    setWorkStatus(kind, row.id, next);
+    setWorkStatus(action.kind, action.id, next);
   }
 
   function attach(file: File | undefined) {
@@ -50,7 +49,14 @@ export function WorkCard({
     const kindFile = kindFromFile(file);
     const reader = new FileReader();
     reader.onload = () => {
-      addPhoto(row.id, file.name.replace(/\.[^.]+$/, ""), typeof reader.result === "string" ? reader.result : undefined, kindFile, file.name);
+      addPhoto(
+        personId,
+        file.name.replace(/\.[^.]+$/, ""),
+        typeof reader.result === "string" ? reader.result : undefined,
+        kindFile,
+        file.name,
+        { actionId: action.id },
+      );
     };
     reader.readAsDataURL(file);
   }
@@ -59,6 +65,7 @@ export function WorkCard({
     <article className="rounded-md border border-line p-3">
       <div className="flex items-start gap-2">
         <div className="min-w-0 flex-1">
+          <p className="text-[10px] font-bold tracking-wide text-muted uppercase">{ACTION_LABEL[action.kind]}</p>
           {editing && edit ? (
             <input
               autoFocus
@@ -70,7 +77,7 @@ export function WorkCard({
             />
           ) : (
             <button type="button" className="text-left text-sm font-semibold" onClick={() => edit && setEditing(true)}>
-              {row.title}
+              {action.title}
             </button>
           )}
         </div>
@@ -85,8 +92,13 @@ export function WorkCard({
         <p className="mt-1 text-[11px] text-muted">{files.map((f) => f.name || f.caption).join(" · ")}</p>
       ) : null}
       <p className="mt-0.5 text-[11px] text-muted">
-        {row.owner} · {row.due || "No due"} · {status}
+        {action.owner} · {action.due || "No due"} · {status}
+        {action.kind === "ticket" && action.priority === "High" ? " · High" : ""}
       </p>
+      <a href={`/tickets/${action.id}`} className="mt-1 inline-block text-[12px] font-semibold text-navy">
+        Open {word}
+      </a>
+      {kids.length > 0 ? <ChildRows parentId={action.id} actions={actions} /> : null}
       <div className="mt-2 flex flex-wrap gap-1">
         {WORK_STATUSES.map((s) => (
           <button
@@ -106,12 +118,12 @@ export function WorkCard({
         </button>
       </div>
       {confirmDelete ? (
-        <div className="mt-2 flex items-center gap-2 text-sm">
-          <span>Delete this {kind}?</span>
+        <div className="mt-2 flex flex-wrap items-center gap-2 text-sm">
+          <span>Delete this {word}? Nested work stays on the file.</span>
           <button
             type="button"
             className="h-10 rounded-md bg-stop px-3 text-sm font-semibold text-card"
-            onClick={() => (kind === "ticket" ? deleteTicket(row.id) : deleteTask(row.id))}
+            onClick={() => deleteAction(action.id)}
           >
             Delete
           </button>
@@ -120,7 +132,27 @@ export function WorkCard({
           </button>
         </div>
       ) : null}
-      <CommentBox personId={personId} nest={{ kind, id: row.id, title: row.title }} />
+      {compact ? null : <CommentBox personId={personId} nest={{ kind: action.kind, id: action.id, title: action.title }} />}
     </article>
+  );
+}
+
+function ChildRows({ parentId, actions }: { parentId: string; actions: ShopAction[] }) {
+  const kids = actions.filter((a) => a.parentId === parentId);
+  if (!kids.length) return null;
+  return (
+    <ul className="mt-2 space-y-1 border-l border-line pl-3">
+      {kids.map((k) => (
+        <li key={k.id}>
+          <a href={`/tickets/${k.id}`} className="block py-1">
+            <p className="text-sm font-semibold">{k.title}</p>
+            <p className="text-[11px] text-muted">
+              {ACTION_LABEL[k.kind]} · {k.owner} · {liveStatus(k.status, k.due)}
+            </p>
+          </a>
+          <ChildRows parentId={k.id} actions={actions} />
+        </li>
+      ))}
+    </ul>
   );
 }

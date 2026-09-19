@@ -83,12 +83,12 @@ function Cell({
   mark?: Mark;
 }) {
   return (
-    <div className="bg-card px-5 py-5">
+    <div className="bg-card px-5 py-5 max-md:px-3 max-md:py-3">
       <p className="flex items-center gap-1.5 text-[11px] font-bold tracking-wide text-muted uppercase">
         {label}
         <Pip now={trend.now} yest={trend.yest} />
       </p>
-      <p className={cn("mt-1 text-[28px] leading-none font-bold tabular-nums", markClass(mark))}>{value}</p>
+      <p className={cn("mt-1 text-[28px] leading-none font-bold tabular-nums max-md:text-[22px]", markClass(mark))}>{value}</p>
       <Track {...trend} />
       {note ? <p className="mt-1 text-[12px] text-muted">{note}</p> : null}
     </div>
@@ -194,7 +194,7 @@ export function TodayBoard() {
         />
       </header>
 
-      <p className="shrink-0 border-b border-line bg-card px-4 py-2.5 text-center text-[15px] tabular-nums">
+      <p className="shrink-0 border-b border-line bg-card px-4 py-2.5 text-center text-[15px] tabular-nums max-md:px-3 max-md:text-left max-md:text-[13px] max-md:leading-5">
         <span className="font-bold">{money(t.sold)} sold</span>
         <span className="text-muted"> · </span>
         <span className="font-bold">{t.closeRate}% close</span>
@@ -226,15 +226,15 @@ export function TodayBoard() {
               <div className="mt-3 grid grid-cols-3 gap-3">
                 <p>
                   <span className="block text-[11px] font-bold text-muted uppercase">In</span>
-                  <span className="text-[20px] font-bold tabular-nums">{money(t.cashIn)}</span>
+                  <span className="text-[20px] font-bold tabular-nums max-md:text-[16px]">{money(t.cashIn)}</span>
                 </p>
                 <p>
                   <span className="block text-[11px] font-bold text-muted uppercase">Out</span>
-                  <span className={cn("text-[20px] font-bold tabular-nums", markClass(t.marks.cashOut))}>{money(t.spent)}</span>
+                  <span className={cn("text-[20px] font-bold tabular-nums max-md:text-[16px]", markClass(t.marks.cashOut))}>{money(t.spent)}</span>
                 </p>
                 <p>
                   <span className="block text-[11px] font-bold text-muted uppercase">Expected</span>
-                  <span className="text-[20px] font-bold tabular-nums">{money(t.expected)}</span>
+                  <span className="text-[20px] font-bold tabular-nums max-md:text-[16px]">{money(t.expected)}</span>
                 </p>
               </div>
               <Track {...t.trends.cashIn} />
@@ -325,7 +325,7 @@ export function TodayBoard() {
             <Stack title="Leads" caption={`${t.leadsIn} in today`} rows={t.leadSplit} trend={t.trends.leads} />
             <Stack title="Appointments" caption="Passed vs still on the book" rows={t.appt} trend={t.trends.sits} />
             <Stack title="Jobs" caption="Done, on a house, not started" rows={t.jobSplit} trend={t.trends.jobs} />
-            <Stack title="Tickets" caption="Open pile, added today, closed today" rows={t.tix} trend={t.trends.tix} />
+            <Stack title="Actions" caption="Open pile, added today, closed today" rows={t.tix} trend={t.trends.tix} />
           </div>
 
           <Stack title="Set, ran, sold, cancelled" caption="Share of today's book" rows={t.mix} />

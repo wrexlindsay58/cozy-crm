@@ -15,7 +15,7 @@ export type ActItem = {
   variant?: "navy" | "line";
 };
 
-export function ActBar({ items, iconsOnly: forceIcons }: { items: ActItem[]; iconsOnly?: boolean }) {
+export function ActBar({ items, iconsOnly: forceIcons, className }: { items: ActItem[]; iconsOnly?: boolean; className?: string }) {
   const { barRef, measureRef, iconsOnly: fitIcons } = useFit();
   const iconsOnly = forceIcons ?? fitIcons;
   return (
@@ -29,7 +29,7 @@ export function ActBar({ items, iconsOnly: forceIcons }: { items: ActItem[]; ico
           ))}
         </div>
       )}
-      <div ref={barRef} className="flex flex-wrap justify-end gap-1.5">
+      <div ref={barRef} className={cn("flex flex-wrap justify-end gap-1.5 max-md:flex-nowrap max-md:justify-start", className)}>
         {items.map((item) => (
           <ActBtn key={item.label} item={item} iconsOnly={iconsOnly} />
         ))}

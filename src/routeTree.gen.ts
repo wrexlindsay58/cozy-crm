@@ -80,6 +80,7 @@ import { Route as AppSettingsTerritoriesRouteImport } from './routes/_app/settin
 import { Route as AppSettingsTicketTypesRouteImport } from './routes/_app/settings_.ticket-types'
 import { Route as AppSettingsVisitsRouteImport } from './routes/_app/settings_.visits'
 import { Route as AppSettingsWorkflowsRouteImport } from './routes/_app/settings_.workflows'
+import { Route as AppTicketsActionIdRouteImport } from './routes/_app/tickets_.$actionId'
 
 const AppRoute = AppRouteImport.update({
   id: '/_app',
@@ -444,6 +445,11 @@ const AppSettingsWorkflowsRoute = AppSettingsWorkflowsRouteImport.update({
   path: '/settings/workflows',
   getParentRoute: () => AppRoute,
 } as any)
+const AppTicketsActionIdRoute = AppTicketsActionIdRouteImport.update({
+  id: '/tickets_/$actionId',
+  path: '/tickets/$actionId',
+  getParentRoute: () => AppRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
@@ -516,6 +522,7 @@ export interface FileRoutesByFullPath {
   '/settings/ticket-types': typeof AppSettingsTicketTypesRoute
   '/settings/visits': typeof AppSettingsVisitsRoute
   '/settings/workflows': typeof AppSettingsWorkflowsRoute
+  '/tickets/$actionId': typeof AppTicketsActionIdRoute
 }
 export interface FileRoutesByTo {
   '/accounts': typeof AppAccountsRoute
@@ -588,6 +595,7 @@ export interface FileRoutesByTo {
   '/settings/ticket-types': typeof AppSettingsTicketTypesRoute
   '/settings/visits': typeof AppSettingsVisitsRoute
   '/settings/workflows': typeof AppSettingsWorkflowsRoute
+  '/tickets/$actionId': typeof AppTicketsActionIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -662,6 +670,7 @@ export interface FileRoutesById {
   '/_app/settings_/ticket-types': typeof AppSettingsTicketTypesRoute
   '/_app/settings_/visits': typeof AppSettingsVisitsRoute
   '/_app/settings_/workflows': typeof AppSettingsWorkflowsRoute
+  '/_app/tickets_/$actionId': typeof AppTicketsActionIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -736,6 +745,7 @@ export interface FileRouteTypes {
     | '/settings/ticket-types'
     | '/settings/visits'
     | '/settings/workflows'
+    | '/tickets/$actionId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/accounts'
@@ -808,6 +818,7 @@ export interface FileRouteTypes {
     | '/settings/ticket-types'
     | '/settings/visits'
     | '/settings/workflows'
+    | '/tickets/$actionId'
   id:
     | '__root__'
     | '/_app'
@@ -881,6 +892,7 @@ export interface FileRouteTypes {
     | '/_app/settings_/ticket-types'
     | '/_app/settings_/visits'
     | '/_app/settings_/workflows'
+    | '/_app/tickets_/$actionId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -1387,6 +1399,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppSettingsWorkflowsRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/tickets_/$actionId': {
+      id: '/_app/tickets_/$actionId'
+      path: '/tickets/$actionId'
+      fullPath: '/tickets/$actionId'
+      preLoaderRoute: typeof AppTicketsActionIdRouteImport
+      parentRoute: typeof AppRoute
+    }
   }
 }
 
@@ -1460,6 +1479,7 @@ interface AppRouteChildren {
   AppSettingsTicketTypesRoute: typeof AppSettingsTicketTypesRoute
   AppSettingsVisitsRoute: typeof AppSettingsVisitsRoute
   AppSettingsWorkflowsRoute: typeof AppSettingsWorkflowsRoute
+  AppTicketsActionIdRoute: typeof AppTicketsActionIdRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
@@ -1532,6 +1552,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppSettingsTicketTypesRoute: AppSettingsTicketTypesRoute,
   AppSettingsVisitsRoute: AppSettingsVisitsRoute,
   AppSettingsWorkflowsRoute: AppSettingsWorkflowsRoute,
+  AppTicketsActionIdRoute: AppTicketsActionIdRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)

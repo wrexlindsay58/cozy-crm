@@ -44,7 +44,14 @@ export function putPhoto(personId: string, row: Photo) {
   emit();
 }
 
-export function addPhoto(personId: string, caption: string, src?: string, kind: FileKind = "photo", name?: string) {
+export function addPhoto(
+  personId: string,
+  caption: string,
+  src?: string,
+  kind: FileKind = "photo",
+  name?: string,
+  extra?: { actionId?: string },
+) {
   const label = caption.trim() || name || kindWord(kind);
   const row: Photo = {
     id: `PH-${Date.now()}`,
@@ -54,8 +61,14 @@ export function addPhoto(personId: string, caption: string, src?: string, kind: 
     src,
     kind,
     name,
+    actionId: extra?.actionId,
   };
   putPhoto(personId, row);
   addHistory(personId, "Wrex Lindsay", `${kindWord(kind)} added. ${label}.`);
   return row;
+}
+
+export function photosOnAction(rows: Photo[], actionIds?: string[]) {
+  if (!actionIds?.length) return rows;
+  return rows.filter((p) => p.actionId && actionIds.includes(p.actionId));
 }

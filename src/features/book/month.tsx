@@ -17,23 +17,24 @@ export function MonthGrid({
   const cells = monthGrid();
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-auto p-4">
-      <div className="grid grid-cols-7 text-center text-[11px] font-bold tracking-wide text-muted uppercase">
+      <div className="grid grid-cols-7 text-center text-[11px] font-bold tracking-wide text-muted uppercase max-md:text-[10px] max-md:tracking-normal">
         {DAYS.map((d) => (
-          <span key={d} className="py-1">
-            {d}
+          <span key={d} className="py-1 max-md:px-0">
+            {d.slice(0, 1)}
+            <span className="max-md:hidden">{d.slice(1)}</span>
           </span>
         ))}
       </div>
       <div className="grid flex-1 grid-cols-7 gap-1">
         {cells.map((d, i) => {
-          if (!d) return <div key={`e-${i}`} className="min-h-20" />;
+          if (!d) return <div key={`e-${i}`} className="min-h-20 max-md:min-h-14" />;
           const marks = events.filter((e) => Number(e.start.slice(8, 10)) === d);
           return (
             <button
               key={d}
               type="button"
               onClick={() => onDay(d)}
-              className={cn("min-h-20 rounded-md p-2 text-left", d === selectedDay ? "bg-navy text-card" : "bg-card border border-line")}
+              className={cn("min-h-20 rounded-md p-2 text-left max-md:min-h-14 max-md:p-1", d === selectedDay ? "bg-navy text-card" : "bg-card border border-line")}
             >
               <span className="text-[13px] font-bold">{d}</span>
               <div className="mt-1 space-y-0.5">

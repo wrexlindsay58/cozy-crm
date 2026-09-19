@@ -85,7 +85,16 @@ function CalendarPage() {
             <>
               <div className="flex rounded-md bg-page p-0.5">
                 {VIEWS.map((v) => (
-                  <button key={v} type="button" className={cn("h-8 px-2.5 text-[13px] font-semibold", view === v ? "bg-navy text-card" : "text-muted")} onClick={() => setView(v)}>
+                  <button
+                    key={v}
+                    type="button"
+                    className={cn(
+                      "h-8 px-2.5 text-[13px] font-semibold",
+                      v === "resource" && "max-md:hidden",
+                      view === v ? "bg-navy text-card" : "text-muted",
+                    )}
+                    onClick={() => setView(v)}
+                  >
                     {VIEW_LABEL[v]}
                   </button>
                 ))}
@@ -132,7 +141,7 @@ function CalendarPage() {
         />
       </header>
 
-      <div className="flex shrink-0 items-center gap-2 border-b border-line bg-card px-4 py-2">
+      <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-line bg-card px-4 py-2">
         <button type="button" className="h-8 rounded-md border border-line px-2 text-xs font-semibold" onClick={() => setBookDay(new Date(cursor.getFullYear(), cursor.getMonth(), cursor.getDate() - (view === "week" ? 7 : view === "three" ? 3 : 1)))}>
           Prev
         </button>
@@ -142,10 +151,10 @@ function CalendarPage() {
         <button type="button" className="h-8 rounded-md border border-line px-2 text-xs font-semibold" onClick={() => setBookDay(new Date(cursor.getFullYear(), cursor.getMonth(), cursor.getDate() + (view === "week" ? 7 : view === "three" ? 3 : 1)))}>
           Next
         </button>
-        <p className="text-sm font-semibold">
+        <p className="min-w-0 truncate text-sm font-semibold">
           {cursor.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
         </p>
-        <label className="relative ml-auto min-w-40 max-w-64 flex-1">
+        <label className="relative min-w-0 max-w-64 flex-1 max-md:min-w-full md:ml-auto md:min-w-40">
           <Search className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-faint" />
           <input
             value={q}

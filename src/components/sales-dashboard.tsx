@@ -424,7 +424,7 @@ export function SalesDashboard() {
             Sold
             <Pip now={t.sold} yest={t.priorSold} />
           </p>
-          <p className={cn("mt-1 text-[36px] font-bold leading-none tabular-nums tracking-tight", markClass(pipMark(t.sold, t.priorSold)))}>{money(t.sold)}</p>
+          <p className={cn("mt-1 text-[36px] font-bold leading-none tabular-nums tracking-tight max-md:text-[28px]", markClass(pipMark(t.sold, t.priorSold)))}>{money(t.sold)}</p>
           <p className="mt-2 flex items-center gap-2">
             <Delta now={t.sold} was={t.priorSold} />
             <span className="text-[12px] text-muted">vs {t.vs}</span>
@@ -444,7 +444,7 @@ export function SalesDashboard() {
             Close
             <Pip now={t.close} yest={t.priorClose} />
           </p>
-          <p className={cn("mt-1 text-[36px] font-bold leading-none tabular-nums tracking-tight", markClass(pipMark(t.close, t.priorClose)))}>{t.close}%</p>
+          <p className={cn("mt-1 text-[36px] font-bold leading-none tabular-nums tracking-tight max-md:text-[28px]", markClass(pipMark(t.close, t.priorClose)))}>{t.close}%</p>
           <p className="mt-2 flex items-center gap-2">
             <Delta now={t.close} was={t.priorClose} />
             <span className="text-[12px] text-muted">vs {t.vs}</span>
@@ -480,7 +480,7 @@ export function SalesDashboard() {
             NSA
             <Pip now={nsa} yest={priorNsa} />
           </p>
-          <p className={cn("mt-1 text-[36px] font-bold leading-none tabular-nums tracking-tight", markClass(pipMark(nsa, priorNsa)))}>{money(nsa)}</p>
+          <p className={cn("mt-1 text-[36px] font-bold leading-none tabular-nums tracking-tight max-md:text-[28px]", markClass(pipMark(nsa, priorNsa)))}>{money(nsa)}</p>
           <p className="mt-2 flex items-center gap-2">
             <Delta now={nsa} was={priorNsa} />
             <span className="text-[12px] text-muted">vs {t.vs}</span>
@@ -496,7 +496,7 @@ export function SalesDashboard() {
             Avg ticket
             <Pip now={t.avg} yest={t.priorAvg} />
           </p>
-          <p className={cn("mt-1 text-[36px] font-bold leading-none tabular-nums tracking-tight", markClass(pipMark(t.avg, t.priorAvg)))}>{money(t.avg)}</p>
+          <p className={cn("mt-1 text-[36px] font-bold leading-none tabular-nums tracking-tight max-md:text-[28px]", markClass(pipMark(t.avg, t.priorAvg)))}>{money(t.avg)}</p>
           <p className="mt-2 flex items-center gap-2">
             <Delta now={t.avg} was={t.priorAvg} />
             <span className="text-[12px] text-muted">vs {t.vs}</span>
@@ -627,9 +627,9 @@ export function SalesDashboard() {
           <h2 className="mb-3 text-[13px] font-bold">Sold mix</h2>
           <div className="space-y-2">
             {t.products.map((p) => (
-              <div key={p.name} className="grid grid-cols-[8rem_minmax(0,1fr)_5rem] items-center gap-2 text-[13px] sm:grid-cols-[11rem_minmax(0,1fr)_5.5rem]">
+              <div key={p.name} className="grid grid-cols-[8rem_minmax(0,1fr)_5rem] items-center gap-2 text-[13px] max-md:grid-cols-[minmax(0,1fr)_auto] sm:grid-cols-[11rem_minmax(0,1fr)_5.5rem]">
                 <span className="truncate font-semibold">{p.name}</span>
-                <span className="h-2 overflow-hidden rounded-sm bg-page">
+                <span className="h-2 overflow-hidden rounded-sm bg-page max-md:hidden">
                   <i className="block h-full bg-muted" style={{ width: `${(p.amount / Math.max(t.products[0]?.amount, 1)) * 100}%` }} />
                 </span>
                 <span className="text-right font-bold tabular-nums">{money(p.amount)}</span>
@@ -682,10 +682,12 @@ export function SalesDashboard() {
                   key={p.name}
                   type="button"
                   onClick={() => setOpen("sold")}
-                  className="group grid w-full grid-cols-[8rem_minmax(0,1fr)_4.75rem] items-center gap-2 text-left text-[13px] transition-opacity duration-150 sm:grid-cols-[11rem_minmax(0,1fr)_5rem]"
+                  className="group grid w-full grid-cols-[8rem_minmax(0,1fr)_4.75rem] items-center gap-2 text-left text-[13px] transition-opacity duration-150 max-md:grid-cols-[minmax(0,1fr)_auto] sm:grid-cols-[11rem_minmax(0,1fr)_5rem]"
                 >
                   <span className="truncate">{p.name}</span>
-                  <MixTrack pct={(v / max) * 100} />
+                  <span className="max-md:hidden">
+                    <MixTrack pct={(v / max) * 100} />
+                  </span>
                   <span className="text-right font-bold tabular-nums">{mixLabel(productView, p.amount, p.qty, t.deals)}</span>
                 </button>
               );
@@ -755,8 +757,8 @@ export function SalesDashboard() {
             <h3 className="text-[13px] font-bold">Payment</h3>
             <MixTabs value={payView} onChange={setPayView} />
           </div>
-          <div className="flex items-center gap-4">
-            <div className="relative h-40 w-40 shrink-0">
+          <div className="flex items-center gap-4 max-md:flex-col max-md:items-stretch">
+            <div className="relative h-40 w-40 shrink-0 max-md:mx-auto">
               <PopPie
                 data={pay}
                 dataKey={payView === "dollars" ? "amount" : "qty"}

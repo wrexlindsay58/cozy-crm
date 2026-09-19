@@ -10,6 +10,7 @@ import {
   FileText,
   HardHat,
   House,
+  ListChecks,
   Map,
   MessageSquare,
   PanelLeft,
@@ -19,7 +20,6 @@ import {
   Settings,
   ShoppingCart,
   Star,
-  Ticket,
   Trophy,
   UserRound,
   Users,
@@ -30,14 +30,16 @@ import { Tip } from "@/components/tip";
 import { CozyHouse, CozyWordmark } from "@/components/cozy-mark";
 import { Omnibox } from "@/features/search/omnibox";
 import { unreadConversations } from "@/lib/crm-data";
-import { NAV_COLLAPSE_PX } from "@/lib/chrome";
+import { liveStatus, NAV_COLLAPSE_PX } from "@/lib/chrome";
 import { incidents, notCalled } from "@/lib/snapshot";
+import { useOps } from "@/features/ops/store";
 
 const DAILY = [
   { icon: Radio, label: "Live Board", to: "/", live: true },
   { icon: MessageSquare, label: "Inbox", to: "/conversations", badge: unreadConversations },
   { icon: Calendar, label: "Book", to: "/calendar" },
   { icon: Map, label: "Map", to: "/dispatch" },
+  { icon: ListChecks, label: "Actions", to: "/tickets" },
 ] as const;
 
 const PIPELINE = [
@@ -59,7 +61,6 @@ const COMPANY = [
   { icon: Trophy, label: "Leaderboard", to: "/leaderboard" },
   { icon: HardHat, label: "Crews", to: "/crews" },
   { icon: UserRound, label: "Team", to: "/team" },
-  { icon: Ticket, label: "Tickets", to: "/tickets" },
   { icon: FileText, label: "Reports", to: "/reports" },
   { icon: Settings, label: "Settings", to: "/settings" },
 ] as const;
@@ -85,6 +86,8 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [mobileSearch, setMobileSearch] = useState(false);
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const { actions } = useOps();
+  const pastDueN = actions.filter((a) => liveStatus(a.status, a.due) === "Past Due").length;
   const shut = autoCollapse ? !forceOpen : collapsed;
 
   useEffect(() => {
@@ -159,7 +162,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <div className="relative grid h-dvh w-full min-w-0 max-w-full grid-rows-[56px_minmax(0,1fr)] overflow-hidden bg-page text-ink">
-      <header className="z-30 grid min-w-0 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 border-b border-white/10 bg-navy px-3 text-card md:px-4">
+      <header className="z-30 grid min-w-0 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 border-b border-white/10 bg-navy pl-3 text-card md:pl-4">
         <div className="flex items-center gap-2">
         <button
           type="button"
@@ -187,7 +190,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             <Omnibox />
           </div>
         </div>
-        <div className="flex items-center gap-1">
+        <div className="flex h-full items-center justify-end">
           <button
             type="button"
             className="grid size-10 place-items-center text-faint hover:text-card md:hidden"
@@ -209,7 +212,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               </span>
             ) : null}
           </Link>
-          <Link to="/settings" className="ml-1 flex h-10 items-center gap-2 text-[13px] font-semibold">
+          <Link to="/settings" className="flex h-full items-center gap-2 pr-3 pl-2 text-[13px] font-semibold">
             <span className="size-7 overflow-hidden rounded-sm bg-page">
               <CozyHouse className="size-7" />
             </span>
@@ -249,7 +252,11 @@ export function AppShell({ children }: { children: ReactNode }) {
               )}
               <nav className={cn("flex flex-col", shut ? "items-center gap-0.5" : "gap-0.5")}>
                 {group.items.map((item) => (
-                  <NavLink key={item.to} {...item} />
+                  <NavLink
+                    key={item.to}
+                    {...item}
+                    badge={item.to === "/tickets" ? pastDueN || undefined : "badge" in item ? item.badge : undefined}
+                  />
                 ))}
               </nav>
             </div>

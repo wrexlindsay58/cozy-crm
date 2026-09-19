@@ -1,8 +1,9 @@
+import type { ActionKind } from "@/features/action/types";
 import type { ReactNode } from "react";
 import type { Activity, Ticket, Tone } from "@/lib/crm-data";
 import type { PersonRef, Photo } from "@/lib/file-data";
 
-export type RecordKind = "lead" | "assessment" | "opportunity" | "job" | "account";
+export type RecordKind = "lead" | "assessment" | "opportunity" | "job" | "account" | "action" | ActionKind;
 
 export type RecordAct = {
   label: string;
@@ -33,4 +34,7 @@ export type RecordShellProps = {
   tickets: Ticket[];
   photos: Photo[];
   children: ReactNode;
+  actionId?: string;
+  actionKind?: ActionKind;
+  actionTitle?: string;
 };

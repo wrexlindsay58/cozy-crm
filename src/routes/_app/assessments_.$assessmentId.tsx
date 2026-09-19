@@ -31,7 +31,7 @@ function AssessmentFile() {
         { label: "Call" },
         { label: "Text", opens: "thread" },
         { label: "Book", onClick: () => document.getElementById("book-widget")?.scrollIntoView({ behavior: "smooth", block: "start" }) },
-        { label: "Create", menu: [{ label: "Ticket" }, { label: "Task" }] },
+        { label: "Create", menu: [{ label: "Ticket" }, { label: "Task" }, { label: "Request" }] },
         {
           label: "Complete",
           onClick: () => {

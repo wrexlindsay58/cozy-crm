@@ -225,7 +225,7 @@ function DispatchPage() {
         />
       </header>
 
-      <div className="flex shrink-0 items-center gap-2 border-b border-line bg-card px-4 py-2">
+      <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-line bg-card px-4 py-2">
         <button type="button" className="h-8 rounded-md border border-line px-2 text-xs font-semibold" onClick={() => shiftBookDay(-1)}>
           Prev
         </button>
@@ -246,7 +246,7 @@ function DispatchPage() {
       </div>
 
       <div className="grid min-h-0 min-w-0 flex-1 grid-rows-[auto_minmax(22rem,1fr)] lg:grid-cols-[20rem_minmax(0,1fr)] lg:grid-rows-1">
-        <aside className="min-h-0 overflow-auto border-b border-line bg-card lg:border-r lg:border-b-0">
+        <aside className="min-h-0 overflow-auto border-b border-line bg-card max-lg:max-h-[36vh] lg:border-r lg:border-b-0">
           {open.length ? (
             <div className="border-b border-line">
               <p className="px-3 py-2 text-[11px] font-bold tracking-wide text-muted uppercase">Open</p>

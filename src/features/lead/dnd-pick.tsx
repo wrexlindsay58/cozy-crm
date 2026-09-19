@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Ban, BellOff, Mail, MessageSquare, Phone } from "lucide-react";
 import { Float } from "@/components/float";
+import { Tip } from "@/components/tip";
 import { dndOn, toggleLeadDnd } from "@/features/ops/store";
 import type { DndChannel, Lead } from "@/lib/crm-data";
 import { cn } from "@/lib/cn";
@@ -51,25 +52,29 @@ export function DndPick({
   const [anchor, setAnchor] = useState<DOMRect | null>(null);
   const allOn = (lead.dnd ?? []).length === 3;
   const hot = (lead.dnd ?? []).length > 0;
+  const words = `DND ${dndLabel(lead)}`;
 
   return (
     <>
-      <button
-        type="button"
-        aria-label="DND"
-        aria-expanded={open}
-        onClick={(e) => {
-          setAnchor(e.currentTarget.getBoundingClientRect());
-          setOpen((v) => !v);
-        }}
-        className={cn(
-          "inline-flex h-7 shrink-0 items-center gap-1 rounded-md px-1.5 text-[11px] font-bold tracking-wide uppercase",
-          hot ? "bg-alert-bg text-alert" : compact ? "bg-page text-muted" : "border border-line text-muted",
-        )}
-      >
-        <DndMarks dnd={lead.dnd} />
-        DND {dndLabel(lead)}
-      </button>
+      <Tip label={words} on={Boolean(compact)}>
+        <button
+          type="button"
+          aria-label={words}
+          aria-expanded={open}
+          onClick={(e) => {
+            setAnchor(e.currentTarget.getBoundingClientRect());
+            setOpen((v) => !v);
+          }}
+          className={cn(
+            "inline-flex h-7 shrink-0 items-center gap-1 rounded-md px-1.5 text-[11px] font-bold tracking-wide uppercase",
+            hot ? "bg-alert-bg text-alert" : compact ? "bg-page text-muted" : "border border-line text-muted",
+            compact && "max-md:w-7 max-md:justify-center max-md:px-0",
+          )}
+        >
+          <DndMarks dnd={lead.dnd} />
+          <span className={cn(compact && "max-md:sr-only")}>{words}</span>
+        </button>
+      </Tip>
       {open && anchor ? (
         <Float anchor={anchor} prefer="bottom" onClose={() => setOpen(false)}>
           {DND_ROWS.map((row) => {

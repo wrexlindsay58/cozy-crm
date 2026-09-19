@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { logCall } from "@/features/ops/store";
 import { useFrom } from "@/features/from/store";
+import type { ActionKind } from "@/features/action/types";
 
 export function ClickToCall({
   personId,
@@ -8,12 +9,16 @@ export function ClickToCall({
   name,
   open,
   onClose,
+  actionId,
+  actionKind,
 }: {
   personId: string;
   phone: string;
   name: string;
   open: boolean;
   onClose: () => void;
+  actionId?: string;
+  actionKind?: ActionKind;
 }) {
   const [status, setStatus] = useState<"dialing" | "live">("dialing");
   const [sec, setSec] = useState(0);
@@ -42,12 +47,16 @@ export function ClickToCall({
 
   function hangup() {
     const result = status === "live" && sec >= 4 ? "Answered" : sec >= 1 ? "VM" : "No answer";
-    logCall(personId, {
-      direction: "Out",
-      result,
-      duration: String(Math.max(1, Math.round(sec / 60) || (sec > 0 ? 1 : 0))),
-      note: `Cozy Voice to ${phone}`,
-    });
+    logCall(
+      personId,
+      {
+        direction: "Out",
+        result,
+        duration: String(Math.max(1, Math.round(sec / 60) || (sec > 0 ? 1 : 0))),
+        note: `Cozy Voice to ${phone}`,
+      },
+      actionId ? { actionId, actionKind } : undefined,
+    );
     onClose();
   }
 

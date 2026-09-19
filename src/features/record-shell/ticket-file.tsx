@@ -130,7 +130,7 @@ export function TicketFile({ ticket, onBack }: { ticket: Ticket; onBack: () => v
       </form>
 
       <div className="mt-4">
-        <PhotoRail personId={ticket.id} />
+        <PhotoRail personId={ticket.related} actionId={ticket.id} actionKind="ticket" actionIds={[ticket.id]} scope="action" />
       </div>
       <div className="mt-4 h-64 overflow-hidden rounded-md border border-line">
         <ThreadPane personId={ticket.id} mode="internal" />

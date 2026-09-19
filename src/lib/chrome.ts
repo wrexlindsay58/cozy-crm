@@ -20,9 +20,9 @@ import {
  * 1. Every action is an icon plus a word. If the word would clip, drop the
  *    word and keep a tooltip.
  * 2. Under NAV_COLLAPSE_PX the left nav is an icon dock. Tooltips on the right.
- * 3. Tickets and tasks live on cards. No popup for comment, reply, status,
+ * 3. Tickets, tasks, and requests live on cards. No popup for comment, reply, status,
  *    or attach.
- * 4. Comments on tickets, tasks, notes, and media nest in Internal.
+ * 4. Comments on tickets, tasks, requests, notes, and media nest in Internal.
  * 5. Owner clicks the title to edit. Anyone on the file can comment.
  * 6. Tap targets are 44px. Internal is the shop log. Customer is the house.
  * 7. Lead file and Inbox are the chrome standard. Same depth, still simple.

@@ -44,6 +44,7 @@ export function ResourceBoard({
         className="min-w-full"
         style={{
           display: "grid",
+          minWidth: `max(100%, calc(3rem + ${cols.length} * 10rem))`,
           gridTemplateColumns: `3rem repeat(${cols.length}, ${COL})`,
           gridTemplateRows: `3rem ${height}px`,
         }}

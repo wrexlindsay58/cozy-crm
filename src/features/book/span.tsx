@@ -34,6 +34,7 @@ export function DaySpan({
         className="min-w-full"
         style={{
           display: "grid",
+          minWidth: `max(100%, calc(3rem + ${cols.length} * 12rem))`,
           gridTemplateColumns: `3rem repeat(${cols.length}, minmax(12rem, 1fr))`,
           gridTemplateRows: `3rem ${height}px`,
         }}

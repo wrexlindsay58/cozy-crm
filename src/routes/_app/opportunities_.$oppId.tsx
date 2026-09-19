@@ -51,7 +51,7 @@ function OppFile() {
         { label: "Call" },
         { label: "Text", opens: "thread" },
         { label: "Book", onClick: () => document.getElementById("book-widget")?.scrollIntoView({ behavior: "smooth", block: "start" }) },
-        { label: "Create", menu: [{ label: "Ticket" }, { label: "Task" }] },
+        { label: "Create", menu: [{ label: "Ticket" }, { label: "Task" }, { label: "Request" }] },
         { label: "Generate", onClick: () => { if (generateProposal(opp.id)) navigate({ to: "/proposal/$oppId", params: { oppId: opp.id } }); } },
         { label: "Card", onClick: () => applyGoodLeap(opp.id) },
       ]}

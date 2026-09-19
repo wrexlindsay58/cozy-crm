@@ -17,7 +17,14 @@ export function sendMessage(
   personId: string,
   text: string,
   lane: boolean | "sms" | "internal" | "note" | "email" = false,
-  extra?: { subject?: string; nest?: ThreadMessage["nest"]; replyTo?: string; files?: ThreadMessage["files"] },
+  extra?: {
+    subject?: string;
+    nest?: ThreadMessage["nest"];
+    replyTo?: string;
+    files?: ThreadMessage["files"];
+    actionId?: string;
+    actionKind?: ThreadMessage["actionKind"];
+  },
 ) {
   const trimmed = text.trim();
   if (!trimmed && !extra?.files?.length) return;
@@ -30,6 +37,8 @@ export function sendMessage(
   });
   const channel: ThreadMessage["channel"] =
     extra?.nest || lane === true || lane === "internal" ? "internal" : lane === "note" ? "note" : lane === "email" ? "email" : "sms";
+  const actionId = extra?.actionId ?? extra?.nest?.id;
+  const actionKind = extra?.actionKind ?? extra?.nest?.kind;
   const row: ThreadMessage = {
     id: `M-${messages.length + 1}`,
     personId,
@@ -41,6 +50,8 @@ export function sendMessage(
     nest: extra?.nest,
     replyTo: extra?.replyTo,
     files: extra?.files,
+    actionId,
+    actionKind,
   };
   messages = [...messages, row];
   emit();
@@ -73,7 +84,13 @@ export function useComments(personId: string, kind: string, nestId: string) {
 export function logCallMessage(
   personId: string,
   text: string,
-  extra?: { durationSec?: number; direction?: "Out" | "In"; result?: "Answered" | "VM" | "No answer" },
+  extra?: {
+    durationSec?: number;
+    direction?: "Out" | "In";
+    result?: "Answered" | "VM" | "No answer";
+    actionId?: string;
+    actionKind?: ThreadMessage["actionKind"];
+  },
 ) {
   const now = new Date();
   const at = now.toLocaleString("en-US", {
@@ -94,6 +111,8 @@ export function logCallMessage(
       durationSec: extra?.durationSec,
       direction: extra?.direction,
       result: extra?.result,
+      actionId: extra?.actionId,
+      actionKind: extra?.actionKind,
     },
   ];
   emit();
@@ -137,7 +156,15 @@ export function useMessages() {
   );
 }
 
-export function useThread(personId: string, lane: "customer" | "internal" | "notes" | boolean = false) {
+export function tiedActionId(m: ThreadMessage) {
+  return m.actionId ?? m.nest?.id;
+}
+
+export function useThread(
+  personId: string,
+  lane: "customer" | "internal" | "notes" | boolean = false,
+  actionIds?: string[],
+) {
   const snap = useSyncExternalStore(
     (cb) => {
       listeners.add(cb);
@@ -148,6 +175,10 @@ export function useThread(personId: string, lane: "customer" | "internal" | "not
   );
   return snap.filter((m) => {
     if (m.personId !== personId) return false;
+    if (actionIds?.length) {
+      const id = tiedActionId(m);
+      if (!id || !actionIds.includes(id)) return false;
+    }
     if (lane === true || lane === "internal") return m.channel === "internal";
     if (lane === "notes") return m.channel === "note";
     return m.channel === "sms" || m.channel === "call" || m.channel === "email";

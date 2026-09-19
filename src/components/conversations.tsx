@@ -3,14 +3,11 @@ import {
   BellOff,
   Calendar,
   ChevronDown,
-  ClipboardList,
-  Clock,
+  ChevronLeft,
   GitBranch,
-  Image,
   Inbox,
   Layers,
   ListFilter,
-  ListChecks,
   Mail,
   MessageSquare,
   MessagesSquare,
@@ -19,8 +16,6 @@ import {
   Smartphone,
   SquareArrowOutUpRight,
   Star,
-  StickyNote,
-  Tag,
   User,
   UserPlus,
   Users,
@@ -40,11 +35,12 @@ import { useAssessments } from "@/features/assessment/store";
 import { isRead, isStarred, markRead, toggleStar, useMessages } from "@/features/thread/store";
 import { HistoryList, PhotoRail } from "@/features/record-shell/side-rails";
 import { FormAnswers } from "@/features/record-shell/form-answers";
+import { type ConvLane } from "@/features/record-shell/lanes";
+import { ConvTabs } from "@/features/record-shell/conv-tabs";
 import { ThreadPane } from "@/features/record-shell/thread-pane";
 import { WorkTab } from "@/features/record-shell/work-tab";
 import { Float } from "@/components/float";
 import { Tip } from "@/components/tip";
-import { useFit } from "@/components/use-fit";
 import { PageTitle } from "@/components/ui-bits";
 
 const WHO = [
@@ -75,19 +71,7 @@ const PIPE = [
   { id: "Account", label: "Account", icon: GitBranch },
 ] as const;
 
-const LANES = [
-  { id: "customer", label: "Customer", icon: MessageSquare },
-  { id: "internal", label: "Internal", icon: Users },
-  { id: "notes", label: "Notes", icon: StickyNote },
-  { id: "tags", label: "Tags", icon: Tag },
-  { id: "actions", label: "Actions", icon: ListChecks },
-  { id: "history", label: "History", icon: Clock },
-  { id: "media", label: "Media & Files", icon: Image },
-  { id: "form", label: "Form", icon: ClipboardList },
-  { id: "book", label: "Book", icon: Calendar },
-] as const;
-
-type Lane = (typeof LANES)[number]["id"];
+type Lane = ConvLane;
 type Who = (typeof WHO)[number]["id"];
 type Channel = (typeof CHANNEL)[number]["id"];
 type TalkType = (typeof TYPE)[number]["id"];
@@ -255,7 +239,7 @@ export function Conversations() {
                 className="h-10 w-full rounded-md border border-line bg-page pr-3 pl-9 text-sm outline-none"
               />
             </label>
-            <div className="mt-1.5 flex items-center gap-0.5">
+            <div className="mt-1.5 flex items-center gap-0.5 overflow-x-auto">
               <Pick items={WHO} value={who} onChange={setWho} />
               <IconChip
                 label="Starred"
@@ -339,13 +323,64 @@ export function Conversations() {
         <section className={cn("flex min-w-0 flex-1 flex-col bg-card", !mobileThread && "max-md:hidden")}>
           {active ? (
             <>
-              <header className="flex min-h-14 flex-wrap items-center gap-2 border-b border-line px-3 py-2">
-                <button type="button" className="h-10 text-sm font-semibold text-navy md:hidden" onClick={() => setMobileThread(false)}>
-                  Inbox
-                </button>
+              <header className="border-b border-line px-3 py-2 md:hidden">
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    aria-label="Back to inbox"
+                    className="grid size-10 shrink-0 place-items-center rounded-md text-navy"
+                    onClick={() => setMobileThread(false)}
+                  >
+                    <ChevronLeft className="size-5" />
+                  </button>
+                  <h2 className="min-w-0 flex-1 truncate text-base font-bold">{active.name}</h2>
+                  <Tip label="Open file" on>
+                    <a
+                      href={active.pipe.href}
+                      aria-label="Open file"
+                      className="grid size-9 shrink-0 place-items-center rounded-md border border-line text-navy"
+                    >
+                      <SquareArrowOutUpRight className="size-4" />
+                    </a>
+                  </Tip>
+                </div>
+                <div className="mt-1.5 flex items-center gap-2 overflow-x-auto">
+                  {active.status ? (
+                    <span className={cn("h-7 shrink-0 rounded-md px-2 text-[11px] font-bold tracking-wide uppercase leading-7", stageWash(active.tone))}>
+                      {active.status}
+                    </span>
+                  ) : null}
+                  <span className="h-7 shrink-0 rounded-md bg-page px-2 text-[11px] font-bold tracking-wide text-muted uppercase leading-7">
+                    {active.pipe.label}
+                  </span>
+                  {lead ? <DndPick lead={lead} compact /> : null}
+                  <Tip label={starred ? "Unstar" : "Star"} on>
+                    <button type="button" aria-label={starred ? "Unstar" : "Star"} className="grid size-9 shrink-0 place-items-center rounded-md border border-line" onClick={() => toggleStar(active.id)}>
+                      <Star className={cn("size-4", starred && "fill-navy text-navy")} />
+                    </button>
+                  </Tip>
+                  <Tip label="Book" on>
+                    <button type="button" aria-label="Book" className="grid size-9 shrink-0 place-items-center rounded-md border border-line" onClick={() => setLane("book")}>
+                      <Calendar className="size-4" />
+                    </button>
+                  </Tip>
+                  {active.phone ? (
+                    <Tip label="Call" on>
+                      <button type="button" aria-label="Call" className="grid size-9 shrink-0 place-items-center rounded-md border border-line" onClick={() => setCallOpen(true)}>
+                        <Phone className="size-4" />
+                      </button>
+                    </Tip>
+                  ) : null}
+                </div>
+                <p className="mt-1 text-[11px] text-muted">
+                  {active.phone}
+                  {active.city ? ` · ${active.city}` : ""}
+                  {active.appt ? ` · Sep ${active.appt.day} ${active.appt.time}` : ""}
+                </p>
+              </header>
+              <header className="hidden min-h-14 items-center gap-2 border-b border-line px-3 py-2 md:flex">
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
-                    <h2 className="truncate text-base font-bold">{active.name}</h2>
                     {active.status ? (
                       <span className={cn("h-7 rounded-md px-2 text-[11px] font-bold tracking-wide uppercase leading-7", stageWash(active.tone))}>
                         {active.status}
@@ -354,6 +389,24 @@ export function Conversations() {
                     <span className="h-7 rounded-md bg-page px-2 text-[11px] font-bold tracking-wide text-muted uppercase leading-7">
                       {active.pipe.label}
                     </span>
+                    {lead ? <DndPick lead={lead} compact /> : null}
+                    <Tip label={starred ? "Unstar" : "Star"} on>
+                      <button type="button" aria-label={starred ? "Unstar" : "Star"} className="grid size-9 place-items-center rounded-md border border-line" onClick={() => toggleStar(active.id)}>
+                        <Star className={cn("size-4", starred && "fill-navy text-navy")} />
+                      </button>
+                    </Tip>
+                    <Tip label="Book" on>
+                      <button type="button" aria-label="Book" className="grid size-9 place-items-center rounded-md border border-line" onClick={() => setLane("book")}>
+                        <Calendar className="size-4" />
+                      </button>
+                    </Tip>
+                    {active.phone ? (
+                      <Tip label="Call" on>
+                        <button type="button" aria-label="Call" className="grid size-9 place-items-center rounded-md border border-line" onClick={() => setCallOpen(true)}>
+                          <Phone className="size-4" />
+                        </button>
+                      </Tip>
+                    ) : null}
                   </div>
                   <p className="text-[11px] text-muted">
                     {active.phone}
@@ -361,20 +414,13 @@ export function Conversations() {
                     {active.appt ? ` · Sep ${active.appt.day} ${active.appt.time}` : ""}
                   </p>
                 </div>
-                {lead ? <DndPick lead={lead} compact /> : null}
-                <button type="button" aria-label={starred ? "Unstar" : "Star"} className="grid size-9 place-items-center rounded-md border border-line" onClick={() => toggleStar(active.id)}>
-                  <Star className={cn("size-4", starred && "fill-navy text-navy")} />
-                </button>
-                <button type="button" aria-label="Book" className="grid size-9 place-items-center rounded-md border border-line" onClick={() => setLane("book")}>
-                  <Calendar className="size-4" />
-                </button>
-                {active.phone ? (
-                  <button type="button" aria-label="Call" className="grid size-9 place-items-center rounded-md border border-line" onClick={() => setCallOpen(true)}>
-                    <Phone className="size-4" />
-                  </button>
-                ) : null}
-                <a href={active.pipe.href} aria-label="Open file" className="grid size-9 place-items-center rounded-md border border-line text-navy">
-                  <SquareArrowOutUpRight className="size-4" />
+                <a href={active.pipe.href} className="ml-auto flex min-w-0 max-w-[14rem] shrink-0 items-center gap-2">
+                  <h2 className="min-w-0 truncate text-base font-bold">{active.name}</h2>
+                  <Tip label="Open file" on>
+                    <span aria-label="Open file" className="grid size-9 shrink-0 place-items-center rounded-md border border-line text-navy">
+                      <SquareArrowOutUpRight className="size-4" />
+                    </span>
+                  </Tip>
                 </a>
               </header>
               <LaneHead lane={lane} onLane={setLane} />
@@ -580,48 +626,5 @@ function IconChip({
 }
 
 function LaneHead({ lane, onLane }: { lane: Lane; onLane: (v: Lane) => void }) {
-  const { barRef, measureRef, iconsOnly } = useFit();
-  return (
-    <div className="relative border-b border-line">
-      <div ref={measureRef} className="pointer-events-none invisible absolute flex gap-1 px-2 py-2 whitespace-nowrap" aria-hidden>
-        {LANES.map((l) => {
-          const Icon = l.icon;
-          return (
-            <span key={l.id} className="flex h-10 items-center gap-1.5 px-3 text-xs font-semibold">
-              <Icon className="size-4" />
-              {l.label}
-            </span>
-          );
-        })}
-      </div>
-      <div ref={barRef} className="flex gap-1 overflow-x-auto px-2 py-2">
-        {LANES.map((l) => {
-          const Icon = l.icon;
-          const btn = (
-            <button
-              key={l.id}
-              type="button"
-              aria-label={l.label}
-              onClick={() => onLane(l.id)}
-              className={cn(
-                "flex h-10 shrink-0 items-center justify-center gap-1.5 rounded-md px-3 text-xs font-semibold",
-                lane === l.id ? "bg-navy text-card" : "text-muted hover:text-ink",
-                iconsOnly && "w-10 px-0",
-              )}
-            >
-              <Icon className="size-4" />
-              {iconsOnly ? <span className="sr-only">{l.label}</span> : l.label}
-            </button>
-          );
-          return iconsOnly ? (
-            <Tip key={l.id} label={l.label} on side="bottom">
-              {btn}
-            </Tip>
-          ) : (
-            btn
-          );
-        })}
-      </div>
-    </div>
-  );
+  return <ConvTabs lane={lane} onLane={(id) => onLane(id as Lane)} />;
 }

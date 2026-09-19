@@ -10,9 +10,10 @@ export type Photo = {
   src?: string;
   kind?: FileKind;
   name?: string;
+  actionId?: string;
 };
 
-export type NestKind = "ticket" | "task" | "note" | "media";
+export type NestKind = "ticket" | "task" | "request" | "note" | "media";
 
 export type ThreadNest = {
   kind: NestKind;
@@ -35,6 +36,8 @@ export type ThreadMessage = {
   replyTo?: string;
   reactions?: { emoji: string; by: string }[];
   files?: { name: string; kind?: FileKind; src?: string }[];
+  actionId?: string;
+  actionKind?: NestKind;
 };
 
 export const followersByPerson: Record<string, PersonRef[]> = {
@@ -62,12 +65,16 @@ export const followersByPerson: Record<string, PersonRef[]> = {
 
 export const photosByPerson: Record<string, Photo[]> = {
   "L-4821": [
-    { id: "PH-1", personId: "L-4821", caption: "Attic hatch, east hall", tone: "info", kind: "photo" },
-    { id: "PH-2", personId: "L-4821", caption: "Can lights in great room", tone: "idle", kind: "photo" },
-    { id: "PH-3", personId: "L-4821", caption: "HOA letter", tone: "info", kind: "pdf", name: "HOA-letter.pdf" },
+    { id: "PH-1", personId: "L-4821", caption: "Attic hatch, east hall", tone: "info", kind: "photo", src: "/brand/slides/interior.jpg", actionId: "T-91" },
+    { id: "PH-2", personId: "L-4821", caption: "Can lights in great room", tone: "idle", kind: "photo", src: "/brand/slides/house-2.jpg" },
+    { id: "PH-3", personId: "L-4821", caption: "HOA letter", tone: "info", kind: "pdf", name: "HOA-letter.pdf", actionId: "R-12" },
+    { id: "PH-4", personId: "L-4821", caption: "Approved baffle color", tone: "info", kind: "photo", src: "/brand/slides/house-3.jpg", actionId: "K-1" },
+  ],
+  "L-4819": [
+    { id: "PH-5", personId: "L-4819", caption: "Existing condenser", tone: "info", kind: "photo", src: "/brand/slides/house.jpg", actionId: "K-3" },
   ],
   "A-198": [
-    { id: "PH-8", personId: "A-198", caption: "Prior air-seal register", tone: "info" },
+    { id: "PH-8", personId: "A-198", caption: "Prior air-seal register", tone: "info", kind: "photo", src: "/brand/slides/interior.jpg" },
   ],
 };
 
@@ -158,6 +165,8 @@ export const seedThread: ThreadMessage[] = [
     at: "Sep 14 9:12a",
     text: "HOA wants tan, not white.",
     nest: { kind: "ticket", id: "T-91", title: "HOA baffle color" },
+    actionId: "T-91",
+    actionKind: "ticket",
     reactions: [{ emoji: "👍", by: "Marco Velez" }],
   },
   {
@@ -168,7 +177,61 @@ export const seedThread: ThreadMessage[] = [
     at: "Sep 14 9:40a",
     text: "Got it. Sending the swatch.",
     nest: { kind: "ticket", id: "T-91", title: "HOA baffle color" },
+    actionId: "T-91",
+    actionKind: "ticket",
     replyTo: "M-8",
+  },
+  {
+    id: "M-91a",
+    personId: "L-4821",
+    channel: "sms",
+    from: "shop",
+    at: "Sep 14 9:05a",
+    text: "Elena, HOA wants the baffle to match the vents. Can you shoot the approved color from the letter?",
+    actionId: "T-91",
+    actionKind: "ticket",
+  },
+  {
+    id: "M-91b",
+    personId: "L-4821",
+    channel: "sms",
+    from: "customer",
+    at: "Sep 14 9:22a",
+    text: "Tan on the letter. I'll text a photo when I'm home.",
+    actionId: "T-91",
+    actionKind: "ticket",
+  },
+  {
+    id: "M-91c",
+    personId: "L-4821",
+    channel: "sms",
+    from: "shop",
+    at: "Sep 14 9:28a",
+    text: "Got it. Priya will send the swatch to the board.",
+    actionId: "T-91",
+    actionKind: "ticket",
+  },
+  {
+    id: "M-91k",
+    personId: "L-4821",
+    channel: "internal",
+    from: "shop",
+    at: "Sep 14 10:02a",
+    text: "Need the hatch photo before we order.",
+    nest: { kind: "task", id: "K-1", title: "Photo of approved baffle" },
+    actionId: "K-1",
+    actionKind: "task",
+  },
+  {
+    id: "M-91r",
+    personId: "L-4821",
+    channel: "internal",
+    from: "shop",
+    at: "Sep 14 11:10a",
+    text: "Board packet is on the portal. Need Elena's signature.",
+    nest: { kind: "request", id: "R-12", title: "HOA architectural form" },
+    actionId: "R-12",
+    actionKind: "request",
   },
   {
     id: "M-10",

@@ -6,6 +6,7 @@ import { logCallMessage, sendMessage } from "@/features/thread/store";
 import { putFromAppointment } from "@/features/book/store";
 import { type WorkStatus } from "@/lib/chrome";
 import { toneForStatus } from "@/lib/lead-status";
+import type { ActionKind, ShopAction } from "@/features/action/types";
 
 export type Disposition = string;
 export const DISPOSITIONS = ["Unmarked", "Confirmed", "No sit", "Missed", "One legger", "Ran"] as const;
@@ -28,6 +29,7 @@ export type LeadDraft = {
   referrerName?: string;
   referrerPhone?: string;
 };
+export type { ActionKind, ShopAction } from "@/features/action/types";
 export type Task = {
   id: string;
   title: string;
@@ -43,11 +45,54 @@ export type CallInput = { direction: "Out" | "In"; result: "Answered" | "VM" | "
 
 const ACTOR = "Wrex Lindsay";
 
+function toTicket(a: ShopAction): Ticket {
+  return {
+    id: a.id,
+    title: a.title,
+    related: a.personId,
+    owner: a.owner,
+    priority: a.priority ?? "Normal",
+    status: a.status,
+    age: a.age ?? "",
+    description: a.description,
+    due: a.due,
+    followers: a.followers,
+  };
+}
+function toTask(a: ShopAction): Task {
+  return {
+    id: a.id,
+    title: a.title,
+    personId: a.personId,
+    owner: a.owner,
+    due: a.due ?? "",
+    status: a.status,
+    ticketId: a.parentId,
+    description: a.description,
+    followers: a.followers,
+  };
+}
+
 let leads: Lead[] = [...seedLeads];
 let appointments: Appointment[] = [...seedAppts];
-let tickets: Ticket[] = [...seedTickets];
-let tasks: Task[] = [
-  { id: "K-1", title: "Photo of approved baffle", personId: "L-4821", owner: "Priya Shah", due: "Sep 17", status: "Open", ticketId: "T-91", followers: [] },
+let actions: ShopAction[] = [
+  ...seedTickets.map((t) => ({
+    id: t.id,
+    kind: "ticket" as const,
+    title: t.title,
+    personId: t.related,
+    owner: t.owner,
+    status: t.status,
+    priority: t.priority,
+    due: t.due,
+    description: t.description,
+    followers: t.followers,
+    age: t.age,
+  })),
+  { id: "K-1", kind: "task", title: "Photo of approved baffle", personId: "L-4821", parentId: "T-91", owner: "Priya Shah", due: "Sep 17", status: "Open", followers: [], age: "1d" },
+  { id: "R-12", kind: "request", title: "HOA architectural form", personId: "L-4821", parentId: "T-91", owner: "Priya Shah", due: "Sep 20", status: "Open", description: "Board packet before they paint.", followers: [], age: "1d" },
+  { id: "K-2", kind: "task", title: "Email the board", personId: "L-4821", parentId: "R-12", owner: "Priya Shah", due: "Sep 19", status: "Open", followers: [], age: "1d" },
+  { id: "K-3", kind: "task", title: "Send Hale financing recap", personId: "L-4819", owner: "Dana Ortiz", due: "Sep 18", status: "Open", description: "Cash vs 12-month. No ticket.", followers: [], age: "8h" },
 ];
 let history: Record<string, { at: string; who: string; what: string }[]> = Object.fromEntries(
   Object.entries(activities).map(([id, rows]) => [id, rows.map((r) => ({ ...r }))]),
@@ -58,7 +103,9 @@ let flowPool = ["New lead drip", "No-sit follow-up", "Ran, no decision", "Review
 let cached = pack();
 const listeners = new Set<() => void>();
 function pack() {
-  return { leads, appointments, tickets, tasks, history, followers, tagPool, flowPool };
+  const tickets = actions.filter((a) => a.kind === "ticket").map(toTicket);
+  const tasks = actions.filter((a) => a.kind === "task").map(toTask);
+  return { leads, appointments, tickets, tasks, actions, history, followers, tagPool, flowPool };
 }
 function emit() {
   cached = pack();
@@ -141,102 +188,132 @@ export function bookAppointment(input: {
     `Scheduled ${input.kind}: Sep ${input.day} ${input.time} · ${input.assignee}${input.crew ? ` · ${input.crew}` : ""}.`,
   );
 }
-export function createTicket(input: { personId: string; title: string; owner: string; description?: string; due?: string }) {
+export function nextActionId(kind: ActionKind) {
+  const prefix = kind === "ticket" ? "T" : kind === "request" ? "R" : "K";
+  const n = actions.filter((a) => a.kind === kind).length;
+  return `${prefix}-${20 + n + Math.floor(Math.random() * 9)}`;
+}
+
+export function descendantsOf(id: string, rows: ShopAction[] = actions): string[] {
+  const kids = rows.filter((a) => a.parentId === id);
+  return kids.flatMap((k) => [k.id, ...descendantsOf(k.id, rows)]);
+}
+
+export function createAction(input: {
+  kind: ActionKind;
+  personId: string;
+  title: string;
+  owner: string;
+  description?: string;
+  due?: string;
+  parentId?: string;
+  priority?: "High" | "Normal" | "Low";
+}) {
   if (!input.title.trim()) return;
-  const row: Ticket = {
-    id: `T-${60 + tickets.length}`,
+  const row: ShopAction = {
+    id: nextActionId(input.kind),
+    kind: input.kind,
     title: input.title.trim(),
-    related: input.personId,
+    personId: input.personId,
+    parentId: input.parentId,
     owner: input.owner,
-    priority: "Normal",
     status: "Open",
-    age: "now",
-    description: input.description?.trim() || "",
+    priority: input.kind === "ticket" ? (input.priority ?? "Normal") : undefined,
     due: input.due?.trim() || "",
+    description: input.description?.trim() || "",
     followers: [],
+    age: "now",
   };
-  tickets = [row, ...tickets];
-  addHistory(input.personId, input.owner, `Ticket opened: ${input.title}.`);
+  actions = [row, ...actions];
+  const word = input.kind;
+  addHistory(
+    input.personId,
+    input.owner,
+    input.parentId ? `${word[0].toUpperCase()}${word.slice(1)} on ${input.parentId}: ${input.title}.` : `${word[0].toUpperCase()}${word.slice(1)} opened: ${input.title}.`,
+  );
   return row;
 }
+export function createTicket(input: { personId: string; title: string; owner: string; description?: string; due?: string }) {
+  return createAction({ ...input, kind: "ticket" });
+}
 export function createTask(input: { personId: string; title: string; owner: string; due: string; ticketId?: string; description?: string }) {
-  if (!input.title.trim()) return;
-  tasks = [
-    {
-      id: `K-${20 + tasks.length}`,
-      title: input.title.trim(),
-      personId: input.personId,
-      owner: input.owner,
-      due: input.due || "Today",
-      status: "Open",
-      ticketId: input.ticketId,
-      description: input.description?.trim() || "",
-      followers: [],
-    },
-    ...tasks,
-  ];
-  addHistory(input.personId, input.owner, input.ticketId ? `Task on ${input.ticketId}: ${input.title}.` : `Task opened: ${input.title}.`);
-  return tasks[0];
+  return createAction({ ...input, kind: "task", parentId: input.ticketId });
+}
+export function createRequest(input: { personId: string; title: string; owner: string; due?: string; parentId?: string; description?: string }) {
+  return createAction({ ...input, kind: "request" });
 }
 export function patchTicket(id: string, patch: Partial<Ticket>) {
-  const t = tickets.find((x) => x.id === id);
-  tickets = tickets.map((x) => (x.id === id ? { ...x, ...patch } : x));
-  if (t) addHistory(t.related, ACTOR, `Ticket ${id} updated.`);
+  const mapped: Partial<ShopAction> = {
+    title: patch.title,
+    description: patch.description,
+    due: patch.due,
+    owner: patch.owner,
+    status: patch.status,
+    priority: patch.priority,
+    followers: patch.followers,
+    personId: patch.related,
+  };
+  patchAction(id, mapped);
 }
-export function setWorkStatus(kind: "ticket" | "task", id: string, status: WorkStatus) {
-  if (kind === "ticket") {
-    const t = tickets.find((x) => x.id === id);
-    tickets = tickets.map((x) => (x.id === id ? { ...x, status } : x));
-    if (t) {
-      sendMessage(t.related, `Status → ${status}.`, "internal", { nest: { kind: "ticket", id: t.id, title: t.title } });
-      addHistory(t.related, ACTOR, `Ticket ${status}: ${t.title}.`);
-    }
-    return;
+export function patchAction(id: string, patch: Partial<ShopAction>) {
+  const t = actions.find((x) => x.id === id);
+  actions = actions.map((x) => (x.id === id ? { ...x, ...patch } : x));
+  if (t) addHistory(t.personId, ACTOR, `${t.kind[0].toUpperCase()}${t.kind.slice(1)} ${id} updated.`);
+}
+export function setWorkStatus(kind: "ticket" | "task" | "request" | ActionKind, id: string, status: WorkStatus) {
+  const t = actions.find((x) => x.id === id);
+  actions = actions.map((x) => (x.id === id ? { ...x, status } : x));
+  if (t) {
+    sendMessage(t.personId, `Status → ${status}.`, "internal", {
+      nest: { kind: t.kind, id: t.id, title: t.title },
+      actionId: t.id,
+      actionKind: t.kind,
+    });
+    addHistory(t.personId, ACTOR, `${t.kind[0].toUpperCase()}${t.kind.slice(1)} ${status}: ${t.title}.`);
   }
-  const k = tasks.find((x) => x.id === id);
-  tasks = tasks.map((x) => (x.id === id ? { ...x, status } : x));
-  if (k) {
-    sendMessage(k.personId, `Status → ${status}.`, "internal", { nest: { kind: "task", id: k.id, title: k.title } });
-    addHistory(k.personId, ACTOR, `Task ${status}: ${k.title}.`);
-  }
+  void kind;
 }
 export function deleteTicket(id: string) {
-  const t = tickets.find((x) => x.id === id);
-  tickets = tickets.filter((x) => x.id !== id);
-  if (t) addHistory(t.related, ACTOR, `Ticket deleted: ${t.title}.`);
-  else emit();
+  deleteAction(id);
 }
 export function deleteTask(id: string) {
-  const k = tasks.find((x) => x.id === id);
-  tasks = tasks.filter((x) => x.id !== id);
-  if (k) addHistory(k.personId, ACTOR, `Task deleted: ${k.title}.`);
+  deleteAction(id);
+}
+export function deleteAction(id: string) {
+  const t = actions.find((x) => x.id === id);
+  actions = actions.map((x) => (x.parentId === id ? { ...x, parentId: undefined } : x)).filter((x) => x.id !== id);
+  if (t) addHistory(t.personId, ACTOR, `${t.kind[0].toUpperCase()}${t.kind.slice(1)} deleted: ${t.title}. Children kept on the file.`);
   else emit();
 }
 export function addTicketFollower(id: string, name: string) {
-  tickets = tickets.map((t) => {
+  addActionFollower(id, name);
+}
+export function addActionFollower(id: string, name: string) {
+  actions = actions.map((t) => {
     if (t.id !== id) return t;
     if ((t.followers ?? []).includes(name)) return t;
     return { ...t, followers: [...(t.followers ?? []), name] };
   });
-  const t = tickets.find((x) => x.id === id);
-  if (t) addHistory(t.related, ACTOR, `Follow ticket ${id}: ${name}.`);
+  const t = actions.find((x) => x.id === id);
+  if (t) addHistory(t.personId, ACTOR, `Follow ${t.kind} ${id}: ${name}.`);
 }
 export function removeTicketFollower(id: string, name: string) {
-  tickets = tickets.map((t) => (t.id === id ? { ...t, followers: (t.followers ?? []).filter((n) => n !== name) } : t));
+  actions = actions.map((t) => (t.id === id ? { ...t, followers: (t.followers ?? []).filter((n) => n !== name) } : t));
   emit();
 }
 export function patchTask(id: string, patch: Partial<Task>) {
-  const k = tasks.find((x) => x.id === id);
-  tasks = tasks.map((x) => (x.id === id ? { ...x, ...patch } : x));
-  if (k) addHistory(k.personId, ACTOR, `Task updated: ${k.title}.`);
+  patchAction(id, {
+    title: patch.title,
+    description: patch.description,
+    due: patch.due,
+    owner: patch.owner,
+    status: patch.status,
+    followers: patch.followers,
+    parentId: patch.ticketId,
+  });
 }
 export function addTaskFollower(id: string, name: string) {
-  tasks = tasks.map((t) => {
-    if (t.id !== id) return t;
-    if ((t.followers ?? []).includes(name)) return t;
-    return { ...t, followers: [...(t.followers ?? []), name] };
-  });
-  emit();
+  addActionFollower(id, name);
 }
 export function toggleLeadTag(id: string, tag: string) {
   leads = leads.map((l) => {
@@ -358,7 +435,7 @@ export function mergeLead(fromId: string, intoId: string) {
   addHistory(intoId, ACTOR, `Merged ${from.name} (${fromId}) into this file.`);
   addHistory(fromId, ACTOR, `Merged into ${into.name} (${intoId}).`);
 }
-export function logCall(personId: string, input: CallInput) {
+export function logCall(personId: string, input: CallInput, extra?: { actionId?: string; actionKind?: ActionKind }) {
   const mins = input.duration.trim() ? ` · ${input.duration} min` : "";
   const note = input.note.trim() ? `. ${input.note.trim()}` : ".";
   const line = `Call ${input.direction} · ${input.result}${mins}${note}`;
@@ -367,6 +444,8 @@ export function logCall(personId: string, input: CallInput) {
     durationSec: Number.isFinite(durationSec) ? durationSec : undefined,
     direction: input.direction,
     result: input.result,
+    actionId: extra?.actionId,
+    actionKind: extra?.actionKind,
   });
   addHistory(personId, ACTOR, line);
 }

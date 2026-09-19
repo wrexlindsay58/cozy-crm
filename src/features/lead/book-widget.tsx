@@ -37,11 +37,13 @@ export function BookWidget({
   defaultCloser,
   defaultKind = "Sales",
   flush,
+  actionTitle,
 }: {
   leadId: string;
   defaultCloser: string;
   defaultKind?: EventKind;
   flush?: boolean;
+  actionTitle?: string;
 }) {
   const { viewAs } = useStaff();
   const { appointments, leads, history } = useOps();
@@ -56,7 +58,7 @@ export function BookWidget({
   const [day, setDay] = useState(14);
   const [hour, setHour] = useState("6:00p");
   const [length, setLength] = useState(def.length);
-  const [notes, setNotes] = useState(lead?.notes ?? "");
+  const [notes, setNotes] = useState(actionTitle ? [actionTitle, lead?.notes].filter(Boolean).join(". ") : (lead?.notes ?? ""));
   const [scope, setScope] = useState(lead?.product ?? "");
   const [saved, setSaved] = useState("");
   const mine = useMemo(
@@ -75,9 +77,12 @@ export function BookWidget({
   return (
     <section id="book-widget" className={flush ? "" : "rounded-md border border-line bg-card p-4"}>
       <div className="flex items-center justify-between gap-2">
-        <h2 className="text-[11px] font-bold tracking-wide text-muted uppercase">On the book</h2>
+        <div className="min-w-0">
+          <h2 className="text-[11px] font-bold tracking-wide text-muted uppercase">On the book</h2>
+          {actionTitle ? <p className="mt-0.5 truncate text-[12px] text-muted">For {actionTitle}.</p> : null}
+        </div>
         {!open ? (
-          <button type="button" aria-label="Add event" className="grid size-8 place-items-center rounded-md bg-navy text-card" onClick={() => setOpen(true)}>
+          <button type="button" aria-label="Add event" className="grid size-10 place-items-center rounded-md bg-navy text-card" onClick={() => setOpen(true)}>
             <Plus className="size-4" />
           </button>
         ) : null}

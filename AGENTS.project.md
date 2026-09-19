@@ -14,7 +14,7 @@ Trades owners who are time-poor and less software-native than other industries. 
 4. **Job** = sold work: schedule, crews, materials, costs, quality, GoodLeap, invoices, WOs, change orders, checklists, P&L.
 5. **Account** = closed jobs, warranty, memberships, callbacks. New work from an account starts a **new lead** and later merges history.
 
-Same record chrome on every stage: customer thread, Internal, Notes, History, Media & Files, Actions (tickets/tasks), tags, workflows, DND, book, call/text/email.
+Same record chrome on every stage: customer thread, Internal, Notes, History, Media & Files, Actions (tickets/tasks/requests), tags, workflows, DND, book, call/text/email.
 
 Lead is the design reference. Later stages show prior-stage data collapsed.
 
@@ -31,16 +31,17 @@ Tokens in `src/styles.css`: navy `#0b3a4d`, navy-2, ink, muted, faint, idle `#8a
 
 ## Nav
 
-Daily: Today (Live Board, red pip), Inbox, Book, Map.  
+Daily: Today (Live Board, red pip), Inbox, Book, Map, Actions (`/tickets`).  
 Pipeline: Leads, Appointments, Assessments, Opportunities, Jobs, Accounts.  
 Money: Sales (`/scoreboard`), Invoices, Purchasing.  
-Company: Leaderboard, Crews, Team, Tickets, Reports, Settings.
+Company: Leaderboard, Crews, Team, Reports, Settings.
 
 Today is **live ops** (now + rest of today). Sales is a **period dashboard** (LTD/YTD/QTD/MTD/WTD/Day). They must not look like clones.
 
 ## Pages that matter
 
 - **Lead / Assessment / Opportunity / Job / Account**: `src/features/record-shell/` + stage workspaces. Job flow: `src/features/job/`. Proposal: `src/features/opportunity/proposal-*.tsx` (Teko / Oswald / sans, Cozy navy+red+gray, HTML present, send link/PDF).
+- **Actions**: `/tickets` is a split queue — fat list (~50%) + talk pane with the same lead tabs (Customer, Internal, Notes, Tags, Actions, History, Media, Book, Form last), scoped to the action. Media is files on this action (View all on the house). Book schedules the house for this action. Details rail on wide screens. Three kinds nest. View all stays in the pane. `/tickets/$actionId` is the same page with that card selected.
 - **Inbox**: `src/components/conversations.tsx`.
 - **Book**: `src/features/book/` — single event store, resource / 3-day / week / month. 6am start for crews, 8am for sales. Google-style overlay stacking. Popup compose (not bottom drawer).
 - **Map / dispatch**: `src/components/dispatch-map.tsx` + `src/features/dispatch/` — MapLibre, light Cozy style (not black, not positron-washed), OSRM street routes, tied to Book day.
@@ -63,4 +64,4 @@ Cash/check (one bucket), Cash/check + financing, CC, CC + financing, ACH, ACH + 
 
 ## Next likely work
 
-Sales polish (this file: payment Revenue/Quantity). Then other Money pages, remaining settings vs Odin-CRM, job/calendar remaining holes, deploy.
+Action Center is in. Then other Money pages, remaining settings vs Odin-CRM, job/calendar remaining holes, deploy.

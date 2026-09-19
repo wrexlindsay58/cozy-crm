@@ -7,7 +7,11 @@ function hay(parts: (string | number | undefined)[]) {
   return parts.join(" ").toLowerCase();
 }
 
-export function searchFiles(q: string, liveLeads: Lead[] = leads): FileHit[] {
+export function searchFiles(
+  q: string,
+  liveLeads: Lead[] = leads,
+  liveActions?: { id: string; title: string; personId: string; owner: string; kind: string }[],
+): FileHit[] {
   const needle = q.trim().toLowerCase();
   if (needle.length < 2) return [];
   const hits: FileHit[] = [];
@@ -31,9 +35,13 @@ export function searchFiles(q: string, liveLeads: Lead[] = leads): FileHit[] {
       hits.push({ href: `/accounts/${a.id}`, name: a.name, kind: "Account", detail: a.city });
     }
   }
-  for (const t of tickets) {
-    if (hay([t.title, t.id, t.related, t.owner]).includes(needle)) {
-      hits.push({ href: t.related.startsWith("L-") ? `/leads/${t.related}` : t.related.startsWith("P-") ? `/projects/${t.related}` : `/tickets`, name: t.title, kind: "Ticket", detail: t.related });
+  const actionRows =
+    liveActions ??
+    tickets.map((t) => ({ id: t.id, title: t.title, personId: t.related, owner: t.owner, kind: "ticket" }));
+  for (const t of actionRows) {
+    if (hay([t.title, t.id, t.personId, t.owner, t.kind]).includes(needle)) {
+      const kind = t.kind === "task" ? "Task" : t.kind === "request" ? "Request" : "Ticket";
+      hits.push({ href: `/tickets/${t.id}`, name: t.title, kind, detail: t.personId });
     }
   }
   return hits.slice(0, 12);

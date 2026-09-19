@@ -66,7 +66,7 @@ export function PageTitle({
       </h1>
       <div className="flex flex-wrap items-center gap-2">
         {actions}
-        <p className="text-[13px] text-muted tabular-nums">{clockLabel()}</p>
+        <p className="text-[13px] text-muted tabular-nums max-md:hidden">{clockLabel()}</p>
       </div>
     </div>
   );

@@ -14,6 +14,10 @@ const KIND_LABEL: Record<RecordKind, string> = {
   opportunity: "Opportunity",
   job: "Job",
   account: "Account",
+  action: "Action",
+  ticket: "Ticket",
+  task: "Task",
+  request: "Request",
 };
 
 function StageChip({
@@ -98,6 +102,31 @@ export function TitleRow({
   onStage?: (status: string) => void;
   lead?: Lead;
 }) {
+  function pills() {
+    return (
+      <>
+        <StageChip label={stage} tone={stageTone} onStage={onStage} />
+        {lead ? <DndPick lead={lead} compact /> : dndLabel ? <StageChip label={dndLabel} tone="alert" /> : null}
+      </>
+    );
+  }
+  function actions() {
+    return (
+      <>
+        {moneyLabel ? <p className="mr-1 shrink-0 text-sm font-extrabold tabular-nums">{moneyLabel}</p> : null}
+        <ActBar
+          iconsOnly
+          items={acts.map((act) => ({
+            label: act.label,
+            variant: act.opens === "thread" ? "navy" : "line",
+            onClick: act.onClick ?? (act.opens === "thread" ? onText : undefined),
+            menu: act.menu,
+          }))}
+        />
+      </>
+    );
+  }
+
   return (
     <header className="border-b border-line bg-card px-4 py-2.5 md:px-5">
       <p className="text-[11px] font-bold tracking-[0.14em] text-muted uppercase">
@@ -108,27 +137,23 @@ export function TitleRow({
           </a>
         ))}
       </p>
-      <div className="mt-1 flex flex-wrap items-start justify-between gap-2">
+
+      <div className="mt-1 md:hidden">
+        <h1 className="text-xl font-extrabold tracking-tight break-words">{title}</h1>
+        <div className="mt-1.5 flex flex-wrap items-center gap-2">{pills()}</div>
+        <p className="mt-0.5 min-w-0 text-sm text-muted break-words">{subtitle}</p>
+        <div className="mt-2 flex items-center gap-1.5 overflow-x-auto">{actions()}</div>
+      </div>
+
+      <div className="mt-1 hidden flex-wrap items-start justify-between gap-2 md:flex">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <h1 className="text-xl font-extrabold tracking-tight md:text-2xl">{title}</h1>
-            <StageChip label={stage} tone={stageTone} onStage={onStage} />
-            {lead ? <DndPick lead={lead} compact /> : dndLabel ? <StageChip label={dndLabel} tone="alert" /> : null}
+            {pills()}
           </div>
-          <p className="mt-0.5 text-sm text-muted">{subtitle}</p>
+          <p className="mt-0.5 min-w-0 text-sm text-muted">{subtitle}</p>
         </div>
-        <div className="flex min-w-0 flex-1 flex-wrap items-center justify-end gap-1.5">
-          {moneyLabel ? <p className="mr-1 text-sm font-extrabold tabular-nums">{moneyLabel}</p> : null}
-          <ActBar
-            iconsOnly
-            items={acts.map((act) => ({
-              label: act.label,
-              variant: act.opens === "thread" ? "navy" : "line",
-              onClick: act.onClick ?? (act.opens === "thread" ? onText : undefined),
-              menu: act.menu,
-            }))}
-          />
-        </div>
+        <div className="flex min-w-0 flex-1 flex-wrap items-center justify-end gap-1.5">{actions()}</div>
       </div>
     </header>
   );

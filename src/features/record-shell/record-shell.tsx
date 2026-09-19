@@ -1,12 +1,10 @@
 import { useState } from "react";
-import { Clock, ClipboardList, Image, ListChecks, MessageSquare, StickyNote, Tag, Users } from "lucide-react";
-import { cn } from "@/lib/cn";
-import { Tip } from "@/components/tip";
-import { useFit } from "@/components/use-fit";
+import { ChevronLeft } from "lucide-react";
 import { ClickToCall } from "@/features/lead/click-to-call";
 import { LeadTools } from "@/features/lead/lead-tools";
 import { MarksPanel } from "@/features/lead/marks-bar";
-import { dndOn, setLeadStatus, useOps } from "@/features/ops/store";
+import { BookWidget } from "@/features/lead/book-widget";
+import { dndOn, descendantsOf, setLeadStatus, useOps } from "@/features/ops/store";
 import { setCallFrom, setSmsFrom } from "@/features/from/store";
 import { useMoneySettings } from "@/features/money-settings/store";
 import { PhotoRail, HistoryList } from "./side-rails";
@@ -15,9 +13,13 @@ import { PeopleRow } from "./people-row";
 import { ThreadPane } from "./thread-pane";
 import { TitleRow } from "./title-row";
 import { WorkTab } from "./work-tab";
+import { ConvTabs } from "./conv-tabs";
+import type { ConvLane } from "./lanes";
 import type { RecordShellProps } from "./types";
+import { cn } from "@/lib/cn";
 
-export type ConvLane = "customer" | "internal" | "notes" | "tags" | "actions" | "history" | "media" | "form";
+export type { ConvLane } from "./lanes";
+export { LANES } from "./lanes";
 
 function dndChip(dnd?: string[]) {
   if (!dnd?.length) return;
@@ -28,13 +30,16 @@ function dndChip(dnd?: string[]) {
 export function RecordShell(props: RecordShellProps) {
   const [lane, setLane] = useState<ConvLane>("customer");
   const [callOpen, setCallOpen] = useState(false);
-  const [draft, setDraft] = useState<"ticket" | "task" | null>(null);
+  const [draft, setDraft] = useState<"ticket" | "task" | "request" | null>(null);
+  const [talkScope, setTalkScope] = useState<"action" | "house">(props.actionId ? "action" : "house");
+  const [mobileTalk, setMobileTalk] = useState(false);
   const { leads } = useOps();
   const lead = leads.find((l) => l.id === props.personId);
   const { numbers } = useMoneySettings();
 
   function openThread() {
     setLane("customer");
+    setMobileTalk(true);
     queueMicrotask(() => {
       document.getElementById(`composer-${props.personId}-customer`)?.focus();
     });
@@ -43,6 +48,7 @@ export function RecordShell(props: RecordShellProps) {
   function startCall() {
     if (dndOn(lead, "call")) return;
     setLane("customer");
+    setMobileTalk(true);
     setCallOpen(true);
   }
 
@@ -63,12 +69,13 @@ export function RecordShell(props: RecordShellProps) {
         return {
           ...a,
           menu: a.menu.map((item) => {
-            if (item.label !== "Ticket" && item.label !== "Task") return item;
+            if (item.label !== "Ticket" && item.label !== "Task" && item.label !== "Request") return item;
             return {
               ...item,
               onClick: () => {
                 setLane("actions");
-                setDraft(item.label === "Task" ? "task" : "ticket");
+                setMobileTalk(true);
+                setDraft(item.label === "Task" ? "task" : item.label === "Request" ? "request" : "ticket");
               },
             };
           }),
@@ -77,48 +84,92 @@ export function RecordShell(props: RecordShellProps) {
       return a;
     });
 
+  const talkLane = lane === "customer" || lane === "internal" || lane === "notes";
+
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <TitleRow
-        kind={props.kind}
-        title={props.title}
-        subtitle={props.subtitle}
-        stage={props.kind === "lead" ? (lead?.status ?? props.stage) : props.stage}
-        stageTone={props.kind === "lead" ? (lead?.tone ?? props.stageTone) : props.stageTone}
-        dndLabel={dndChip(lead?.dnd)}
-        moneyLabel={props.moneyLabel}
-        related={props.related}
-        acts={acts}
-        onText={openThread}
-        onStage={props.kind === "lead" && lead ? (status) => setLeadStatus(lead.id, status) : undefined}
-        lead={lead}
-      />
-      <PeopleRow
-        personId={props.personId}
-        owner={props.owner}
-        seedFollowers={props.followers}
-        canDrop={props.kind === "lead"}
-      />
+      <div className={cn(mobileTalk && "max-lg:hidden")}>
+        <TitleRow
+          kind={props.kind}
+          title={props.title}
+          subtitle={props.subtitle}
+          stage={props.kind === "lead" ? (lead?.status ?? props.stage) : props.stage}
+          stageTone={props.kind === "lead" ? (lead?.tone ?? props.stageTone) : props.stageTone}
+          dndLabel={dndChip(lead?.dnd)}
+          moneyLabel={props.moneyLabel}
+          related={props.related}
+          acts={acts}
+          onText={openThread}
+          onStage={props.kind === "lead" && lead ? (status) => setLeadStatus(lead.id, status) : undefined}
+          lead={lead}
+        />
+        <PeopleRow
+          personId={props.personId}
+          owner={props.owner}
+          seedFollowers={props.followers}
+          canDrop={props.kind === "lead"}
+          actionId={props.actionId}
+        />
+      </div>
 
       <div className="flex min-h-0 min-w-0 flex-1 flex-col lg:flex-row">
-        <div className="min-h-0 min-w-0 flex-1 overflow-auto p-2 md:p-2.5">
+        <div className={cn("min-h-0 min-w-0 flex-1 overflow-auto p-2 md:p-2.5", mobileTalk && "max-lg:hidden")}>
           <div className="space-y-3">
             {props.children}
             <PhotoRail personId={props.personId} photos={props.photos} />
             {props.kind === "lead" && lead ? <LeadTools lead={lead} /> : null}
+            <button
+              type="button"
+              className="flex h-11 w-full items-center justify-center rounded-md border border-line text-sm font-semibold text-navy lg:hidden"
+              onClick={() => setMobileTalk(true)}
+            >
+              Talk
+            </button>
           </div>
         </div>
 
-        <aside className="flex h-[55vh] min-h-0 min-w-0 shrink-0 flex-col border-t border-line bg-card lg:h-auto lg:w-[45%] lg:min-w-[40%] lg:max-w-[50%] lg:border-t-0 lg:border-l">
-          <SideHead lane={lane} onLane={setLane} />
+        <aside
+          className={cn(
+            "flex min-h-0 min-w-0 shrink-0 flex-col border-line bg-card",
+            "h-[55vh] border-t lg:h-auto lg:w-[45%] lg:min-w-[40%] lg:max-w-[50%] lg:border-t-0 lg:border-l",
+            !mobileTalk && "max-lg:hidden",
+            mobileTalk && "max-lg:h-auto max-lg:flex-1 max-lg:border-t-0",
+          )}
+        >
+          <div className="flex shrink-0 items-center gap-2 border-b border-line px-2 lg:hidden">
+            <button
+              type="button"
+              className="inline-flex h-10 items-center gap-0.5 text-sm font-semibold text-navy"
+              onClick={() => setMobileTalk(false)}
+            >
+              <ChevronLeft className="size-4" />
+              File
+            </button>
+            <p className="min-w-0 truncate text-sm font-semibold">{props.title}</p>
+          </div>
+          <SideHead lane={lane} onLane={setLane} withBook={Boolean(lead)} />
           <div className="min-h-0 flex-1 overflow-hidden">
             {callOpen && lead?.phone ? (
               <div className="p-2">
-                <ClickToCall personId={props.personId} phone={lead.phone} name={props.title} open={callOpen} onClose={() => setCallOpen(false)} />
+                <ClickToCall
+                  personId={props.personId}
+                  phone={lead.phone}
+                  name={lead.name}
+                  open={callOpen}
+                  onClose={() => setCallOpen(false)}
+                  actionId={props.actionId}
+                  actionKind={props.actionKind}
+                />
               </div>
             ) : null}
             {lane === "actions" ? (
-              <WorkTab personId={props.personId} owner={props.owner.name} draft={draft} onDraftUsed={() => setDraft(null)} />
+              <WorkTab
+                personId={props.personId}
+                owner={props.owner.name}
+                draft={draft}
+                onDraftUsed={() => setDraft(null)}
+                parentId={props.actionId}
+              />
             ) : lane === "tags" ? (
               lead ? <MarksPanel lead={lead} /> : <p className="p-3 text-sm text-muted">No file.</p>
             ) : lane === "history" ? (
@@ -126,14 +177,46 @@ export function RecordShell(props: RecordShellProps) {
                 <HistoryList history={props.history} flush />
               </div>
             ) : lane === "media" ? (
-              <div className="h-full overflow-auto">
-                <PhotoRail personId={props.personId} photos={props.photos} flush />
-              </div>
+              <PhotoRail
+                personId={props.personId}
+                photos={props.photos}
+                flush
+                actionId={props.actionId}
+                actionKind={props.actionKind}
+                actionIds={props.actionId ? [props.actionId, ...descendantsOf(props.actionId)] : undefined}
+                scope={props.actionId ? talkScope : "house"}
+                onScope={props.actionId ? setTalkScope : undefined}
+              />
             ) : lane === "form" ? (
               lead ? <FormAnswers lead={lead} /> : <p className="p-3 text-sm text-muted">No file.</p>
-            ) : (
-              <ThreadPane personId={props.personId} mode={lane} onCall={startCall} dnd={lead?.dnd} />
-            )}
+            ) : lane === "book" ? (
+              lead ? (
+                <div className="h-full overflow-auto p-3">
+                  <BookWidget
+                    leadId={lead.id}
+                    defaultCloser={lead.closer}
+                    defaultKind={props.actionId ? "Callback" : "Sales"}
+                    flush
+                    actionTitle={props.actionTitle}
+                  />
+                </div>
+              ) : (
+                <p className="p-3 text-sm text-muted">Book from the house file.</p>
+              )
+            ) : talkLane ? (
+              <ThreadPane
+                personId={props.personId}
+                mode={lane}
+                onCall={startCall}
+                dnd={lead?.dnd}
+                actionId={props.actionId}
+                actionKind={props.actionKind}
+                actionTitle={props.actionTitle}
+                actionIds={props.actionId ? [props.actionId, ...descendantsOf(props.actionId)] : undefined}
+                scope={props.actionId ? talkScope : "house"}
+                onScope={props.actionId ? setTalkScope : undefined}
+              />
+            ) : null}
           </div>
         </aside>
       </div>
@@ -141,60 +224,14 @@ export function RecordShell(props: RecordShellProps) {
   );
 }
 
-const LANES: { id: ConvLane; label: string; icon: typeof MessageSquare }[] = [
-  { id: "customer", label: "Customer", icon: MessageSquare },
-  { id: "internal", label: "Internal", icon: Users },
-  { id: "notes", label: "Notes", icon: StickyNote },
-  { id: "tags", label: "Tags", icon: Tag },
-  { id: "actions", label: "Actions", icon: ListChecks },
-  { id: "history", label: "History", icon: Clock },
-  { id: "media", label: "Media & Files", icon: Image },
-  { id: "form", label: "Form", icon: ClipboardList },
-];
-
 function SideHead({
   lane,
   onLane,
+  withBook,
 }: {
   lane: ConvLane;
   onLane: (v: ConvLane) => void;
+  withBook?: boolean;
 }) {
-  const { barRef, measureRef, iconsOnly } = useFit();
-
-  return (
-    <div className="relative border-b border-line">
-      <div ref={measureRef} className="pointer-events-none invisible absolute flex gap-1 px-2 py-2 whitespace-nowrap" aria-hidden>
-        {LANES.map((l) => {
-          const Icon = l.icon;
-          return (
-            <span key={l.id} className="flex h-10 items-center gap-1.5 rounded-md px-3 text-xs font-semibold">
-              <Icon className="size-4" />
-              {l.label}
-            </span>
-          );
-        })}
-      </div>
-      <div ref={barRef} className="flex gap-1 px-2 py-2">
-        {LANES.map((l) => {
-          const Icon = l.icon;
-          return (
-            <Tip key={l.id} label={l.label} on={iconsOnly} side="bottom">
-              <button
-                type="button"
-                onClick={() => onLane(l.id)}
-                aria-label={l.label}
-                className={cn(
-                  "flex h-10 shrink-0 items-center gap-1.5 rounded-md px-2.5 text-xs font-semibold",
-                  lane === l.id ? "bg-navy text-card" : "text-muted",
-                )}
-              >
-                <Icon className="size-4" />
-                {iconsOnly ? null : l.label}
-              </button>
-            </Tip>
-          );
-        })}
-      </div>
-    </div>
-  );
+  return <ConvTabs lane={lane} onLane={(id) => onLane(id as ConvLane)} withBook={withBook} />;
 }

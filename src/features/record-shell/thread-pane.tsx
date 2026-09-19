@@ -21,13 +21,27 @@ export function ThreadPane({
   mode,
   onCall,
   dnd,
+  actionId,
+  actionKind,
+  actionTitle,
+  actionIds,
+  scope = "house",
+  onScope,
 }: {
   personId: string;
   mode: "customer" | "internal" | "notes";
   onCall?: () => void;
   dnd?: DndChannel[];
+  actionId?: string;
+  actionKind?: "ticket" | "task" | "request";
+  actionTitle?: string;
+  actionIds?: string[];
+  scope?: "action" | "house";
+  onScope?: (next: "action" | "house") => void;
 }) {
-  const rows = useThread(personId, mode);
+  const ids = scope === "action" && actionIds?.length ? actionIds : undefined;
+  const rows = useThread(personId, mode, ids);
+  const houseRows = useThread(personId, mode);
   const [draft, setDraft] = useState("");
   const [subject, setSubject] = useState("");
   const [channel, setChannel] = useState<"sms" | "email">("sms");
@@ -37,28 +51,41 @@ export function ThreadPane({
   const blockText = dndOn({ dnd }, "text");
   const blockEmail = dndOn({ dnd }, "email");
   const blockCall = dndOn({ dnd }, "call");
+  const stamp = scope === "action" && actionId ? { actionId, actionKind } : undefined;
+  const nest =
+    stamp && mode === "internal"
+      ? { kind: actionKind ?? "ticket", id: actionId!, title: actionTitle || actionId! }
+      : undefined;
 
   function send() {
     if (mode === "notes") {
-      sendMessage(personId, draft, "note");
+      sendMessage(personId, draft, "note", stamp);
       addHistory(personId, "Wrex Lindsay", "Note added.");
     } else if (mode === "internal") {
-      sendMessage(personId, draft, "internal");
+      sendMessage(personId, draft, "internal", { ...stamp, nest });
     } else if (channel === "email") {
       if (blockEmail) return;
-      sendMessage(personId, draft, "email", { subject, files: files.length ? files : undefined });
+      sendMessage(personId, draft, "email", { subject, files: files.length ? files : undefined, ...stamp });
       addHistory(personId, "Wrex Lindsay", `Email sent${subject.trim() ? `. ${subject.trim()}` : "."}`);
       setSubject("");
     } else {
       if (blockText) return;
-      sendMessage(personId, draft, "sms", { files: files.length ? files : undefined });
+      sendMessage(personId, draft, "sms", { files: files.length ? files : undefined, ...stamp });
       addHistory(personId, "Wrex Lindsay", "Text sent.");
     }
     setDraft("");
     setFiles([]);
   }
 
-  const emptyCopy = mode === "internal" ? "None yet." : mode === "notes" ? "None yet." : "Nothing on this thread yet.";
+  const word = actionKind ?? "ticket";
+  const emptyCopy =
+    scope === "action"
+      ? `Nothing on this ${word} yet.`
+      : mode === "internal"
+        ? "None yet."
+        : mode === "notes"
+          ? "None yet."
+          : "Nothing on this thread yet.";
   const placeholder =
     mode === "internal"
       ? "Message the shop"
@@ -73,9 +100,30 @@ export function ThreadPane({
             : "Send a text";
   const sendLabel = mode === "notes" ? "Add" : "Send";
   const blocked = mode === "customer" && ((channel === "sms" && blockText) || (channel === "email" && blockEmail));
+  const showScope = Boolean(actionId && onScope && (mode === "customer" || mode === "internal"));
 
   return (
     <div className="flex h-full min-h-0 flex-col">
+      {showScope ? (
+        <button
+          type="button"
+          onClick={() => onScope?.(scope === "action" ? "house" : "action")}
+          className="shrink-0 border-b border-line bg-page px-3 py-2 text-left"
+        >
+          <p className="text-[12px] font-semibold text-navy">
+            {scope === "action"
+              ? mode === "internal"
+                ? "View all Internal on this house"
+                : "View all customer talk"
+              : `Back to this ${word}`}
+          </p>
+          <p className="text-[11px] text-muted">
+            {scope === "action"
+              ? `${rows.length} on this ${word}`
+              : `All talk · ${houseRows.length}`}
+          </p>
+        </button>
+      ) : null}
       <div className="min-h-0 flex-1 space-y-3 overflow-auto p-3">
         {rows.length === 0 ? <p className="text-sm text-muted">{emptyCopy}</p> : null}
         {mode === "internal"
@@ -223,7 +271,7 @@ function NestBlock({
   replies: ThreadMessage[];
   personId: string;
 }) {
-  const label = nest.kind === "ticket" ? "Ticket" : nest.kind === "task" ? "Task" : nest.kind === "note" ? "Note" : "Media";
+  const label = nest.kind === "ticket" ? "Ticket" : nest.kind === "task" ? "Task" : nest.kind === "request" ? "Request" : nest.kind === "note" ? "Note" : "Media";
   return (
     <div className="rounded-md border border-line bg-page px-2.5 py-2">
       <p className="text-[10px] font-bold tracking-wide text-muted uppercase">

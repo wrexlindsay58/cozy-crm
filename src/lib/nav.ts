@@ -16,6 +16,7 @@ export const NAV: NavGroup[] = [
       { label: "Inbox", to: "/conversations" },
       { label: "Book", to: "/calendar" },
       { label: "Map", to: "/dispatch" },
+      { label: "Actions", to: "/tickets" },
     ],
   },
   {
@@ -43,7 +44,6 @@ export const NAV: NavGroup[] = [
       { label: "Leaderboard", to: "/leaderboard" },
       { label: "Crews", to: "/crews" },
       { label: "Team", to: "/team" },
-      { label: "Tickets", to: "/tickets" },
       { label: "Reports", to: "/reports" },
       { label: "Settings", to: "/settings" },
     ],

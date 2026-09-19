@@ -20,13 +20,19 @@ export function Tip({
   if (!on) return children;
   const w = Math.min(280, Math.max(48, label.length * 7 + 16));
   const style = box ? placeFloat(box, w, 28, side) : undefined;
+  function show(el: HTMLElement) {
+    setBox(el.getBoundingClientRect());
+  }
   return (
     <span
       className={cn("inline-flex", className)}
-      onMouseEnter={(e) => setBox(e.currentTarget.getBoundingClientRect())}
+      onMouseEnter={(e) => show(e.currentTarget)}
       onMouseLeave={() => setBox(null)}
-      onFocus={(e) => setBox(e.currentTarget.getBoundingClientRect())}
+      onFocus={(e) => show(e.currentTarget)}
       onBlur={() => setBox(null)}
+      onPointerDown={(e) => {
+        if (window.matchMedia("(hover: none)").matches) show(e.currentTarget);
+      }}
     >
       {children}
       {box && style

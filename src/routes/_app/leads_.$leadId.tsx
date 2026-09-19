@@ -41,7 +41,7 @@ function LeadFile() {
         { label: "Call" },
         { label: "Text", opens: "thread" },
         { label: "Book", onClick: () => document.getElementById("book-widget")?.scrollIntoView({ behavior: "smooth", block: "start" }) },
-        { label: "Create", menu: [{ label: "Ticket" }, { label: "Task" }] },
+        { label: "Create", menu: [{ label: "Ticket" }, { label: "Task" }, { label: "Request" }] },
       ]}
       history={history?.[lead.id] ?? []}
       tickets={(tickets ?? []).filter((t) => t.related === lead.id)}

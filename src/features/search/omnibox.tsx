@@ -5,11 +5,11 @@ import { useOps } from "@/features/ops/store";
 import { searchFiles } from "@/lib/search-files";
 
 export function Omnibox({ compact }: { compact?: boolean }) {
-  const { leads } = useOps();
+  const { leads, actions } = useOps();
   const navigate = useNavigate();
   const [q, setQ] = useState("");
   const [open, setOpen] = useState(false);
-  const hits = searchFiles(q, leads);
+  const hits = searchFiles(q, leads, actions);
 
   useEffect(() => {
     if (!q.trim()) setOpen(false);

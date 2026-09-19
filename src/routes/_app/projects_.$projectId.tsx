@@ -52,6 +52,7 @@ function JobFilePage() {
           menu: [
             { label: "Ticket" },
             { label: "Task" },
+            { label: "Request" },
             { label: "Change order", onClick: () => setFocus("co") },
             { label: "Invoice", onClick: () => setFocus("invoice") },
           ],

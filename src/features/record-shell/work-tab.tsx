@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { ActBar } from "@/components/act-bar";
-import { createTask, createTicket, useOps } from "@/features/ops/store";
+import { ACTION_LABEL, type ActionKind } from "@/features/action/types";
+import { createAction, useOps } from "@/features/ops/store";
 import { WorkCard } from "./work-card";
 
 export function WorkTab({
@@ -8,16 +9,19 @@ export function WorkTab({
   owner,
   draft,
   onDraftUsed,
+  parentId,
 }: {
   personId: string;
   owner: string;
-  draft?: "ticket" | "task" | null;
+  draft?: ActionKind | null;
   onDraftUsed?: () => void;
+  parentId?: string;
 }) {
-  const { tickets, tasks } = useOps();
-  const mineT = tickets.filter((t) => t.related === personId);
-  const mineK = tasks.filter((t) => t.personId === personId && !t.ticketId);
-  const [kind, setKind] = useState<"ticket" | "task" | null>(draft ?? null);
+  const { actions } = useOps();
+  const mine = parentId
+    ? actions.filter((a) => a.parentId === parentId)
+    : actions.filter((a) => a.personId === personId && !a.parentId);
+  const [kind, setKind] = useState<ActionKind | null>(draft ?? null);
   const [title, setTitle] = useState("");
   const [due, setDue] = useState("");
   useEffect(() => {
@@ -31,6 +35,8 @@ export function WorkTab({
     onDraftUsed?.();
   }
 
+  const word = kind ? ACTION_LABEL[kind] : "Action";
+
   return (
     <div className="flex h-full min-h-0 flex-col">
       <div className="min-h-0 flex-1 space-y-3 overflow-auto p-3">
@@ -43,6 +49,7 @@ export function WorkTab({
                 menu: [
                   { label: "Ticket", onClick: () => setKind("ticket") },
                   { label: "Task", onClick: () => setKind("task") },
+                  { label: "Request", onClick: () => setKind("request") },
                 ],
               },
             ]}
@@ -54,13 +61,12 @@ export function WorkTab({
             onSubmit={(e) => {
               e.preventDefault();
               if (!title.trim()) return;
-              if (kind === "ticket") createTicket({ personId, title, owner, due });
-              else createTask({ personId, title, owner, due });
+              createAction({ kind, personId, title, owner, due, parentId });
               closeDraft();
             }}
           >
             <div className="mb-2 flex items-center justify-between">
-              <p className="text-[11px] font-bold tracking-wide text-muted uppercase">{kind === "ticket" ? "New ticket" : "New task"}</p>
+              <p className="text-[11px] font-bold tracking-wide text-muted uppercase">New {word.toLowerCase()}</p>
               <button type="button" className="h-10 px-2 text-sm font-semibold text-muted" onClick={closeDraft}>
                 Cancel
               </button>
@@ -69,7 +75,7 @@ export function WorkTab({
               autoFocus
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder={kind === "ticket" ? "Ticket name" : "Task name"}
+              placeholder={`${word} name`}
               className="h-11 w-full rounded-md border border-line px-3 text-sm outline-none focus:border-navy"
             />
             <input
@@ -83,11 +89,11 @@ export function WorkTab({
             </button>
           </form>
         ) : null}
-        {mineT.map((t) => (
-          <WorkCard key={t.id} personId={personId} kind="ticket" ticket={t} />
-        ))}
-        {mineK.map((t) => (
-          <WorkCard key={t.id} personId={personId} kind="task" task={t} />
+        {mine.length === 0 && !kind ? (
+          <p className="text-sm text-muted">{parentId ? "None nested on this action." : "None on this file."}</p>
+        ) : null}
+        {mine.map((a) => (
+          <WorkCard key={a.id} personId={personId} action={a} actions={actions} compact={Boolean(parentId)} />
         ))}
       </div>
     </div>
