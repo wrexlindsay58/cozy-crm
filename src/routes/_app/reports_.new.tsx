@@ -10,8 +10,9 @@ function NewReportPage() {
   return (
     <ListPage
       title="New report"
+      back={{ to: "/reports", label: "Reports" }}
       actions={
-        <Link to="/reports" className="text-sm font-semibold text-navy">
+        <Link to="/reports" className="hidden text-sm font-semibold text-navy md:inline">
           Reports
         </Link>
       }

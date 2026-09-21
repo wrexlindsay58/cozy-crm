@@ -94,8 +94,15 @@ let installers: Row[] = [
   { id: "IN-2", name: "Sub — Desert Air", note: "Overflow HVAC" },
 ];
 let sections: Row[] = [
-  { id: "S-1", name: "Property", note: "Lead file" },
-  { id: "S-2", name: "Qualifying", note: "Lead file" },
+  { id: "S-1", name: "Property", note: "Assessment file" },
+  { id: "S-2", name: "Qualifying", note: "Assessment file" },
+];
+let qualify: Row[] = [
+  { id: "Q-1", name: "Credit pre-qualified", note: "Soft pull or verbal" },
+  { id: "Q-2", name: "All owners will be there", note: "One-legger if no" },
+  { id: "Q-3", name: "Homeowner or renter", note: "Who can sign" },
+  { id: "Q-4", name: "In area", note: "We run this turf" },
+  { id: "Q-5", name: "Pay", note: "Cash or finance" },
 ];
 let notifyTemplates: Row[] = [
   { id: "NT-1", name: "Booked SMS", note: "You're on the book {day} {time}" },
@@ -120,7 +127,7 @@ function pack() {
   return {
     flags, dealers, discounts, rebates, extraCosts, productTypes, makers, utilities,
     taskCats, stages, workflows, forms, crews, positions, points, buckets, plans, salesforce,
-    departments, myTeam, calFilters, goals, installers, sections, notifyTemplates, reduction, pins, dealership,
+    departments, myTeam, calFilters, goals, installers, sections, qualify, notifyTemplates, reduction, pins, dealership,
   };
 }
 function emit() {
@@ -166,6 +173,7 @@ export function addRow(bucket: keyof ReturnType<typeof pack>, name: string, note
   if (bucket === "goals") goals = next;
   if (bucket === "installers") installers = next;
   if (bucket === "sections") sections = next;
+  if (bucket === "qualify") qualify = next;
   if (bucket === "notifyTemplates") notifyTemplates = next;
   if (bucket === "reduction") reduction = next;
   if (bucket === "pins") pins = next;

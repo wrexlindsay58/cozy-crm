@@ -28,6 +28,20 @@ export type LeadDraft = {
   secondaryEmail?: string;
   referrerName?: string;
   referrerPhone?: string;
+  office?: string;
+  value?: number;
+  yearBuilt?: string;
+  stories?: string;
+  sqft?: string;
+  utility?: string;
+  hoa?: string;
+  access?: string;
+  bothHome?: boolean;
+  finance?: string;
+  rebate?: boolean;
+  pain?: string;
+  hotRooms?: string;
+  coldRooms?: string;
 };
 export type { ActionKind, ShopAction } from "@/features/action/types";
 export type Task = {
@@ -44,6 +58,18 @@ export type Task = {
 export type CallInput = { direction: "Out" | "In"; result: "Answered" | "VM" | "No answer"; duration: string; note: string };
 
 const ACTOR = "Wrex Lindsay";
+
+const TICKET_CAT: Record<string, string> = {
+  "T-91": "HOA",
+  "T-88": "Callback",
+  "T-86": "HOA",
+  "T-84": "Permit",
+  "T-81": "Callback",
+  "T-79": "Material",
+  "T-74": "Callback",
+  "T-70": "Material",
+  "T-66": "Warranty",
+};
 
 function toTicket(a: ShopAction): Ticket {
   return {
@@ -86,13 +112,14 @@ let actions: ShopAction[] = [
     priority: t.priority,
     due: t.due,
     description: t.description,
+    category: TICKET_CAT[t.id] ?? "Callback",
     followers: t.followers,
     age: t.age,
   })),
-  { id: "K-1", kind: "task", title: "Photo of approved baffle", personId: "L-4821", parentId: "T-91", owner: "Priya Shah", due: "Sep 17", status: "Open", followers: [], age: "1d" },
-  { id: "R-12", kind: "request", title: "HOA architectural form", personId: "L-4821", parentId: "T-91", owner: "Priya Shah", due: "Sep 20", status: "Open", description: "Board packet before they paint.", followers: [], age: "1d" },
-  { id: "K-2", kind: "task", title: "Email the board", personId: "L-4821", parentId: "R-12", owner: "Priya Shah", due: "Sep 19", status: "Open", followers: [], age: "1d" },
-  { id: "K-3", kind: "task", title: "Send Hale financing recap", personId: "L-4819", owner: "Dana Ortiz", due: "Sep 18", status: "Open", description: "Cash vs 12-month. No ticket.", followers: [], age: "8h" },
+  { id: "K-1", kind: "task", title: "Photo of approved baffle", personId: "L-4821", parentId: "T-91", owner: "Priya Shah", due: "Sep 17", status: "Open", category: "HOA", followers: [], age: "1d" },
+  { id: "R-12", kind: "request", title: "HOA architectural form", personId: "L-4821", parentId: "T-91", owner: "Priya Shah", due: "Sep 20", status: "Open", description: "Board packet before they paint.", category: "HOA", followers: [], age: "1d" },
+  { id: "K-2", kind: "task", title: "Email the board", personId: "L-4821", parentId: "R-12", owner: "Priya Shah", due: "Sep 19", status: "Open", category: "HOA", followers: [], age: "1d" },
+  { id: "K-3", kind: "task", title: "Send Hale financing recap", personId: "L-4819", owner: "Dana Ortiz", due: "Sep 18", status: "Open", description: "Cash vs 12-month. No ticket.", category: "Callback", followers: [], age: "8h" },
 ];
 let history: Record<string, { at: string; who: string; what: string }[]> = Object.fromEntries(
   Object.entries(activities).map(([id, rows]) => [id, rows.map((r) => ({ ...r }))]),
@@ -208,6 +235,7 @@ export function createAction(input: {
   due?: string;
   parentId?: string;
   priority?: "High" | "Normal" | "Low";
+  category?: string;
 }) {
   if (!input.title.trim()) return;
   const row: ShopAction = {
@@ -221,6 +249,7 @@ export function createAction(input: {
     priority: input.kind === "ticket" ? (input.priority ?? "Normal") : undefined,
     due: input.due?.trim() || "",
     description: input.description?.trim() || "",
+    category: input.category?.trim() || "",
     followers: [],
     age: "now",
   };
@@ -385,11 +414,11 @@ export function createLead(draft: LeadDraft) {
     tone: "muted",
     setter: draft.setter || "Priya Shah",
     closer: draft.closer || "Marco Velez",
-    office: "Phoenix",
+    office: draft.office || "Phoenix",
     created: "now",
     next: "Qualify",
     product: interestsLabel(draft.interests ?? [], draft.otherInterest) || draft.product || "",
-    value: 0,
+    value: Number(draft.value) || 0,
     notes: draft.notes || "",
     interests: draft.interests ?? [],
     otherInterest: draft.otherInterest || "",
@@ -398,6 +427,18 @@ export function createLead(draft: LeadDraft) {
     secondaryEmail: draft.secondaryEmail || "",
     referrerName: draft.referrerName || "",
     referrerPhone: draft.referrerPhone || "",
+    yearBuilt: draft.yearBuilt || "",
+    stories: draft.stories || "",
+    sqft: draft.sqft || "",
+    utility: draft.utility || "",
+    hoa: draft.hoa || "",
+    access: draft.access || "",
+    bothHome: Boolean(draft.bothHome),
+    finance: draft.finance || "",
+    rebate: Boolean(draft.rebate),
+    pain: draft.pain || "",
+    hotRooms: draft.hotRooms || "",
+    coldRooms: draft.coldRooms || "",
   } as Lead;
   leads = [lead, ...leads];
   followers = { ...followers, [id]: [{ name: lead.setter, role: "Setter" }] };
@@ -420,6 +461,14 @@ export function dropLead(id: string, reason: string) {
   if (!why) return;
   leads = leads.map((l) => (l.id === id ? { ...l, status: "Dropped", tone: "muted", next: "Dropped", dropReason: why } : l));
   addHistory(id, ACTOR, `Dropped. ${why}.`);
+}
+export function setLeadQualify(id: string, questionId: string, value: string) {
+  leads = leads.map((l) => (l.id === id ? { ...l, qualify: { ...(l.qualify ?? {}), [questionId]: value } } : l));
+  emit();
+}
+export function setLeadRebate(id: string, rebate: boolean) {
+  leads = leads.map((l) => (l.id === id ? { ...l, rebate } : l));
+  emit();
 }
 export function setLeadStatus(id: string, status: string) {
   const tone = toneForStatus(status);

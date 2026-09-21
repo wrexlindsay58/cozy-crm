@@ -3,6 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Plus, Search } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { PageTitle } from "@/components/ui-bits";
+import { Tip } from "@/components/tip";
 import { useStaff } from "@/features/staff/store";
 import { ResourceBoard } from "@/features/book/board";
 import { EventModal } from "@/features/book/event-modal";
@@ -35,15 +36,16 @@ function CalendarPage() {
   const [picked, setPicked] = useState<string | null>(null);
   const [compose, setCompose] = useState<{ resourceId: string; start: string } | null>(null);
   const [q, setQ] = useState("");
+  const [phone, setPhone] = useState(() => typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches);
 
   useEffect(() => {
-    const q = window.matchMedia("(max-width: 767px)");
+    const mq = window.matchMedia("(max-width: 767px)");
     function apply() {
-      if (q.matches) setView((v) => (v === "resource" ? "three" : v));
+      setPhone(mq.matches);
     }
     apply();
-    q.addEventListener("change", apply);
-    return () => q.removeEventListener("change", apply);
+    mq.addEventListener("change", apply);
+    return () => mq.removeEventListener("change", apply);
   }, []);
 
   const resources = useMemo(() => {
@@ -75,9 +77,90 @@ function CalendarPage() {
     moveBook(id, start, end, resourceId || cur.resourceId);
   }
 
+  function bookEvent() {
+    setCompose({ resourceId: resources[0]?.id ?? "", start: `${dayKey}T${String(hours[0] ?? 9).padStart(2, "0")}:00` });
+  }
+
+  const step = view === "week" ? 7 : view === "three" ? 3 : 1;
+
   return (
-    <div className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden">
-      <header className="flex min-h-14 shrink-0 flex-wrap items-center gap-2 border-b border-line bg-card px-4">
+    <div className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden overscroll-none">
+      <header className="shrink-0 border-b border-line bg-card px-3 py-2 md:hidden">
+        <div className="flex items-center gap-2">
+          <h1 className="text-[20px] font-bold tracking-tight">Book</h1>
+          <Tip label="Event" on className="ml-auto">
+            <button
+              type="button"
+              aria-label="Event"
+              className="grid size-9 place-items-center rounded-md bg-navy text-card"
+              onClick={bookEvent}
+            >
+              <Plus className="size-4" />
+            </button>
+          </Tip>
+        </div>
+        <div className="mt-2 overflow-x-auto">
+          <div className="flex w-max rounded-md bg-page p-0.5">
+            {VIEWS.map((v) => (
+              <button
+                key={v}
+                type="button"
+                className={cn("h-8 shrink-0 px-2.5 text-[13px] font-semibold", view === v ? "bg-navy text-card" : "text-muted")}
+                onClick={() => setView(v)}
+              >
+                {VIEW_LABEL[v]}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="mt-2 flex items-center gap-1.5 overflow-x-auto">
+          <BookPick
+            value={office}
+            onChange={setOffice}
+            items={[
+              { id: "all", label: "All markets" },
+              { id: "PHX", label: "Phoenix" },
+              { id: "DFW", label: "Dallas" },
+            ]}
+          />
+          <BookPick
+            value={group}
+            onChange={setGroup}
+            items={[
+              { id: "all", label: "All people" },
+              { id: "sales", label: "Closers" },
+              { id: "crews", label: "Crews" },
+              { id: "mine", label: "Mine" },
+            ]}
+          />
+          <BookPick
+            value={family}
+            onChange={setFamily}
+            items={[
+              { id: "all", label: "All types" },
+              { id: "sales", label: "Sales" },
+              { id: "production", label: "Production" },
+              { id: "shop", label: "Shop" },
+            ]}
+          />
+        </div>
+        <div className="mt-2 flex items-center gap-2">
+          <button type="button" className="h-8 shrink-0 rounded-md border border-line px-2 text-xs font-semibold" onClick={() => setBookDay(new Date(cursor.getFullYear(), cursor.getMonth(), cursor.getDate() - step))}>
+            Prev
+          </button>
+          <button type="button" className="h-8 shrink-0 rounded-md border border-line px-2 text-xs font-semibold" onClick={() => setBookDay(new Date(TODAY))}>
+            Today
+          </button>
+          <button type="button" className="h-8 shrink-0 rounded-md border border-line px-2 text-xs font-semibold" onClick={() => setBookDay(new Date(cursor.getFullYear(), cursor.getMonth(), cursor.getDate() + step))}>
+            Next
+          </button>
+          <p className="min-w-0 flex-1 truncate text-sm font-semibold">
+            {cursor.toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+          </p>
+        </div>
+      </header>
+
+      <header className="hidden min-h-14 shrink-0 items-center gap-2 overflow-x-auto border-b border-line bg-card px-4 md:flex">
         <PageTitle
           title="Book"
           flush
@@ -131,7 +214,7 @@ function CalendarPage() {
               <button
                 type="button"
                 className="inline-flex h-9 items-center gap-1 rounded-md bg-navy px-3 text-sm font-semibold text-card"
-                onClick={() => setCompose({ resourceId: resources[0]?.id ?? "", start: `${dayKey}T${String(hours[0] ?? 9).padStart(2, "0")}:00` })}
+                onClick={bookEvent}
               >
                 <Plus className="size-4" />
                 Event
@@ -141,20 +224,20 @@ function CalendarPage() {
         />
       </header>
 
-      <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-line bg-card px-4 py-2">
-        <button type="button" className="h-8 rounded-md border border-line px-2 text-xs font-semibold" onClick={() => setBookDay(new Date(cursor.getFullYear(), cursor.getMonth(), cursor.getDate() - (view === "week" ? 7 : view === "three" ? 3 : 1)))}>
+      <div className="hidden shrink-0 flex-nowrap items-center gap-2 overflow-x-auto border-b border-line bg-card px-4 py-2 md:flex">
+        <button type="button" className="h-8 shrink-0 rounded-md border border-line px-2 text-xs font-semibold" onClick={() => setBookDay(new Date(cursor.getFullYear(), cursor.getMonth(), cursor.getDate() - (view === "week" ? 7 : view === "three" ? 3 : 1)))}>
           Prev
         </button>
-        <button type="button" className="h-8 rounded-md border border-line px-2 text-xs font-semibold" onClick={() => setBookDay(new Date(TODAY))}>
+        <button type="button" className="h-8 shrink-0 rounded-md border border-line px-2 text-xs font-semibold" onClick={() => setBookDay(new Date(TODAY))}>
           Today
         </button>
-        <button type="button" className="h-8 rounded-md border border-line px-2 text-xs font-semibold" onClick={() => setBookDay(new Date(cursor.getFullYear(), cursor.getMonth(), cursor.getDate() + (view === "week" ? 7 : view === "three" ? 3 : 1)))}>
+        <button type="button" className="h-8 shrink-0 rounded-md border border-line px-2 text-xs font-semibold" onClick={() => setBookDay(new Date(cursor.getFullYear(), cursor.getMonth(), cursor.getDate() + (view === "week" ? 7 : view === "three" ? 3 : 1)))}>
           Next
         </button>
-        <p className="min-w-0 truncate text-sm font-semibold">
+        <p className="shrink-0 truncate text-sm font-semibold">
           {cursor.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
         </p>
-        <label className="relative min-w-0 max-w-64 flex-1 max-md:min-w-full md:ml-auto md:min-w-40">
+        <label className="relative min-w-0 max-w-64 flex-1 md:ml-auto md:min-w-40">
           <Search className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-faint" />
           <input
             value={q}
@@ -174,6 +257,7 @@ function CalendarPage() {
           onSelect={setPicked}
           onSlot={(resourceId, start) => setCompose({ resourceId, start })}
           onMove={onMove}
+          phone={phone}
         />
       ) : null}
       {view === "three" || view === "week" ? (
@@ -186,6 +270,7 @@ function CalendarPage() {
           onSelect={setPicked}
           onSlot={(_, start) => setCompose({ resourceId: resources[0]?.id ?? "", start })}
           onMove={onMove}
+          phone={phone}
         />
       ) : null}
       {view === "month" ? (

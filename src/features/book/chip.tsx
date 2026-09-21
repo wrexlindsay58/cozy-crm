@@ -10,12 +10,14 @@ export function EventChip({
   onClick,
   compact,
   thin,
+  drag = true,
 }: {
   e: BookEvent;
   selected?: boolean;
   onClick?: () => void;
   compact?: boolean;
   thin?: boolean;
+  drag?: boolean;
 }) {
   const watch = isWatch(e);
   const tone = TYPE_TONE[e.type] ?? TYPE_TONE.Office;
@@ -24,11 +26,15 @@ export function EventChip({
   const btn = (
     <button
       type="button"
-      draggable
-      onDragStart={(ev) => {
-        ev.dataTransfer.setData("text/book-id", e.id);
-        ev.dataTransfer.effectAllowed = "move";
-      }}
+      draggable={drag}
+      onDragStart={
+        drag
+          ? (ev) => {
+              ev.dataTransfer.setData("text/book-id", e.id);
+              ev.dataTransfer.effectAllowed = "move";
+            }
+          : undefined
+      }
       onClick={onClick}
       style={
         selected
@@ -39,6 +45,7 @@ export function EventChip({
         "flex h-full w-full flex-col items-start justify-start overflow-hidden rounded-md border px-1.5 pt-0.5 text-left leading-tight shadow-sm",
         e.blank && !selected ? "border-dashed" : "",
         watch && !selected ? "ring-1 ring-alert/40" : "",
+        !drag && "touch-manipulation",
       )}
     >
       <p className="w-full truncate text-[12px] font-semibold">{name}</p>

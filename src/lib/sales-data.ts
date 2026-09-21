@@ -794,12 +794,13 @@ export function viewBoard(t: SalesBoard, market: MarketId, person: string): Sale
 
 export function payMix(t: SalesBoard) {
   const rows = [
-    { name: "Cash/check", w: 12, fill: "var(--color-navy)" },
-    { name: "Cash/check + financing", w: 26, fill: "var(--color-navy-2)" },
-    { name: "CC", w: 8, fill: "var(--color-muted)" },
-    { name: "CC + financing", w: 18, fill: "var(--color-idle)" },
-    { name: "ACH", w: 6, fill: "var(--color-faint)" },
-    { name: "ACH + financing", w: 30, fill: "var(--color-line-strong)" },
+    { name: "Financing", w: 18, fill: "var(--color-navy)" },
+    { name: "Cash/check", w: 10, fill: "var(--color-navy-2)" },
+    { name: "Cash/check + financing", w: 22, fill: "var(--color-ink)" },
+    { name: "CC", w: 7, fill: "var(--color-muted)" },
+    { name: "CC + financing", w: 16, fill: "var(--color-idle)" },
+    { name: "ACH", w: 5, fill: "var(--color-faint)" },
+    { name: "ACH + financing", w: 22, fill: "var(--color-line-strong)" },
   ];
   const w = rows.reduce((s, r) => s + r.w, 0);
   return rows.map((r) => ({

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { ChevronDown } from "lucide-react";
 import { ActBar } from "@/components/act-bar";
+import { BackLink } from "@/components/ui-bits";
 import { Float } from "@/components/float";
 import { DndPick } from "@/features/lead/dnd-pick";
 import { cn } from "@/lib/cn";
@@ -18,6 +19,18 @@ const KIND_LABEL: Record<RecordKind, string> = {
   ticket: "Ticket",
   task: "Task",
   request: "Request",
+};
+
+const KIND_BACK: Record<RecordKind, { to: string; label: string }> = {
+  lead: { to: "/leads", label: "Leads" },
+  assessment: { to: "/assessments", label: "Assessments" },
+  opportunity: { to: "/opportunities", label: "Opportunities" },
+  job: { to: "/projects", label: "Jobs" },
+  account: { to: "/accounts", label: "Accounts" },
+  action: { to: "/tickets", label: "Actions" },
+  ticket: { to: "/tickets", label: "Actions" },
+  task: { to: "/tickets", label: "Actions" },
+  request: { to: "/tickets", label: "Actions" },
 };
 
 function StageChip({
@@ -129,6 +142,7 @@ export function TitleRow({
 
   return (
     <header className="border-b border-line bg-card px-4 py-2.5 md:px-5">
+      <BackLink to={KIND_BACK[kind].to} label={KIND_BACK[kind].label} />
       <p className="text-[11px] font-bold tracking-[0.14em] text-muted uppercase">
         {KIND_LABEL[kind]}
         {related?.map((r) => (
@@ -139,21 +153,23 @@ export function TitleRow({
       </p>
 
       <div className="mt-1 md:hidden">
-        <h1 className="text-xl font-extrabold tracking-tight break-words">{title}</h1>
-        <div className="mt-1.5 flex flex-wrap items-center gap-2">{pills()}</div>
+        <div className="flex items-center gap-2">
+          <h1 className="min-w-0 truncate text-xl font-extrabold tracking-tight">{title}</h1>
+          <div className="flex shrink-0 items-center gap-1.5">{pills()}</div>
+        </div>
         <p className="mt-0.5 min-w-0 text-sm text-muted break-words">{subtitle}</p>
         <div className="mt-2 flex items-center gap-1.5 overflow-x-auto">{actions()}</div>
       </div>
 
-      <div className="mt-1 hidden flex-wrap items-start justify-between gap-2 md:flex">
+      <div className="mt-1 hidden items-start justify-between gap-2 md:flex">
         <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-nowrap items-center gap-2 overflow-x-auto">
             <h1 className="text-xl font-extrabold tracking-tight md:text-2xl">{title}</h1>
             {pills()}
           </div>
           <p className="mt-0.5 min-w-0 text-sm text-muted">{subtitle}</p>
         </div>
-        <div className="flex min-w-0 flex-1 flex-wrap items-center justify-end gap-1.5">{actions()}</div>
+        <div className="flex min-w-0 shrink-0 items-center justify-end gap-1.5 overflow-x-auto">{actions()}</div>
       </div>
     </header>
   );

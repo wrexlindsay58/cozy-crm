@@ -1,10 +1,11 @@
 import { ChevronDown, Plus } from "lucide-react";
 import { useMemo, useState, type ReactNode } from "react";
-import { bookAppointment, useOps } from "@/features/ops/store";
+import { bookAppointment, DISPOSITIONS, setDisposition, useOps } from "@/features/ops/store";
 import { namesIn, useStaff } from "@/features/staff/store";
 import { SHOP_ACTOR } from "@/lib/chrome";
-import { stageWash } from "@/lib/lead-status";
-import type { EventKind } from "@/lib/crm-data";
+import { stageWash, toneForStatus } from "@/lib/lead-status";
+import type { Appointment, EventKind } from "@/lib/crm-data";
+import { Float } from "@/components/float";
 import { cn } from "@/lib/cn";
 
 const DAYS = [13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24];
@@ -38,12 +39,14 @@ export function BookWidget({
   defaultKind = "Sales",
   flush,
   actionTitle,
+  onRan,
 }: {
   leadId: string;
   defaultCloser: string;
   defaultKind?: EventKind;
   flush?: boolean;
   actionTitle?: string;
+  onRan?: () => void;
 }) {
   const { viewAs } = useStaff();
   const { appointments, leads, history } = useOps();
@@ -220,9 +223,7 @@ export function BookWidget({
                 {a.kind ?? "Sales"} · Sep {a.day} {a.time}
                 {a.duration ? ` · ${a.duration}` : ""}
               </span>
-              <span className={cn("h-5 rounded px-1.5 text-[10px] font-bold tracking-wide uppercase leading-5", stageWash(a.tone))}>
-                {a.status}
-              </span>
+              <ApptDisp appt={a} onRan={onRan} />
             </div>
             <p className="mt-1 text-[11px] text-muted">
               {a.closer}
@@ -238,6 +239,46 @@ export function BookWidget({
         <p className="mt-3 text-[11px] text-muted">File history stays on History. Last: {history[leadId][0]?.what}</p>
       ) : null}
     </section>
+  );
+}
+
+function ApptDisp({ appt, onRan }: { appt: Appointment; onRan?: () => void }) {
+  const [open, setOpen] = useState(false);
+  const [anchor, setAnchor] = useState<DOMRect | null>(null);
+  const wash = stageWash(toneForStatus(appt.status));
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        aria-label="Disposition"
+        onClick={(e) => {
+          setAnchor(e.currentTarget.getBoundingClientRect());
+          setOpen((v) => !v);
+        }}
+        className={cn("inline-flex h-6 shrink-0 items-center gap-1 rounded-md px-1.5 text-[10px] font-bold tracking-wide uppercase", wash)}
+      >
+        {appt.status}
+        <ChevronDown className="size-3" />
+      </button>
+      {open && anchor ? (
+        <Float anchor={anchor} prefer="bottom" onClose={() => setOpen(false)}>
+          {DISPOSITIONS.map((d) => (
+            <button
+              key={d}
+              type="button"
+              className={cn("block w-full min-w-40 px-3 py-2 text-left text-sm hover:bg-page", d === appt.status && "font-semibold")}
+              onClick={() => {
+                setDisposition(appt.id, d);
+                setOpen(false);
+                if (d === "Ran") onRan?.();
+              }}
+            >
+              {d}
+            </button>
+          ))}
+        </Float>
+      ) : null}
+    </div>
   );
 }
 

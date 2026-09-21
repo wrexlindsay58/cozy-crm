@@ -5,7 +5,7 @@ import { addActionFollower, addFollower, dropLead, mergeLead, removeFollower, re
 import { addDepartment, useStaff } from "@/features/staff/store";
 import type { PersonRef } from "@/lib/file-data";
 
-function Initials({ name }: { name: string }) {
+export function Initials({ name }: { name: string }) {
   const bits = name.split(" ").filter(Boolean);
   const letters = ((bits[0]?.[0] ?? "") + (bits[1]?.[0] ?? "")).toUpperCase();
   return (
@@ -105,7 +105,7 @@ export function PeopleRow({
 
   function ownerBlock() {
     return (
-      <div className="ml-auto flex shrink-0 items-center gap-2">
+      <div className="flex shrink-0 items-center gap-2">
         <Initials name={owner.name} />
         <div>
           <p className="text-[10px] font-bold tracking-wide text-muted uppercase">Owner</p>
@@ -118,8 +118,16 @@ export function PeopleRow({
   return (
     <div className="border-b border-line bg-card px-4 py-2 md:px-5">
       <div className="flex flex-col gap-2 md:hidden">
-        <div className="flex items-center gap-3">
-          <div className="flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto">
+        <div className="flex items-center gap-6">
+          <div className="flex shrink-0 items-center gap-1.5">
+            <p className="text-[10px] font-bold tracking-wide text-muted uppercase">Owner</p>
+            <Tip label={owner.name} on>
+              <span className="shrink-0" aria-label={`Owner ${owner.name}`}>
+                <Initials name={owner.name} />
+              </span>
+            </Tip>
+          </div>
+          <div className="flex min-w-0 flex-1 items-center justify-end gap-1.5 overflow-x-auto">
             <p className="shrink-0 text-[10px] font-bold tracking-wide text-muted uppercase">Followers</p>
             {list.length === 0 ? <p className="text-sm text-muted">None</p> : null}
             {list.map((f) => (
@@ -130,21 +138,13 @@ export function PeopleRow({
               </Tip>
             ))}
           </div>
-          <div className="flex shrink-0 items-center gap-1.5">
-            <p className="text-[10px] font-bold tracking-wide text-muted uppercase">Owner</p>
-            <Tip label={owner.name} on>
-              <span className="shrink-0" aria-label={`Owner ${owner.name}`}>
-                <Initials name={owner.name} />
-              </span>
-            </Tip>
-          </div>
         </div>
         {peopleActs(true)}
       </div>
-      <div className="hidden flex-wrap items-center gap-3 md:flex">
-        {followChips()}
-        {peopleActs()}
+      <div className="hidden min-w-0 flex-nowrap items-center gap-6 overflow-x-auto md:flex">
         {ownerBlock()}
+        {followChips()}
+        <div className="ml-auto shrink-0">{peopleActs()}</div>
       </div>
       {mode === "follow" ? (
         <div className="mt-2 flex flex-wrap gap-2">

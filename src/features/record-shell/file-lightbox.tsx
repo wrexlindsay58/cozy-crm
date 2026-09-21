@@ -83,6 +83,14 @@ function Preview({ file }: { file: Photo }) {
   if (kind === "video") {
     return <video src={file.src} controls autoPlay className="max-h-[78vh] max-w-full rounded-md bg-ink" />;
   }
+  if (kind === "audio") {
+    return (
+      <div className="w-[min(100%,28rem)] rounded-md bg-card p-6">
+        <p className="mb-3 text-sm font-semibold">{file.caption}</p>
+        <audio src={file.src} controls className="w-full" />
+      </div>
+    );
+  }
   if (kind === "pdf") {
     return <iframe title={file.caption} src={file.src} className="h-[78vh] w-[min(100%,900px)] rounded-md bg-card" />;
   }

@@ -137,6 +137,7 @@ export function DispatchMap({
   const wrap = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const marksRef = useRef<maplibregl.Marker[]>([]);
+  const marksSig = useRef("");
   const peopleRef = useRef(people);
   const housesRef = useRef(houses);
   const pathsRef = useRef(paths);
@@ -149,6 +150,14 @@ export function DispatchMap({
   onStopRef.current = onPickStop;
 
   function drawMarks(map: maplibregl.Map) {
+    const sig =
+      peopleRef.current.map((p) => `${p.id}:${p.lat}:${p.lng}:${p.late ? 1 : 0}`).join("|") +
+      "#" +
+      housesRef.current.map((h) => `${h.id}:${h.lat}:${h.lng}`).join("|") +
+      "#" +
+      office;
+    if (marksSig.current === sig) return;
+    marksSig.current = sig;
     marksRef.current.forEach((m) => m.remove());
     marksRef.current = placeMarks(map, office, peopleRef.current, housesRef.current, (id) => onSelectRef.current(id), (a, b) => onStopRef.current(a, b));
   }
@@ -162,7 +171,7 @@ export function DispatchMap({
   function fitAll(map: maplibregl.Map) {
     const b = boundsOf(pathsRef.current, peopleRef.current, housesRef.current);
     if (!b) return;
-    map.fitBounds(b, { padding: 56, maxZoom: 12.2, duration: 500, pitch: view === "3d" ? 48 : 0 });
+    map.fitBounds(b, { padding: 56, maxZoom: 12.2, duration: 0, pitch: view === "3d" ? 48 : 0 });
   }
 
   useEffect(() => {
@@ -178,14 +187,29 @@ export function DispatchMap({
       pitch: view === "3d" ? 52 : 0,
       bearing: view === "3d" ? -16 : 0,
       maxPitch: 80,
+      trackResize: false,
+      fadeDuration: 0,
       attributionControl: { compact: true },
     });
     el.style.background = "#f7fafb";
     mapRef.current = map;
-    const ro = new ResizeObserver(() => map.resize());
+    marksSig.current = "";
+    let lastW = 0;
+    let lastH = 0;
+    let raf = 0;
+    const ro = new ResizeObserver(() => {
+      if (raf) return;
+      raf = requestAnimationFrame(() => {
+        raf = 0;
+        const w = el.clientWidth;
+        const h = el.clientHeight;
+        if (w < 8 || h < 8 || (w === lastW && h === lastH)) return;
+        lastW = w;
+        lastH = h;
+        map.resize();
+      });
+    });
     ro.observe(el);
-    const tick = window.setTimeout(() => map.resize(), 80);
-    const tick2 = window.setTimeout(() => map.resize(), 400);
 
     function ready() {
       if (view === "3d") {
@@ -232,11 +256,11 @@ export function DispatchMap({
     map.on("load", ready);
 
     return () => {
-      window.clearTimeout(tick);
-      window.clearTimeout(tick2);
+      if (raf) cancelAnimationFrame(raf);
       ro.disconnect();
       marksRef.current.forEach((m) => m.remove());
       marksRef.current = [];
+      marksSig.current = "";
       map.remove();
       mapRef.current = null;
     };
@@ -252,24 +276,29 @@ export function DispatchMap({
     const map = mapRef.current;
     const src = map?.getSource("routes") as maplibregl.GeoJSONSource | undefined;
     src?.setData(pathData(paths));
-    if (map && showAll) fitAll(map);
-  }, [paths, showAll]);
+  }, [paths]);
 
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
     paintLines(map, showAll ? null : selectedId);
-    if (showAll) {
-      fitAll(map);
-      return;
-    }
-    const hit = houses.find((s) => s.id === selectedStopId);
-    if (hit) {
-      map.flyTo({ center: [hit.lng, hit.lat], zoom: 16.4, pitch: view === "3d" ? 52 : 0, duration: 500 });
-    }
-  }, [selectedId, selectedStopId, showAll, view, houses]);
+  }, [selectedId, showAll]);
 
-  return <div ref={wrap} className="dispatch-map h-full min-h-[22rem] w-full" />;
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !showAll) return;
+    fitAll(map);
+  }, [showAll]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || showAll || !selectedStopId) return;
+    const hit = houses.find((s) => s.id === selectedStopId);
+    if (!hit) return;
+    map.easeTo({ center: [hit.lng, hit.lat], zoom: 16.4, duration: 300, pitch: view === "3d" ? 52 : 0 });
+  }, [selectedStopId, showAll, view, houses]);
+
+  return <div ref={wrap} className="dispatch-map h-full min-h-0 w-full" />;
 }
 
 export function statusColor(status: string) {

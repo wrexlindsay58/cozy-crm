@@ -37,17 +37,25 @@ export function MonthGrid({
               className={cn("min-h-20 rounded-md p-2 text-left max-md:min-h-14 max-md:p-1", d === selectedDay ? "bg-navy text-card" : "bg-card border border-line")}
             >
               <span className="text-[13px] font-bold">{d}</span>
-              <div className="mt-1 space-y-0.5">
+              <div className="mt-1 space-y-0.5 max-md:mt-1 max-md:flex max-md:flex-wrap max-md:gap-0.5 max-md:space-y-0">
                 {marks.slice(0, 3).map((m) => (
                   <p
                     key={m.id}
-                    className={cn("truncate rounded-sm px-1 text-[11px] leading-5", d === selectedDay ? "bg-card/20 text-card" : "text-ink")}
+                    className={cn("truncate rounded-sm px-1 text-[11px] leading-5 max-md:hidden", d === selectedDay ? "bg-card/20 text-card" : "text-ink")}
                     style={d === selectedDay ? undefined : { background: TYPE_TONE[m.type]?.bg }}
                   >
                     {m.title.split(" ")[0]} · {m.type}
                   </p>
                 ))}
-                {marks.length > 3 ? <p className="text-[11px] opacity-70">+{marks.length - 3}</p> : null}
+                {marks.slice(0, 4).map((m) => (
+                  <i
+                    key={`dot-${m.id}`}
+                    className="hidden size-1.5 rounded-full max-md:inline-block"
+                    style={{ background: d === selectedDay ? "var(--color-card)" : TYPE_TONE[m.type]?.bar ?? "var(--color-navy)" }}
+                    aria-hidden
+                  />
+                ))}
+                {marks.length > 3 ? <p className="text-[11px] opacity-70 max-md:hidden">+{marks.length - 3}</p> : null}
               </div>
             </button>
           );

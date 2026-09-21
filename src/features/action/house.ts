@@ -10,6 +10,7 @@ export type HouseFile = {
   pipeline: string;
   href: string;
   owner: string;
+  office: string;
   lead?: Lead;
 };
 
@@ -26,6 +27,7 @@ export function houseOf(personId: string, leads: Lead[]): HouseFile {
       pipeline: "Lead",
       href: `/leads/${lead.id}`,
       owner: lead.closer,
+      office: lead.office,
       lead,
     };
   }
@@ -39,6 +41,7 @@ export function houseOf(personId: string, leads: Lead[]): HouseFile {
       pipeline: "Job",
       href: `/projects/${job.id}`,
       owner: job.pm,
+      office: job.office,
     };
   }
   const account = accounts.find((a) => a.id === personId);
@@ -50,7 +53,8 @@ export function houseOf(personId: string, leads: Lead[]): HouseFile {
       pipeline: "Account",
       href: `/accounts/${account.id}`,
       owner: account.owner,
+      office: "",
     };
   }
-  return { id: personId, name: personId, pipeline: "File", href: "/tickets", owner: "" };
+  return { id: personId, name: personId, pipeline: "File", href: "/tickets", owner: "", office: "" };
 }

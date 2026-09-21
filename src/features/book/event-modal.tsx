@@ -179,9 +179,9 @@ export function EventModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center p-4">
+    <div className="fixed inset-0 z-50 grid place-items-center p-4 max-md:p-0">
       <button type="button" aria-label="Close" className="absolute inset-0 bg-ink/40" onClick={onClose} />
-      <form onSubmit={save} className="relative z-10 flex max-h-[min(42rem,calc(100vh-2rem))] w-full max-w-lg flex-col overflow-hidden rounded-md border border-line bg-card shadow-lg">
+      <form onSubmit={save} className="relative z-10 flex max-h-[min(42rem,calc(100vh-2rem))] w-full max-w-lg flex-col overflow-hidden rounded-md border border-line bg-card shadow-lg max-md:h-full max-md:max-h-none max-md:max-w-none max-md:rounded-none">
         <header className="flex h-12 shrink-0 items-center justify-between border-b border-line px-4">
           <h2 className="text-sm font-semibold">{editing ? "Event" : blank ? "Blank slots" : "Book"}</h2>
           <button type="button" aria-label="Close" className="grid size-9 place-items-center rounded-md hover:bg-page" onClick={onClose}>

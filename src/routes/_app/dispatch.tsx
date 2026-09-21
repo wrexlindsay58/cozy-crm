@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type DragEvent } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { X } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, X } from "lucide-react";
 import { DispatchMap, streetViewSrc, type MapView, type StreetPath } from "@/components/dispatch-map";
 import { cn } from "@/lib/cn";
 import { HEX } from "@/lib/tokens";
@@ -79,21 +79,32 @@ async function packRoute(resource: Resource, list: BookEvent[], day: string) {
 function useStreetPaths(people: Resource[], jobs: BookEvent[]) {
   const [paths, setPaths] = useState<StreetPath[]>([]);
   const [drive, setDrive] = useState<Record<string, { mins: number; miles: number }>>({});
+  const peopleKey = people.map((p) => p.id).join(",");
   const sig = jobs.map((j) => `${j.id}:${j.resourceId}:${j.start}`).join("|");
   useEffect(() => {
     let dead = false;
+    const fallback: StreetPath[] = [];
+    for (const u of people) {
+      const list = jobs.filter((j) => j.resourceId === u.id && isField(j)).sort((a, b) => a.start.localeCompare(b.start));
+      if (!list.length) continue;
+      const pts = [pingOf(u), ...list.map(geoOf)];
+      fallback.push({ unitId: u.id, color: routeColor(u.id), coords: pts.map((p) => [p.lng, p.lat]) });
+    }
+    setPaths(fallback);
     (async () => {
       const next: StreetPath[] = [];
       const d: Record<string, { mins: number; miles: number }> = {};
-      for (const u of people) {
-        const list = jobs.filter((j) => j.resourceId === u.id && isField(j)).sort((a, b) => a.start.localeCompare(b.start));
-        if (!list.length) continue;
-        const path = await fetchPath([pingOf(u), ...list.map(geoOf)], 18);
-        if (!path) continue;
-        next.push({ unitId: u.id, color: routeColor(u.id), coords: path.coords });
-        d[u.id] = { mins: mins(path.seconds), miles: path.miles };
-      }
-      if (!dead) {
+      await Promise.all(
+        people.map(async (u) => {
+          const list = jobs.filter((j) => j.resourceId === u.id && isField(j)).sort((a, b) => a.start.localeCompare(b.start));
+          if (!list.length) return;
+          const path = await fetchPath([pingOf(u), ...list.map(geoOf)], 18);
+          if (!path || dead) return;
+          next.push({ unitId: u.id, color: routeColor(u.id), coords: path.coords });
+          d[u.id] = { mins: mins(path.seconds), miles: path.miles };
+        }),
+      );
+      if (!dead && next.length) {
         setPaths(next);
         setDrive(d);
       }
@@ -101,7 +112,9 @@ function useStreetPaths(people: Resource[], jobs: BookEvent[]) {
     return () => {
       dead = true;
     };
-  }, [people, sig, jobs]);
+    // people/jobs captured when keys change
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [peopleKey, sig]);
   return { paths, drive };
 }
 
@@ -116,7 +129,9 @@ function DispatchPage() {
   const [selectedId, setSelectedId] = useState<string | null>("marco");
   const [selectedStopId, setSelectedStopId] = useState<string | null>(null);
   const [drawer, setDrawer] = useState(true);
+  const [sheet, setSheet] = useState<"peek" | "open">("peek");
   const [showAll, setShowAll] = useState(true);
+  const [toId, setToId] = useState("");
 
   const here = useMemo(() => roster.filter((r) => office === "all" || r.office === office), [roster, office]);
   const dayJobs = useMemo(
@@ -124,34 +139,41 @@ function DispatchPage() {
     [events, dayKey, office],
   );
   const open = dayJobs.filter((e) => !e.resourceId);
-  const selected = here.find((u) => u.id === selectedId) ?? here[0] ?? null;
+  const selected = selectedId == null ? null : here.find((u) => u.id === selectedId) ?? here[0] ?? null;
   const selectedStops = selected ? dayJobs.filter((e) => e.resourceId === selected.id).sort((a, b) => a.start.localeCompare(b.start)) : [];
   const selectedStop = dayJobs.find((s) => s.id === selectedStopId) ?? selectedStops[0] ?? null;
   const live = here.filter((u) => dayJobs.some((e) => e.resourceId === u.id && e.status === "Dispatched")).length;
   const lateCount = here.filter((u) => behind(dayJobs.filter((e) => e.resourceId === u.id), hour)).length;
   const stopCount = dayJobs.filter((e) => e.resourceId).length;
   const { paths, drive } = useStreetPaths(here, dayJobs);
-  const helper = selected
-    ? here.find((u) => u.id !== selected.id && !dayJobs.some((e) => e.resourceId === u.id && active(e)) && (u.kind === selected.kind || (selected.kind === "closer" && u.kind === "setter")))
-    : null;
+  const others = selected ? here.filter((u) => u.id !== selected.id) : [];
+  const sendTo = others.some((u) => u.id === toId) ? toId : others[0]?.id ?? "";
 
-  const peoplePins = here.map((u) => {
-    const mine = dayJobs.filter((e) => e.resourceId === u.id);
-    const ping = pingOf(u);
-    return {
-      id: u.id,
-      name: u.name,
-      initials: initials(u.name),
-      lat: ping.lat,
-      lng: ping.lng,
-      color: HEX.navy,
-      late: behind(mine, hour),
-    };
-  });
-  const houses = dayJobs.filter(isField).map((e) => {
-    const g = geoOf(e);
-    return { id: e.id, resourceId: e.resourceId, lat: g.lat, lng: g.lng, label: e.title, color: pinColor(e) };
-  });
+  const peoplePins = useMemo(
+    () =>
+      here.map((u) => {
+        const mine = dayJobs.filter((e) => e.resourceId === u.id);
+        const ping = pingOf(u);
+        return {
+          id: u.id,
+          name: u.name,
+          initials: initials(u.name),
+          lat: ping.lat,
+          lng: ping.lng,
+          color: HEX.navy,
+          late: behind(mine, hour),
+        };
+      }),
+    [here, dayJobs, hour],
+  );
+  const houses = useMemo(
+    () =>
+      dayJobs.filter(isField).map((e) => {
+        const g = geoOf(e);
+        return { id: e.id, resourceId: e.resourceId, lat: g.lat, lng: g.lng, label: e.title, color: pinColor(e) };
+      }),
+    [dayJobs],
+  );
   const street = selectedStop ? { ...geoOf(selectedStop), name: selectedStop.title, city: selectedStop.city } : selected ? { ...pingOf(selected), name: selected.name, city: "" } : null;
 
   function pick(id: string) {
@@ -159,6 +181,7 @@ function DispatchPage() {
     setSelectedStopId(null);
     setDrawer(true);
     setShowAll(false);
+    setSheet("peek");
   }
 
   function pickStop(resourceId: string, stopId: string) {
@@ -166,6 +189,7 @@ function DispatchPage() {
     setSelectedStopId(stopId);
     setDrawer(true);
     setShowAll(false);
+    setSheet("peek");
   }
 
   function dropOnUnit(unitId: string, e: DragEvent) {
@@ -191,8 +215,56 @@ function DispatchPage() {
   }
 
   return (
-    <div className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden bg-page">
-      <header className="flex min-h-14 shrink-0 flex-wrap items-center gap-2 border-b border-line bg-card px-4">
+    <div className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden overscroll-none bg-page">
+      <header className="shrink-0 border-b border-line bg-card px-3 py-2 md:hidden">
+        <div className="flex items-center gap-2">
+          <h1 className="text-[20px] font-bold tracking-tight">Map</h1>
+          <div className="ml-auto flex rounded-md bg-page p-0.5">
+            {VIEWS.map((v) => (
+              <button key={v.id} type="button" className={cn("h-8 px-2.5 text-[13px] font-semibold", view === v.id ? "bg-navy text-card" : "text-muted")} onClick={() => setView(v.id)}>
+                {v.label}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="mt-2 flex flex-nowrap items-center gap-1.5 overflow-x-auto">
+          <BookPick
+            value={office}
+            onChange={(v) => {
+              setOffice(v);
+              const first = roster.find((u) => v === "all" || u.office === v)?.id ?? null;
+              setSelectedId(first);
+              setSelectedStopId(null);
+              setDrawer(true);
+              setSheet("peek");
+            }}
+            items={[
+              { id: "all", label: "All markets" },
+              { id: "PHX", label: "Phoenix" },
+              { id: "DFW", label: "Dallas" },
+            ]}
+          />
+          <button type="button" aria-label="Previous day" className="grid size-8 shrink-0 place-items-center rounded-md border border-line" onClick={() => shiftBookDay(-1)}>
+            <ChevronLeft className="size-4" />
+          </button>
+          <button type="button" className="h-8 shrink-0 rounded-md border border-line px-2 text-xs font-semibold" onClick={() => setBookDay(new Date(TODAY))}>
+            Today
+          </button>
+          <button type="button" aria-label="Next day" className="grid size-8 shrink-0 place-items-center rounded-md border border-line" onClick={() => shiftBookDay(1)}>
+            <ChevronRight className="size-4" />
+          </button>
+          <p className="min-w-0 flex-1 truncate text-sm font-semibold">{cursor.toLocaleDateString("en-US", { month: "short", day: "numeric" })}</p>
+          <button
+            type="button"
+            className={cn("h-8 shrink-0 rounded-md border px-2.5 text-xs font-semibold", showAll ? "border-navy bg-navy text-card" : "border-line")}
+            onClick={() => setShowAll(true)}
+          >
+            All routes
+          </button>
+        </div>
+      </header>
+
+      <header className="hidden min-h-14 shrink-0 items-center gap-2 overflow-x-auto border-b border-line bg-card px-4 md:flex">
         <PageTitle
           title="Map"
           flush
@@ -225,28 +297,28 @@ function DispatchPage() {
         />
       </header>
 
-      <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-line bg-card px-4 py-2">
-        <button type="button" className="h-8 rounded-md border border-line px-2 text-xs font-semibold" onClick={() => shiftBookDay(-1)}>
+      <div className="hidden shrink-0 flex-nowrap items-center gap-2 overflow-x-auto border-b border-line bg-card px-4 py-2 md:flex">
+        <button type="button" className="h-8 shrink-0 rounded-md border border-line px-2 text-xs font-semibold" onClick={() => shiftBookDay(-1)}>
           Prev
         </button>
-        <button type="button" className="h-8 rounded-md border border-line px-2 text-xs font-semibold" onClick={() => setBookDay(new Date(TODAY))}>
+        <button type="button" className="h-8 shrink-0 rounded-md border border-line px-2 text-xs font-semibold" onClick={() => setBookDay(new Date(TODAY))}>
           Today
         </button>
-        <button type="button" className="h-8 rounded-md border border-line px-2 text-xs font-semibold" onClick={() => shiftBookDay(1)}>
+        <button type="button" className="h-8 shrink-0 rounded-md border border-line px-2 text-xs font-semibold" onClick={() => shiftBookDay(1)}>
           Next
         </button>
-        <p className="text-sm font-semibold">{cursor.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</p>
+        <p className="shrink-0 text-sm font-semibold">{cursor.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</p>
         <button
           type="button"
-          className={cn("ml-auto h-8 rounded-md border px-2.5 text-xs font-semibold", showAll ? "border-navy bg-navy text-card" : "border-line")}
+          className={cn("ml-auto h-8 shrink-0 rounded-md border px-2.5 text-xs font-semibold", showAll ? "border-navy bg-navy text-card" : "border-line")}
           onClick={() => setShowAll(true)}
         >
           All routes
         </button>
       </div>
 
-      <div className="grid min-h-0 min-w-0 flex-1 grid-rows-[auto_minmax(22rem,1fr)] lg:grid-cols-[20rem_minmax(0,1fr)] lg:grid-rows-1">
-        <aside className="min-h-0 overflow-auto border-b border-line bg-card max-lg:max-h-[36vh] lg:border-r lg:border-b-0">
+      <div className="grid min-h-0 min-w-0 flex-1 grid-rows-1 lg:grid-cols-[20rem_minmax(0,1fr)]">
+        <aside className="hidden min-h-0 overflow-auto border-b border-line bg-card lg:block lg:border-r lg:border-b-0">
           {open.length ? (
             <div className="border-b border-line">
               <p className="px-3 py-2 text-[11px] font-bold tracking-wide text-muted uppercase">Open</p>
@@ -315,8 +387,8 @@ function DispatchPage() {
           </ul>
         </aside>
 
-        <div className="flex h-full min-h-[22rem] min-w-0 flex-col">
-          <p className="shrink-0 border-b border-line bg-card px-4 py-1.5 text-center text-[13px] tabular-nums">
+        <div className="flex h-full min-h-0 min-w-0 flex-col lg:min-h-[22rem]">
+          <p className="hidden shrink-0 border-b border-line bg-card px-4 py-1.5 text-center text-[13px] tabular-nums lg:block">
             <span className="font-bold">{live}</span>
             <span className="text-muted"> moving</span>
             {open.length ? (
@@ -339,14 +411,66 @@ function DispatchPage() {
           </p>
           <div className="relative min-h-0 min-w-0 flex-1">
           <DispatchMap office={office} view={view} people={peoplePins} houses={houses} paths={paths} selectedId={selected?.id ?? null} selectedStopId={selectedStopId} showAll={showAll} onSelect={pick} onPickStop={pickStop} />
-          {selected && drawer ? (
-            <aside className="absolute inset-x-0 bottom-0 z-10 flex max-h-[78%] flex-col overflow-auto border-t border-line bg-card shadow-sm lg:inset-y-0 lg:left-auto lg:max-h-none lg:w-96 lg:border-t-0 lg:border-l">
-              <div className="flex min-h-10 items-center justify-end px-2">
+          <p className="absolute top-2 left-2 z-10 max-w-[70%] rounded-md border border-line bg-card/95 px-2.5 py-1 text-[11px] font-semibold tabular-nums shadow-sm lg:hidden">
+            <span className="font-bold">{live}</span>
+            <span className="text-muted"> live</span>
+            {lateCount ? (
+              <>
+                <span className="text-muted"> · </span>
+                <span className="font-bold text-stop">{lateCount}</span>
+                <span className="text-muted"> behind</span>
+              </>
+            ) : null}
+            <span className="text-muted"> · </span>
+            <span className="font-bold">{stopCount}</span>
+            <span className="text-muted"> stops</span>
+          </p>
+          {drawer && (selected || open.length) ? (
+            <aside
+              className={cn(
+                "absolute inset-x-0 bottom-0 z-10 flex flex-col border-t border-line bg-card shadow-sm",
+                sheet === "open" ? "max-h-[70%] overflow-auto" : "overflow-hidden",
+                "lg:inset-y-0 lg:left-auto lg:max-h-none lg:w-96 lg:overflow-auto lg:border-t-0 lg:border-l",
+              )}
+            >
+              <button
+                type="button"
+                className="relative flex w-full items-center gap-3 px-4 pt-4 pb-3 text-left lg:hidden"
+                onClick={() => setSheet((s) => (s === "peek" ? "open" : "peek"))}
+                aria-expanded={sheet === "open"}
+              >
+                <i className="absolute top-1.5 left-1/2 h-1 w-10 -translate-x-1/2 rounded-full bg-line" />
+                {selected ? (
+                  <span className="relative grid size-10 shrink-0 place-items-center rounded-md bg-navy text-[11px] font-bold text-card">
+                    {initials(selected.name)}
+                    {behind(selectedStops, hour) ? <i className="absolute -top-1 -right-1 size-2.5 rounded-full border-2 border-card bg-stop" /> : null}
+                  </span>
+                ) : (
+                  <span className="grid size-10 shrink-0 place-items-center rounded-md bg-page text-[11px] font-bold text-navy">{open.length}</span>
+                )}
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-sm font-bold">{selected ? selected.name : "Open work"}</span>
+                  <span className={cn("block truncate text-[12px]", selected && behind(selectedStops, hour) ? "font-semibold text-stop" : "text-muted")}>
+                    {selected
+                      ? [
+                          behind(selectedStops, hour) ? "Behind" : selectedStops.length ? `${selectedStops.length} stops` : "Open",
+                          drive[selected.id] ? `${drive[selected.id].mins} min` : "",
+                        ]
+                          .filter(Boolean)
+                          .join(" · ")
+                      : `${open.length} unassigned`}
+                  </span>
+                </span>
+                {sheet === "open" ? <ChevronDown className="size-4 shrink-0 text-muted" /> : <ChevronUp className="size-4 shrink-0 text-muted" />}
+              </button>
+              <div className={cn("flex min-h-10 items-center justify-end px-2 max-lg:hidden")}>
                 <button type="button" className="grid size-10 place-items-center" aria-label="Close" onClick={() => setDrawer(false)}>
                   <X className="size-4" />
                 </button>
               </div>
-              <div className="px-4 pb-4">
+              <div className={cn("px-4 pb-4", sheet === "peek" && "max-lg:hidden")}>
+                {selected ? (
+                  <>
                 {street ? <StreetPane lat={street.lat} lng={street.lng} name={street.name} city={street.city} /> : null}
                 <p className="text-[11px] font-bold tracking-wide text-muted uppercase">{selected.role}</p>
                 <h2 className="text-[16px] font-bold">{selected.name}</h2>
@@ -356,10 +480,26 @@ function DispatchPage() {
                     {drive[selected.id].mins} min drive · {drive[selected.id].miles.toFixed(1)} mi
                   </p>
                 ) : null}
-                {behind(selectedStops, hour) && helper ? (
-                  <button type="button" className="mt-3 h-10 w-full rounded-md bg-navy text-sm font-semibold text-card" onClick={() => sendRest(helper.id)}>
-                    Send remaining to {helper.name.split(" ")[0]}
-                  </button>
+                {selectedStops.some(active) && sendTo ? (
+                  <div className="mt-3 flex gap-2">
+                    <label className="min-w-0 flex-1">
+                      <span className="sr-only">Send remaining to</span>
+                      <select
+                        value={sendTo}
+                        onChange={(e) => setToId(e.target.value)}
+                        className="h-10 w-full rounded-md border border-line bg-card px-2 text-sm font-semibold"
+                      >
+                        {others.map((u) => (
+                          <option key={u.id} value={u.id}>
+                            {u.name.replace(/^Crew \d+ — /, "")}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <button type="button" className="h-10 shrink-0 rounded-md bg-navy px-3 text-sm font-semibold text-card" onClick={() => sendRest(sendTo)}>
+                      Send remaining
+                    </button>
+                  </div>
                 ) : null}
                 <div className="mt-3 flex gap-2">
                   {phoneOf(selected.id) ? (
@@ -380,6 +520,30 @@ function DispatchPage() {
                     <StopRow key={s.id} s={s} n={i + 1} people={here} activeId={selectedStopId === s.id} warn={!familyOk(s.type, selected.kind)} onPick={() => pickStop(selected.id, s.id)} />
                   ))}
                 </ul>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-[11px] font-bold tracking-wide text-muted uppercase">Open</p>
+                    <ul className="mt-2 divide-y divide-line">
+                      {open.map((s) => (
+                        <li key={s.id}>
+                          <button type="button" onClick={() => pickStop("", s.id)} className="flex w-full items-start gap-2 py-2.5 text-left">
+                            <span className="grid size-9 shrink-0 place-items-center rounded-md bg-navy text-[10px] font-bold text-card">{s.title.slice(0, 1)}</span>
+                            <span className="min-w-0 flex-1">
+                              <span className="flex items-baseline justify-between gap-2">
+                                <span className="truncate text-sm font-semibold">{s.title}</span>
+                                <span className="text-[11px] font-semibold text-muted">{s.type}</span>
+                              </span>
+                              <span className="mt-0.5 block truncate text-[11px] text-muted">
+                                {s.city || "No city"} · {s.status}
+                              </span>
+                            </span>
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  </>
+                )}
               </div>
             </aside>
           ) : null}
@@ -457,7 +621,7 @@ function StopRow({
 function StreetPane({ lat, lng, name, city }: { lat: number; lng: number; name: string; city: string }) {
   return (
     <div className="mb-3 overflow-hidden rounded-md border border-line bg-page">
-      <iframe title={`Street view ${name}`} src={streetViewSrc(lat, lng)} className="h-48 w-full border-0" loading="lazy" referrerPolicy="no-referrer-when-downgrade" allowFullScreen />
+      <iframe title={`Street view ${name}`} src={streetViewSrc(lat, lng)} className="hidden h-48 w-full border-0 lg:block" loading="lazy" referrerPolicy="no-referrer-when-downgrade" allowFullScreen />
       <div className="flex items-center justify-between gap-2 px-3 py-2">
         <p className="min-w-0 truncate text-[12px] font-semibold">
           {name}

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Check, ChevronDown } from "lucide-react";
 import type { LeadDraft } from "@/features/ops/store";
-import { useStaff } from "@/features/staff/store";
+import { namesIn, OFFICES, useStaff } from "@/features/staff/store";
 import { Float } from "@/components/float";
 import { INTEREST_OPTIONS, inferInterests, interestsLabel, toggleInterest } from "./interests";
 import { cn } from "@/lib/cn";
@@ -19,6 +19,8 @@ export function DetailsForm({
   onSubmit: (draft: LeadDraft) => void;
 }) {
   const { sources } = useStaff();
+  const setters = namesIn("Setter", "Owner");
+  const closers = namesIn("Closer", "Owner");
   const [draft, setDraft] = useState<LeadDraft>({
     name: initial?.name ?? "",
     phone: initial?.phone ?? "",
@@ -27,6 +29,9 @@ export function DetailsForm({
     city: initial?.city ?? "",
     source: initial?.source ?? "Canvass",
     notes: initial?.notes ?? "",
+    office: initial?.office ?? "Phoenix",
+    setter: initial?.setter ?? setters[0] ?? "",
+    closer: initial?.closer ?? closers[0] ?? "",
     interests: initial?.interests ?? inferInterests(initial?.product ?? ""),
     otherInterest: initial?.otherInterest ?? "",
     secondaryName: initial?.secondaryName ?? "",
@@ -34,6 +39,9 @@ export function DetailsForm({
     secondaryEmail: initial?.secondaryEmail ?? "",
     referrerName: initial?.referrerName ?? "",
     referrerPhone: initial?.referrerPhone ?? "",
+    pain: initial?.pain ?? "",
+    hotRooms: initial?.hotRooms ?? "",
+    coldRooms: initial?.coldRooms ?? "",
   });
   const [secondOpen, setSecondOpen] = useState(Boolean(initial?.secondaryName));
   const [intOpen, setIntOpen] = useState(false);
@@ -94,6 +102,13 @@ export function DetailsForm({
         <span className="text-[11px] font-bold tracking-wide text-muted uppercase">City</span>
         <input value={draft.city} onChange={(e) => set("city", e.target.value)} className={inputClass} />
       </label>
+
+      <div className="grid gap-3 sm:grid-cols-2">
+        <Pick label="Office" value={draft.office ?? ""} onChange={(v) => set("office", v)} options={OFFICES} />
+        <Pick label="Setter" value={draft.setter ?? ""} onChange={(v) => set("setter", v)} options={setters} />
+      </div>
+      <Pick label="Closer" value={draft.closer ?? ""} onChange={(v) => set("closer", v)} options={closers} />
+
       <label className="relative block">
         <span className="text-[11px] font-bold tracking-wide text-muted uppercase">Lead source</span>
         <select value={draft.source} onChange={(e) => set("source", e.target.value)} className={selectClass}>
@@ -164,6 +179,27 @@ export function DetailsForm({
       </div>
 
       <label className="block">
+        <span className="text-[11px] font-bold tracking-wide text-muted uppercase">Why they're looking</span>
+        <textarea
+          value={draft.pain ?? ""}
+          onChange={(e) => set("pain", e.target.value)}
+          rows={3}
+          placeholder="Hot rooms, high bill, ice dams, AC short-cycling…"
+          className="mt-1 w-full rounded-md border border-line bg-card px-3 py-2 text-base md:text-sm outline-none focus:border-navy"
+        />
+      </label>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <label className="block">
+          <span className="text-[11px] font-bold tracking-wide text-muted uppercase">Hot rooms they named</span>
+          <input value={draft.hotRooms ?? ""} onChange={(e) => set("hotRooms", e.target.value)} className={inputClass} />
+        </label>
+        <label className="block">
+          <span className="text-[11px] font-bold tracking-wide text-muted uppercase">Cold rooms they named</span>
+          <input value={draft.coldRooms ?? ""} onChange={(e) => set("coldRooms", e.target.value)} className={inputClass} />
+        </label>
+      </div>
+
+      <label className="block">
         <span className="text-[11px] font-bold tracking-wide text-muted uppercase">Homeowner notes</span>
         <textarea value={draft.notes} onChange={(e) => set("notes", e.target.value)} rows={3} className="mt-1 w-full rounded-md border border-line bg-card px-3 py-2 text-base md:text-sm outline-none focus:border-navy" />
       </label>
@@ -171,5 +207,32 @@ export function DetailsForm({
         {submitLabel}
       </button>
     </form>
+  );
+}
+
+function Pick({
+  label,
+  value,
+  onChange,
+  options,
+  blank,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  options: string[];
+  blank?: string;
+}) {
+  return (
+    <label className="relative block">
+      <span className="text-[11px] font-bold tracking-wide text-muted uppercase">{label}</span>
+      <select value={value} onChange={(e) => onChange(e.target.value)} className={selectClass}>
+        {blank ? <option value="">{blank}</option> : null}
+        {options.map((o) => (
+          <option key={o}>{o}</option>
+        ))}
+      </select>
+      <ChevronDown className="pointer-events-none absolute right-3 bottom-3.5 size-4 text-muted" />
+    </label>
   );
 }

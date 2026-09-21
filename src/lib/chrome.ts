@@ -33,8 +33,10 @@ export const NAV_COLLAPSE_PX = 1279;
 export const TAP = 44;
 export const SHOP_ACTOR = "Wrex Lindsay";
 
-export const WORK_STATUSES = ["Open", "Past Due", "Pause", "Complete", "Cancel"] as const;
+export const WORK_STATUSES = ["Open", "Due Soon", "Past Due", "Pause", "Complete", "Cancel"] as const;
 export type WorkStatus = (typeof WORK_STATUSES)[number];
+export const WORK_MOVES = ["Pause", "Complete", "Cancel"] as const;
+export type WorkMove = (typeof WORK_MOVES)[number];
 
 export const ACT_ICONS: Record<string, LucideIcon> = {
   Call: Phone,
@@ -55,27 +57,46 @@ export function canEditWork(owner: string) {
   return owner === SHOP_ACTOR || SHOP_ACTOR === "Wrex Lindsay";
 }
 
+export function canDeleteWork(role: string) {
+  return role === "Owner" || role === "Admin";
+}
+
 const MONTHS: Record<string, number> = {
   Jan: 0, Feb: 1, Mar: 2, Apr: 3, May: 4, Jun: 5,
   Jul: 6, Aug: 7, Sep: 8, Oct: 9, Nov: 10, Dec: 11,
 };
 
-export function dueIsPast(due?: string, now = new Date()) {
-  if (!due) return false;
+export function parseDue(due?: string, now = new Date()) {
+  if (!due) return null;
   const m = due.match(/([A-Za-z]{3})\s+(\d{1,2})/);
-  if (!m) return false;
+  if (!m) return null;
   const month = MONTHS[m[1]];
-  if (month == null) return false;
-  const day = Number(m[2]);
-  const d = new Date(now.getFullYear(), month, day);
+  if (month == null) return null;
+  return new Date(now.getFullYear(), month, Number(m[2]));
+}
+
+export function dueIsPast(due?: string, now = new Date()) {
+  const d = parseDue(due, now);
+  if (!d) return false;
   d.setHours(23, 59, 59, 999);
   return d.getTime() < now.getTime();
+}
+
+export function dueIsSoon(due?: string, now = new Date()) {
+  const d = parseDue(due, now);
+  if (!d || dueIsPast(due, now)) return false;
+  const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const horizon = new Date(start);
+  horizon.setDate(horizon.getDate() + 2);
+  const dueDay = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  return dueDay.getTime() < horizon.getTime();
 }
 
 export function liveStatus(status: string, due?: string): WorkStatus {
   if (status === "Done") return "Complete";
   if (status === "Waiting") return "Pause";
-  if (status === "Complete" || status === "Cancel" || status === "Pause" || status === "Past Due") return status;
-  if (status === "Open" && dueIsPast(due)) return "Past Due";
+  if (status === "Complete" || status === "Cancel" || status === "Pause") return status;
+  if (dueIsPast(due)) return "Past Due";
+  if (dueIsSoon(due)) return "Due Soon";
   return "Open";
 }

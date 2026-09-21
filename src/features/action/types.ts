@@ -14,6 +14,7 @@ export type ShopAction = {
   priority?: "High" | "Normal" | "Low";
   due?: string;
   description?: string;
+  category?: string;
   followers?: string[];
   age?: string;
 };
@@ -30,8 +31,9 @@ export const ACTION_LABEL: Record<ActionKind, string> = {
   request: "Request",
 };
 
-export function workTone(status: WorkStatus): Tone {
+export function workTone(status: WorkStatus): Tone | "watch" {
   if (status === "Past Due") return "alert";
+  if (status === "Due Soon") return "watch";
   if (status === "Complete") return "up";
   if (status === "Cancel" || status === "Pause") return "muted";
   return "navy";

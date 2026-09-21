@@ -399,8 +399,8 @@ export function SalesDashboard() {
       <PageTitle
         title="Sales"
         actions={
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="flex flex-wrap rounded-md bg-card p-0.5">
+          <div className="flex flex-nowrap items-center gap-2">
+            <div className="flex shrink-0 rounded-md bg-card p-0.5">
               {ranges.map((r) => (
                 <button
                   key={r.id}

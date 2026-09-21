@@ -1,12 +1,13 @@
 import { useRef, useState } from "react";
 import { Paperclip } from "lucide-react";
-import { canEditWork, liveStatus, WORK_STATUSES, type WorkStatus } from "@/lib/chrome";
+import { canDeleteWork, canEditWork, liveStatus } from "@/lib/chrome";
 import { addPhoto, kindFromFile, usePhotos } from "@/features/photos/store";
-import { deleteAction, patchAction, setWorkStatus } from "@/features/ops/store";
+import { deleteAction, patchAction } from "@/features/ops/store";
 import { ACTION_LABEL, type ShopAction } from "@/features/action/types";
+import { WorkMoves } from "@/features/action/moves";
+import { useStaff } from "@/features/staff/store";
 import { Tip } from "@/components/tip";
 import { CommentBox } from "./comment-box";
-import { cn } from "@/lib/cn";
 
 export function WorkCard({
   personId,
@@ -21,6 +22,8 @@ export function WorkCard({
 }) {
   const status = liveStatus(action.status, action.due);
   const edit = canEditWork(action.owner);
+  const { viewAs } = useStaff();
+  const allowDelete = canDeleteWork(viewAs);
   const [title, setTitle] = useState(action.title);
   const [editing, setEditing] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -34,14 +37,6 @@ export function WorkCard({
     const next = title.trim();
     if (!next || next === action.title) return;
     patchAction(action.id, { title: next });
-  }
-
-  function move(next: WorkStatus | "Delete") {
-    if (next === "Delete") {
-      setConfirmDelete(true);
-      return;
-    }
-    setWorkStatus(action.kind, action.id, next);
   }
 
   function attach(file: File | undefined) {
@@ -99,23 +94,13 @@ export function WorkCard({
         Open {word}
       </a>
       {kids.length > 0 ? <ChildRows parentId={action.id} actions={actions} /> : null}
-      <div className="mt-2 flex flex-wrap gap-1">
-        {WORK_STATUSES.map((s) => (
-          <button
-            key={s}
-            type="button"
-            onClick={() => move(s)}
-            className={cn(
-              "h-8 rounded-md px-2 text-[11px] font-semibold",
-              status === s ? "bg-navy text-card" : "border border-line text-muted",
-            )}
-          >
-            {s}
+      <div className="mt-2">
+        <WorkMoves kind={action.kind} id={action.id} status={status} />
+        {allowDelete ? (
+          <button type="button" onClick={() => setConfirmDelete(true)} className="mt-1 h-8 rounded-md px-2 text-[11px] font-semibold text-stop">
+            Delete
           </button>
-        ))}
-        <button type="button" onClick={() => move("Delete")} className="h-8 rounded-md px-2 text-[11px] font-semibold text-stop">
-          Delete
-        </button>
+        ) : null}
       </div>
       {confirmDelete ? (
         <div className="mt-2 flex flex-wrap items-center gap-2 text-sm">

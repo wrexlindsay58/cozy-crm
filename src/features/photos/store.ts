@@ -21,12 +21,14 @@ export function kindFromFile(file: File): FileKind {
   const n = file.name.toLowerCase();
   if (t.startsWith("image/") || /\.(heic|jpg|jpeg|png|gif|webp)$/.test(n)) return "photo";
   if (t.startsWith("video/") || /\.(mp4|mov|m4v|webm)$/.test(n)) return "video";
+  if (t.startsWith("audio/") || /\.(m4a|mp3|wav|aac|ogg)$/.test(n)) return "audio";
   if (t === "application/pdf" || n.endsWith(".pdf")) return "pdf";
   return "file";
 }
 
 export function kindWord(kind: FileKind = "photo") {
   if (kind === "video") return "Video";
+  if (kind === "audio") return "Audio";
   if (kind === "pdf") return "PDF";
   if (kind === "file") return "File";
   return "Photo";

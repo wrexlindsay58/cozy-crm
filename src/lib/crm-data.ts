@@ -34,6 +34,19 @@ export type Lead = {
   workflows?: string[];
   formName?: string;
   formAnswers?: { q: string; a: string }[];
+  yearBuilt?: string;
+  stories?: string;
+  sqft?: string;
+  utility?: string;
+  hoa?: string;
+  access?: string;
+  bothHome?: boolean;
+  finance?: string;
+  rebate?: boolean;
+  qualify?: Record<string, string>;
+  pain?: string;
+  hotRooms?: string;
+  coldRooms?: string;
 };
 
 export type Opportunity = {
@@ -127,8 +140,8 @@ export const reps: { name: string; role: string; office: string; sold: number; r
 ];
 
 export const leads: Lead[] = [
-  { id: "L-4821", name: "Elena Vargas", phone: "(623) 555-0144", email: "elena.vargas@gmail.com", address: "18422 W Bell Rd", city: "Surprise, AZ", source: "Canvass", status: "Confirmed", tone: "navy", setter: "Priya Shah", closer: "Marco Velez", office: "Phoenix", created: "Sep 11", next: "Sep 14 6:00p", product: "Attic R-49 + air seal", value: 18420, notes: "Both spouses need to be home. Dog in backyard.", tags: ["HOA", "Air seal"] },
-  { id: "L-4819", name: "Todd & Kim Hale", phone: "(480) 555-0198", email: "khale@cox.net", address: "7721 E Via de Ventura", city: "Scottsdale, AZ", source: "Google", status: "Ran", tone: "up", setter: "Amber Quinn", closer: "Dana Ortiz", office: "Scottsdale", created: "Sep 10", next: "Proposal out", product: "HVAC 4-ton + ducts", value: 28640, notes: "Existing 16-year Goodman. Interested in financing.", formName: "Google HVAC form", formAnswers: [
+  { id: "L-4821", name: "Elena Vargas", phone: "(623) 555-0144", email: "elena.vargas@gmail.com", address: "18422 W Bell Rd", city: "Surprise, AZ", source: "Canvass", status: "Confirmed", tone: "navy", setter: "Priya Shah", closer: "Marco Velez", office: "Phoenix", created: "Sep 11", next: "Sep 14 6:00p", product: "Attic R-49 + air seal", value: 18420, notes: "Both spouses need to be home. Dog in backyard.", tags: ["HOA", "Air seal"], yearBuilt: "1998", stories: "1", sqft: "2100", utility: "SRP", hoa: "Yes", access: "Dog in backyard. Hatch in garage.", bothHome: true, finance: "Either", rebate: true, qualify: { "Q-1": "Yes", "Q-2": "Yes", "Q-3": "Homeowner", "Q-4": "Yes", "Q-5": "Either" }, pain: "West rooms cook by 3p. Bill spiked this summer.", hotRooms: "West bedrooms", coldRooms: "" },
+  { id: "L-4819", name: "Todd & Kim Hale", phone: "(480) 555-0198", email: "khale@cox.net", address: "7721 E Via de Ventura", city: "Scottsdale, AZ", source: "Google", status: "Ran", tone: "up", setter: "Amber Quinn", closer: "Dana Ortiz", office: "Scottsdale", created: "Sep 10", next: "Proposal out", product: "HVAC 4-ton + ducts", value: 28640, notes: "Existing 16-year Goodman. Interested in financing.", yearBuilt: "2004", stories: "2", utility: "APS", hoa: "Yes", access: "Condenser on the side yard.", bothHome: true, finance: "Finance", rebate: false, qualify: { "Q-1": "Yes", "Q-2": "Yes", "Q-3": "Homeowner", "Q-4": "Yes", "Q-5": "Finance" }, pain: "AC not cooling. West rooms 8–10° over the thermostat.", hotRooms: "West bedrooms", coldRooms: "Kitchen", formName: "Google HVAC form", formAnswers: [
     { q: "What do you need help with?", a: "AC not cooling. Looking at a replacement." },
     { q: "Year built?", a: "2004" },
     { q: "Best time for a sit?", a: "Evenings after 5" },

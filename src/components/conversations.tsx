@@ -333,16 +333,18 @@ export function Conversations() {
                   >
                     <ChevronLeft className="size-5" />
                   </button>
-                  <h2 className="min-w-0 flex-1 truncate text-base font-bold">{active.name}</h2>
-                  <Tip label="Open file" on>
-                    <a
-                      href={active.pipe.href}
-                      aria-label="Open file"
-                      className="grid size-9 shrink-0 place-items-center rounded-md border border-line text-navy"
-                    >
-                      <SquareArrowOutUpRight className="size-4" />
-                    </a>
-                  </Tip>
+                  <div className="flex min-w-0 items-center gap-2">
+                    <h2 className="min-w-0 truncate text-base font-bold">{active.name}</h2>
+                    <Tip label="Open file" on>
+                      <a
+                        href={active.pipe.href}
+                        aria-label="Open file"
+                        className="grid size-9 shrink-0 place-items-center rounded-md border border-line text-navy"
+                      >
+                        <SquareArrowOutUpRight className="size-4" />
+                      </a>
+                    </Tip>
+                  </div>
                 </div>
                 <div className="mt-1.5 flex items-center gap-2 overflow-x-auto">
                   {active.status ? (

@@ -26,9 +26,12 @@ export async function fetchPath(pts: { lng: number; lat: number }[], hour: numbe
   const hit = cache.get(k);
   if (hit) return { ...hit, seconds: Math.round(hit.seconds * trafficFactor(hour)) };
   const path = pts.map((p) => `${p.lng},${p.lat}`).join(";");
-  const url = `https://router.project-osrm.org/route/v1/driving/${path}?overview=full&geometries=geojson&alternatives=false`;
+  const url = `https://router.project-osrm.org/route/v1/driving/${path}?overview=simplified&geometries=geojson&alternatives=false`;
   try {
-    const res = await fetch(url);
+    const ctrl = new AbortController();
+    const kill = window.setTimeout(() => ctrl.abort(), 4000);
+    const res = await fetch(url, { signal: ctrl.signal });
+    window.clearTimeout(kill);
     if (!res.ok) return null;
     const json = (await res.json()) as {
       code?: string;
@@ -51,7 +54,10 @@ export async function optimizeStops(start: { lng: number; lat: number }, stops: 
   const path = pts.map((p) => `${p.lng},${p.lat}`).join(";");
   const url = `https://router.project-osrm.org/trip/v1/driving/${path}?source=first&roundtrip=false&overview=false`;
   try {
-    const res = await fetch(url);
+    const ctrl = new AbortController();
+    const kill = window.setTimeout(() => ctrl.abort(), 4000);
+    const res = await fetch(url, { signal: ctrl.signal });
+    window.clearTimeout(kill);
     if (!res.ok) return null;
     const json = (await res.json()) as { waypoints?: { waypoint_index: number }[] };
     const w = json.waypoints;

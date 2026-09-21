@@ -3,6 +3,7 @@ import { OppWorkspace } from "@/features/opportunity/workspace";
 import { assessmentForLead } from "@/features/assessment/store";
 import { applyGoodLeap, generateProposal, optionTotal, useProposal } from "@/features/opportunity/store";
 import { RecordShell } from "@/features/record-shell/record-shell";
+import { scrollFileSection } from "@/features/record-shell/file-sections";
 import { useOps } from "@/features/ops/store";
 import { byId, money, opportunities, projects } from "@/lib/crm-data";
 import { followersByPerson, photosByPerson } from "@/lib/file-data";
@@ -50,7 +51,7 @@ function OppFile() {
       acts={[
         { label: "Call" },
         { label: "Text", opens: "thread" },
-        { label: "Book", onClick: () => document.getElementById("book-widget")?.scrollIntoView({ behavior: "smooth", block: "start" }) },
+        { label: "Book", onClick: () => scrollFileSection("book") },
         { label: "Create", menu: [{ label: "Ticket" }, { label: "Task" }, { label: "Request" }] },
         { label: "Generate", onClick: () => { if (generateProposal(opp.id)) navigate({ to: "/proposal/$oppId", params: { oppId: opp.id } }); } },
         { label: "Card", onClick: () => applyGoodLeap(opp.id) },

@@ -131,6 +131,22 @@
   box-shadow: 0 1px 2px rgba(11, 58, 77, 0.35);
 }
 
+@media (max-width: 1023px) {
+  .dispatch-pin {
+    width: 28px;
+    height: 28px;
+    font: 700 10px/24px "IBM Plex Sans", sans-serif;
+  }
+  .dispatch-house {
+    width: 28px;
+    height: 28px;
+  }
+  .dispatch-house span {
+    width: 28px;
+    height: 28px;
+  }
+}
+
 .maplibregl-ctrl-attrib {
   font-size: 11px;
 }

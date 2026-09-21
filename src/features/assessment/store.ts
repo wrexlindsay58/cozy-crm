@@ -22,21 +22,65 @@ const hale: Assessment = {
   closer: "Dana Ortiz",
   status: "Open",
   property: {
-    yearBuilt: "1998",
+    yearBuilt: "2004",
     sqft: "2140",
-    stories: "1",
+    stories: "2",
     occupancy: "Owner",
     hoa: "Via de Ventura",
     access: "Side gate. Dog in backyard.",
     electrical: "200A, garage wall",
     notes: "Both home. Hatch in hall closet.",
+    utility: "APS",
+    bothHome: "Yes",
+    hotRooms: "West bedrooms",
+    coldRooms: "Kitchen",
+    indoorTemp: "78",
+    outdoorTemp: "104",
   },
+  qualify: {},
   packets: [
-    { id: "hvac", fields: { Brand: "Goodman", Model: "GSX14", Age: "16 yr", Tonnage: "4", Condition: "End of life" }, photos: [{ id: "AP-1", caption: "Condenser west pad" }], notes: "Pad is cracked. Line set through the wall, no whip." },
-    { id: "attic", fields: { "Current depth": "4 in", Type: "Blown cellulose", Target: "R-49", Hatch: "Hall closet" }, photos: [{ id: "AP-2", caption: "Hatch looking east" }], notes: "Can lights, no baffles on the east run." },
-    { id: "air-seal", fields: {}, photos: [], notes: "" },
-    { id: "ducts", fields: { Material: "Flex", Condition: "Leaky boots" }, photos: [], notes: "" },
-    { id: "windows", fields: {}, photos: [], notes: "" },
+    {
+      id: "hvac",
+      fields: {
+        "System type": "Split",
+        Brand: "Goodman",
+        "Outdoor model": "GSX14",
+        "Manufacture year": "2008",
+        Tonnage: "4",
+        Refrigerant: "R-22",
+        "Filter size": "16x25",
+        "Return temp (°F)": "78",
+        "Supply temp (°F)": "58",
+        "Delta T (°F)": "20",
+        "Disconnect present": "Yes",
+      },
+      photos: [{ id: "AP-1", caption: "Condenser data plate" }],
+      notes: "Line set through the wall. Pad settled 1 in on the west edge.",
+    },
+    {
+      id: "attic",
+      fields: {
+        "Hatch location": "Hall closet",
+        "Insulation type": "Blown cellulose",
+        "Depth (in)": "4",
+        Coverage: "Joists visible east run",
+        Baffles: "None on east",
+        "Can lights (count)": "8",
+        "Knee walls": "No",
+        "Roof deck": "OSB",
+        "Attic storage": "No",
+      },
+      photos: [{ id: "AP-2", caption: "Hatch looking east" }],
+      notes: "",
+    },
+    { id: "air-seal", fields: { "Top plates open": "Yes", "Unsealed cans (count)": "8", "Hatch weatherstrip": "No" }, photos: [], notes: "" },
+    {
+      id: "ducts",
+      fields: { Material: "Flex", Location: "Attic", "Supply registers (count)": "11", "Return registers (count)": "2", "Return size": "16x25", "Boot leaks (count)": "4" },
+      photos: [],
+      notes: "",
+    },
+    { id: "windows", fields: { Count: "18", Glazing: "Double", Frame: "Vinyl", "Failed seals (count)": "2" }, photos: [], notes: "" },
   ],
 };
 
@@ -74,7 +118,13 @@ export function useAssessment(id: string) {
 export function assessmentForLead(leadId: string) {
   return Object.values(rows).find((a) => a.leadId === leadId);
 }
-export function startAssessment(input: { leadId: string; name: string; address: string; closer: string }) {
+export function startAssessment(input: {
+  leadId: string;
+  name: string;
+  address: string;
+  closer: string;
+  property?: Partial<Property>;
+}) {
   const existing = assessmentForLead(input.leadId);
   if (existing) return existing;
   const id = `AS-${20 + Object.keys(rows).length}`;
@@ -86,7 +136,8 @@ export function startAssessment(input: { leadId: string; name: string; address: 
     closer: input.closer,
     status: "Open",
     packets: withCats([]),
-    property: emptyProperty(),
+    property: { ...emptyProperty(), ...input.property },
+    qualify: {},
   };
   rows = { ...rows, [id]: next };
   addHistory(input.leadId, input.closer, `Assessment ${id} opened.`);
@@ -111,6 +162,12 @@ export function setProperty(id: string, patch: Partial<Property>) {
   const cur = rows[id];
   if (!cur) return;
   rows = { ...rows, [id]: { ...cur, property: { ...cur.property, ...patch } } };
+  emit();
+}
+export function setQualify(id: string, questionId: string, value: string) {
+  const cur = rows[id];
+  if (!cur) return;
+  rows = { ...rows, [id]: { ...cur, qualify: { ...cur.qualify, [questionId]: value } } };
   emit();
 }
 export function addPacketPhoto(id: string, packet: string, caption: string, file?: File, category = packet) {

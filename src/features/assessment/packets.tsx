@@ -1,7 +1,9 @@
 import { useRef, useState } from "react";
 import { addPacketPhoto, setField, setPacketNotes } from "./store";
 import { useAssessCategories, type AssessCategory } from "./categories";
+import { FieldInput } from "./field-input";
 import { FileLightbox } from "@/features/record-shell/file-lightbox";
+import { cn } from "@/lib/cn";
 import type { Assessment, Packet } from "./types";
 import type { Photo } from "@/lib/file-data";
 
@@ -18,7 +20,7 @@ export function PacketList({ file }: { file: Assessment }) {
   );
 }
 
-function PacketCard({
+export function PacketCard({
   assessmentId,
   def,
   packet,
@@ -52,23 +54,25 @@ function PacketCard({
       </button>
       {open ? (
         <div className="mt-3 space-y-3">
-          {def.fields.map((field) => (
-            <label key={field.id} className="block text-sm">
-              <span className="text-[11px] font-bold tracking-wide text-muted uppercase">{field.label}</span>
-              <input
-                value={packet.fields[field.label] ?? ""}
-                onChange={(e) => setField(assessmentId, def.id, field.label, e.target.value)}
-                className="mt-1 h-11 w-full rounded-md border border-line px-3 text-sm outline-none focus:border-navy"
-              />
-            </label>
-          ))}
+          <div className="grid gap-3 sm:grid-cols-2">
+            {def.fields.map((field) => (
+              <label key={field.id} className={cn("block text-sm", field.kind === "multi" && "sm:col-span-2")}>
+                <span className="text-[11px] font-bold tracking-wide text-muted uppercase">{field.label}</span>
+                <FieldInput
+                  field={field}
+                  value={packet.fields[field.label] ?? ""}
+                  onChange={(v) => setField(assessmentId, def.id, field.label, v)}
+                />
+              </label>
+            ))}
+          </div>
           <label className="block text-sm">
             <span className="text-[11px] font-bold tracking-wide text-muted uppercase">Notes</span>
             <textarea
               value={packet.notes}
               onChange={(e) => setPacketNotes(assessmentId, def.id, e.target.value)}
               rows={3}
-              placeholder={`What we saw on ${def.label.toLowerCase()}.`}
+              placeholder={`Measured / observed on ${def.label.toLowerCase()}.`}
               className="mt-1 w-full rounded-md border border-line px-3 py-2 text-sm outline-none focus:border-navy"
             />
           </label>
@@ -86,13 +90,13 @@ function PacketCard({
             <input
               ref={fileRef}
               type="file"
-              accept="image/*,video/*,.pdf,.doc,.docx,.heic,.mov"
+              accept="image/*,video/*,audio/*,.pdf,.heic,.mov,.m4a,.mp3,.wav"
               className="h-11 max-w-full text-sm file:mr-3 file:h-11 file:rounded-md file:border-0 file:bg-navy file:px-3 file:text-sm file:font-semibold file:text-card"
             />
             <input
               value={caption}
               onChange={(e) => setCaption(e.target.value)}
-              placeholder="Hatch, unit tag, leak"
+              placeholder="Data plate, hatch, register, leak"
               className="h-11 min-w-0 flex-1 rounded-md border border-line px-3 text-sm outline-none focus:border-navy"
             />
             <button type="submit" className="h-11 rounded-md bg-navy px-3 text-sm font-semibold text-card">

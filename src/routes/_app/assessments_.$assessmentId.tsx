@@ -2,6 +2,7 @@ import { useNavigate, createFileRoute } from "@tanstack/react-router";
 import { AssessmentWorkspace } from "@/features/assessment/workspace";
 import { completeAssessment, useAssessment } from "@/features/assessment/store";
 import { RecordShell } from "@/features/record-shell/record-shell";
+import { scrollFileSection } from "@/features/record-shell/file-sections";
 import { useOps } from "@/features/ops/store";
 import { followersByPerson, photosByPerson } from "@/lib/file-data";
 import { placeLine } from "@/lib/place";
@@ -30,7 +31,7 @@ function AssessmentFile() {
       acts={[
         { label: "Call" },
         { label: "Text", opens: "thread" },
-        { label: "Book", onClick: () => document.getElementById("book-widget")?.scrollIntoView({ behavior: "smooth", block: "start" }) },
+        { label: "Book", onClick: () => scrollFileSection("book") },
         { label: "Create", menu: [{ label: "Ticket" }, { label: "Task" }, { label: "Request" }] },
         {
           label: "Complete",

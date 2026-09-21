@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { useStaff } from "@/features/staff/store";
 
 export type ResourceKind = "closer" | "setter" | "crew" | "office";
@@ -37,10 +38,12 @@ export function personResource(name: string, role: string, office: string): Reso
 
 export function useRoster(): Resource[] {
   const { people } = useStaff();
-  const peopleRows = people.filter((p) => p.active).map((p) => personResource(p.name, p.role, p.office));
-  const names = new Set(peopleRows.map((r) => r.name));
-  const crews = CREW_RESOURCES.filter((c) => !names.has(c.name));
-  return [...peopleRows, ...crews];
+  return useMemo(() => {
+    const peopleRows = people.filter((p) => p.active).map((p) => personResource(p.name, p.role, p.office));
+    const names = new Set(peopleRows.map((r) => r.name));
+    const crews = CREW_RESOURCES.filter((c) => !names.has(c.name));
+    return [...peopleRows, ...crews];
+  }, [people]);
 }
 
 export function resourceIdFor(name: string, roster: Resource[]) {

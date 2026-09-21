@@ -1,4 +1,6 @@
 import { type ReactNode } from "react";
+import { Link } from "@tanstack/react-router";
+import { ChevronLeft } from "lucide-react";
 import { cn } from "@/lib/cn";
 import type { Tone } from "@/lib/crm-data";
 import { clockLabel } from "@/lib/clock";
@@ -43,8 +45,17 @@ export function StatusBar({ label, tone }: { label: string; tone: Tone | Flag })
   );
 }
 
-export function StatusPill({ label, tone }: { label: string; tone: Tone }) {
+export function StatusPill({ label, tone }: { label: string; tone: Tone | "watch" }) {
   return <StatusBar label={label} tone={tone} />;
+}
+
+export function BackLink({ to, label }: { to: string; label: string }) {
+  return (
+    <Link to={to} className="inline-flex h-10 items-center gap-0.5 text-sm font-semibold text-navy md:hidden">
+      <ChevronLeft className="size-4" />
+      {label}
+    </Link>
+  );
 }
 
 export function PageTitle({
@@ -59,15 +70,13 @@ export function PageTitle({
   flush?: boolean;
 }) {
   return (
-    <div className={cn("flex flex-wrap items-center justify-between gap-2", flush ? "min-h-14 w-full" : "mb-4")}>
-      <h1 className="text-[20px] font-bold tracking-tight">
+    <div className={cn("flex min-w-0 items-center gap-2", flush ? "min-h-14 w-full" : "mb-4")}>
+      <h1 className="shrink-0 text-[20px] font-bold tracking-tight">
         {title}
         {count ? <span className="ml-2 text-[13px] font-semibold text-muted">{count}</span> : null}
       </h1>
-      <div className="flex flex-wrap items-center gap-2">
-        {actions}
-        <p className="text-[13px] text-muted tabular-nums max-md:hidden">{clockLabel()}</p>
-      </div>
+      <div className="flex min-w-0 flex-1 items-center gap-2 overflow-x-auto">{actions}</div>
+      <p className="hidden shrink-0 text-[13px] text-muted tabular-nums md:block">{clockLabel()}</p>
     </div>
   );
 }

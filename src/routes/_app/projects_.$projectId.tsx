@@ -3,7 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { JobWorkspace } from "@/features/job/workspace";
 import { jobTone, tally, useJob } from "@/features/job/store";
 import { RecordShell } from "@/features/record-shell/record-shell";
-import { PriorStages } from "@/features/record-shell/prior-stages";
+import { scrollFileSection } from "@/features/record-shell/file-sections";
 import { useOps } from "@/features/ops/store";
 import { accounts, byId, money, opportunities } from "@/lib/crm-data";
 import { followersByPerson, photosByPerson } from "@/lib/file-data";
@@ -46,7 +46,7 @@ function JobFilePage() {
       acts={[
         { label: "Call" },
         { label: "Text", opens: "thread" },
-        { label: "Book", onClick: () => document.getElementById("book-widget")?.scrollIntoView({ behavior: "smooth", block: "start" }) },
+        { label: "Book", onClick: () => scrollFileSection("book") },
         {
           label: "Create",
           menu: [
@@ -63,7 +63,6 @@ function JobFilePage() {
       photos={photosByPerson[personId] ?? photosByPerson[job.accountId] ?? []}
     >
       <JobWorkspace job={job} lead={lead} focus={focus} />
-      {lead ? <PriorStages leadId={lead.id} current="job" /> : null}
     </RecordShell>
   );
 }

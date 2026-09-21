@@ -11,6 +11,12 @@ export type Property = {
   access: string;
   electrical: string;
   notes: string;
+  utility: string;
+  bothHome: string;
+  hotRooms: string;
+  coldRooms: string;
+  indoorTemp: string;
+  outdoorTemp: string;
 };
 export type Assessment = {
   id: string;
@@ -21,6 +27,7 @@ export type Assessment = {
   status: "Open" | "Complete";
   packets: Packet[];
   property: Property;
+  qualify: Record<string, string>;
   oppId?: string;
 };
 
@@ -33,4 +40,10 @@ export const emptyProperty = (): Property => ({
   access: "",
   electrical: "",
   notes: "",
+  utility: "",
+  bothHome: "",
+  hotRooms: "",
+  coldRooms: "",
+  indoorTemp: "",
+  outdoorTemp: "",
 });

@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { ChevronLeft } from "lucide-react";
 import { ClickToCall } from "@/features/lead/click-to-call";
-import { LeadTools } from "@/features/lead/lead-tools";
 import { MarksPanel } from "@/features/lead/marks-bar";
 import { BookWidget } from "@/features/lead/book-widget";
 import { dndOn, descendantsOf, setLeadStatus, useOps } from "@/features/ops/store";
@@ -14,6 +13,7 @@ import { ThreadPane } from "./thread-pane";
 import { TitleRow } from "./title-row";
 import { WorkTab } from "./work-tab";
 import { ConvTabs } from "./conv-tabs";
+import { FilePane } from "./file-sections";
 import type { ConvLane } from "./lanes";
 import type { RecordShellProps } from "./types";
 import { cn } from "@/lib/cn";
@@ -113,19 +113,25 @@ export function RecordShell(props: RecordShellProps) {
       </div>
 
       <div className="flex min-h-0 min-w-0 flex-1 flex-col lg:flex-row">
-        <div className={cn("min-h-0 min-w-0 flex-1 overflow-auto p-2 md:p-2.5", mobileTalk && "max-lg:hidden")}>
-          <div className="space-y-3">
+        <div className={cn("flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden", mobileTalk && "max-lg:hidden")}>
+          <FilePane
+            foot={
+              <>
+                <div className="px-0">
+                  <PhotoRail personId={props.personId} photos={props.photos} />
+                </div>
+                <button
+                  type="button"
+                  className="mt-3 flex h-11 w-full items-center justify-center rounded-md border border-line text-sm font-semibold text-navy lg:hidden"
+                  onClick={() => setMobileTalk(true)}
+                >
+                  Talk
+                </button>
+              </>
+            }
+          >
             {props.children}
-            <PhotoRail personId={props.personId} photos={props.photos} />
-            {props.kind === "lead" && lead ? <LeadTools lead={lead} /> : null}
-            <button
-              type="button"
-              className="flex h-11 w-full items-center justify-center rounded-md border border-line text-sm font-semibold text-navy lg:hidden"
-              onClick={() => setMobileTalk(true)}
-            >
-              Talk
-            </button>
-          </div>
+          </FilePane>
         </div>
 
         <aside

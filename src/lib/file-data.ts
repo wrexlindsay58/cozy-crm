@@ -1,6 +1,6 @@
 export type PersonRef = { name: string; role: string };
 
-export type FileKind = "photo" | "video" | "pdf" | "file";
+export type FileKind = "photo" | "video" | "audio" | "pdf" | "file";
 
 export type Photo = {
   id: string;
