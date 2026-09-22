@@ -1,7 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
-  BarChart3,
   Bell,
   Briefcase,
   Calendar,
@@ -51,7 +50,6 @@ const PIPELINE = [
 ] as const;
 
 const MONEY = [
-  { icon: BarChart3, label: "Sales", to: "/scoreboard" },
   { icon: Receipt, label: "Invoices", to: "/invoices" },
   { icon: ShoppingCart, label: "Purchasing", to: "/purchasing" },
 ] as const;
@@ -85,6 +83,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [mobileSearch, setMobileSearch] = useState(false);
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const salesBoard = useRouterState({ select: (s) => (s.location.search as { board?: string }).board === "sales" });
   const { actions } = useOps();
   const pastDueN = actions.filter((a) => liveStatus(a.status, a.due) === "Past Due").length;
   const shut = autoCollapse ? !forceOpen : collapsed;
@@ -132,6 +131,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       <Tip label={label} on={shut} side="right" className={shut ? undefined : "w-full"}>
         <Link
           to={to}
+          search={to === "/" && salesBoard ? { board: "sales" } : undefined}
           onClick={() => setMobileOpen(false)}
           className={cn(
             "relative flex items-center rounded-md text-[13px] font-medium",
@@ -254,6 +254,8 @@ export function AppShell({ children }: { children: ReactNode }) {
                   <NavLink
                     key={item.to}
                     {...item}
+                    label={item.to === "/" ? (salesBoard ? "Sales Board" : "Live Board") : item.label}
+                    live={"live" in item && item.live && !salesBoard ? true : undefined}
                     badge={item.to === "/tickets" ? pastDueN || undefined : "badge" in item ? item.badge : undefined}
                   />
                 ))}

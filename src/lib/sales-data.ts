@@ -686,13 +686,13 @@ export const markets = [
 
 export type MarketId = (typeof markets)[number]["id"];
 
-export const discounts: Record<RangeId, { pct: number; prior: number }> = {
-  ltd: { pct: 8.1, prior: 8.9 },
-  ytd: { pct: 8.4, prior: 9.2 },
-  qtd: { pct: 8.8, prior: 8.1 },
-  mtd: { pct: 9.1, prior: 8.6 },
-  wtd: { pct: 7.6, prior: 8.4 },
-  day: { pct: 6.2, prior: 11.0 },
+export const discounts: Record<RangeId, { pct: number; prior: number; truePct: number; priorTrue: number }> = {
+  ltd: { pct: 8.1, prior: 8.9, truePct: 11.4, priorTrue: 12.1 },
+  ytd: { pct: 8.4, prior: 9.2, truePct: 11.8, priorTrue: 12.6 },
+  qtd: { pct: 8.8, prior: 8.1, truePct: 12.4, priorTrue: 11.2 },
+  mtd: { pct: 9.1, prior: 8.6, truePct: 13.1, priorTrue: 11.9 },
+  wtd: { pct: 7.6, prior: 8.4, truePct: 10.2, priorTrue: 11.4 },
+  day: { pct: 6.2, prior: 11.0, truePct: 8.6, priorTrue: 14.2 },
 };
 
 const MARKET_OFFICE: Record<MarketId, string[]> = {
@@ -793,21 +793,33 @@ export function viewBoard(t: SalesBoard, market: MarketId, person: string): Sale
 }
 
 export function payMix(t: SalesBoard) {
-  const rows = [
-    { name: "Financing", w: 18, fill: "var(--color-navy)" },
-    { name: "Cash/check", w: 10, fill: "var(--color-navy-2)" },
-    { name: "Cash/check + financing", w: 22, fill: "var(--color-ink)" },
-    { name: "CC", w: 7, fill: "var(--color-muted)" },
-    { name: "CC + financing", w: 16, fill: "var(--color-idle)" },
-    { name: "ACH", w: 5, fill: "var(--color-faint)" },
-    { name: "ACH + financing", w: 22, fill: "var(--color-line-strong)" },
+  const splits: { methods: ("Financing" | "Cash" | "Card" | "ACH")[]; w: number }[] = [
+    { methods: ["Financing"], w: 18 },
+    { methods: ["Cash"], w: 10 },
+    { methods: ["Cash", "Financing"], w: 22 },
+    { methods: ["Card"], w: 7 },
+    { methods: ["Card", "Financing"], w: 16 },
+    { methods: ["ACH"], w: 5 },
+    { methods: ["ACH", "Financing"], w: 22 },
   ];
-  const w = rows.reduce((s, r) => s + r.w, 0);
-  return rows.map((r) => ({
-    name: r.name,
-    amount: Math.round((t.sold * r.w) / w),
-    qty: Math.max(1, Math.round((t.deals * r.w) / w)),
-    fill: r.fill,
+  const weight: Record<string, number> = { Financing: 0, Cash: 0, Card: 0, ACH: 0 };
+  for (const row of splits) {
+    const share = row.w / row.methods.length;
+    for (const method of row.methods) weight[method] += share;
+  }
+  const fill: Record<string, string> = {
+    Financing: "var(--color-navy)",
+    Cash: "var(--color-navy-2)",
+    Card: "var(--color-muted)",
+    ACH: "var(--color-idle)",
+  };
+  const names = ["Financing", "Cash", "Card", "ACH"] as const;
+  const total = names.reduce((s, name) => s + weight[name], 0) || 1;
+  return names.map((name) => ({
+    name,
+    amount: Math.round((t.sold * weight[name]) / total),
+    qty: Math.max(0, Math.round((t.deals * weight[name]) / total)),
+    fill: fill[name],
   }));
 }
 

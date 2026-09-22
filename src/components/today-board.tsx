@@ -10,6 +10,8 @@ import { useOps } from "@/features/ops/store";
 import { buildToday, type Mark, type Split, type Trend, type SparkPt } from "@/features/today/live";
 import { ShopFeed } from "@/features/today/feed";
 import { useMemo, useState, type ReactNode } from "react";
+import { useNavigate, useRouterState } from "@tanstack/react-router";
+import { SalesDashboard } from "@/components/sales-dashboard";
 
 function markClass(m?: Mark) {
   if (m === "go") return "text-go";
@@ -307,6 +309,16 @@ function Cell({
   );
 }
 
+function CountShare({ n, total, tone }: { n: number; total: number; tone?: string }) {
+  const pct = total ? Math.round((n / total) * 100) : 0;
+  return (
+    <span className="flex shrink-0 items-baseline justify-end gap-6 tabular-nums">
+      <span className={cn("font-semibold", tone)}>{n}</span>
+      <span className="w-10 text-right font-normal text-muted">{pct}%</span>
+    </span>
+  );
+}
+
 function Story({
   title,
   value,
@@ -332,15 +344,18 @@ function Story({
             <p className={cn("text-[28px] font-bold leading-none tabular-nums", markClass(mark))}>{value}</p>
           </Tip>
           <ul className="mt-2 space-y-1">
-            {rows.map((r) => (
-              <li key={r.label} className="flex items-baseline justify-between gap-2 text-[12px]">
-                <span className="inline-flex min-w-0 items-center gap-1.5 text-muted">
-                  <i className="size-1.5 shrink-0 rounded-full" style={{ background: r.tone }} />
-                  {r.label}
-                </span>
-                <span className={cn("tabular-nums font-semibold", r.mark ? markClass(r.mark) : "")}>{r.n}</span>
-              </li>
-            ))}
+            {rows.map((r) => {
+              const total = rows.reduce((s, row) => s + row.n, 0);
+              return (
+                <li key={r.label} className="flex items-baseline justify-between gap-2 text-[12px]">
+                  <span className="inline-flex min-w-0 items-center gap-1.5 text-muted">
+                    <i className="size-1.5 shrink-0 rounded-full" style={{ background: r.tone }} />
+                    {r.label}
+                  </span>
+                  <CountShare n={r.n} total={total} tone={r.mark ? markClass(r.mark) : ""} />
+                </li>
+              );
+            })}
           </ul>
           {note ? <p className="mt-2 truncate text-[12px] text-muted">{note}</p> : null}
         </div>
@@ -437,6 +452,12 @@ export function TodayBoard() {
     [events, leads, roster, dayKey, yestKey, office],
   );
   const [feed, setFeed] = useState(false);
+  const [salesSlot, setSalesSlot] = useState<HTMLDivElement | null>(null);
+  const navigate = useNavigate();
+  const sales = useRouterState({ select: (s) => (s.location.search as { board?: string }).board === "sales" });
+  function pickBoard(next: "live" | "sales") {
+    void navigate({ to: "/", search: next === "sales" ? { board: "sales" } : {} });
+  }
   const flowMax = Math.max(...t.flow.map((s) => Math.max(s.now, s.yest)), 1);
   const mktX = t.marketingSpend ? Math.round(t.marketingSold / t.marketingSpend) : 0;
   const collectedOf = t.cashIn + t.expected;
@@ -446,10 +467,20 @@ export function TodayBoard() {
     <div className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden bg-page">
       <header className="flex min-h-14 shrink-0 flex-wrap items-center gap-2 border-b border-line bg-card px-4">
         <PageTitle
-          title="Live Board"
+          title={sales ? "Sales Board" : "Live Board"}
           flush
           actions={
-            <span className="flex items-center gap-3">
+            <span className="flex min-w-0 flex-1 items-center gap-3">
+              <BookPick
+                value={sales ? "sales" : "live"}
+                onChange={pickBoard}
+                items={[
+                  { id: "live", label: "Live Board" },
+                  { id: "sales", label: "Sales Board" },
+                ]}
+              />
+              {sales ? <div ref={setSalesSlot} className="flex min-w-0 flex-1 items-center gap-2" /> : (
+                <>
               <Tip label="As of this hour" on>
                 <span className="inline-flex items-center gap-2 text-[12px] font-semibold text-muted">
                   <i className="live-pip" />
@@ -468,11 +499,17 @@ export function TodayBoard() {
               <button type="button" onClick={() => setFeed(true)} className="h-9 rounded-md bg-navy px-3 text-[12px] font-bold text-card xl:hidden">
                 Feed
               </button>
+                </>
+              )}
             </span>
           }
         />
       </header>
 
+      {sales ? (
+        <SalesDashboard embedded filterSlot={salesSlot} />
+      ) : (
+      <>
       <p className="shrink-0 border-b border-line bg-card px-4 py-2.5 text-center text-[15px] tabular-nums max-md:px-3 max-md:text-left max-md:text-[13px] max-md:leading-5">
         <span className="font-bold">{money(t.sold)} sold</span>
         <span className="text-muted"> · </span>
@@ -550,8 +587,9 @@ export function TodayBoard() {
                   </p>
                 </Tip>
               </div>
-              <p className="mt-2 h-4 text-[12px] leading-4 tabular-nums text-muted">
-                {money(t.cashIn - t.spent)} net · {collectedPct}% collected
+              <p className="mt-2 flex h-4 items-baseline gap-6 text-[12px] leading-4 tabular-nums text-muted">
+                <span>{money(t.cashIn - t.spent)} net</span>
+                <span>{collectedPct}% collected</span>
               </p>
               <div className="mt-auto pt-4">
                 <Pace trend={t.trends.cashIn} />
@@ -734,7 +772,7 @@ export function TodayBoard() {
                           <i className="size-1.5 shrink-0 rounded-full" style={{ background: r.tone }} />
                           {r.label}
                         </span>
-                        <span className={cn("tabular-nums font-semibold", r.mark ? markClass(r.mark) : "")}>{r.n}</span>
+                        <CountShare n={r.n} total={t.field.qcSplit.reduce((s, row) => s + row.n, 0)} tone={r.mark ? markClass(r.mark) : ""} />
                       </li>
                     ))}
                   </ul>
@@ -756,7 +794,7 @@ export function TodayBoard() {
                           <i className="size-1.5 shrink-0 rounded-full" style={{ background: r.tone }} />
                           {r.label}
                         </span>
-                        <span className="tabular-nums font-semibold">{r.n}</span>
+                        <CountShare n={r.n} total={t.actionCats.reduce((s, row) => s + row.n, 0)} />
                       </li>
                     ))}
                   </ul>
@@ -845,6 +883,8 @@ export function TodayBoard() {
         </div>
         <ShopFeed open={feed} onOpen={() => setFeed(true)} onClose={() => setFeed(false)} />
       </div>
+      </>
+      )}
     </div>
   );
 }
