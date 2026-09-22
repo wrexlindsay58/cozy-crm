@@ -44,7 +44,6 @@ const DAILY = [
 
 const PIPELINE = [
   { icon: Users, label: "Leads", to: "/leads" },
-  { icon: ClipboardList, label: "Appointments", to: "/appointments" },
   { icon: House, label: "Assessments", to: "/assessments" },
   { icon: Star, label: "Opportunities", to: "/opportunities" },
   { icon: Briefcase, label: "Jobs", to: "/projects" },

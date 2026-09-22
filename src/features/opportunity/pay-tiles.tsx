@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, X } from "lucide-react";
+import { Plus, Trash2 } from "lucide-react";
 import { money } from "@/lib/crm-data";
 import { addPayOffer, demoMonthly, optionTotal, removePayOffer, setPayFinancer, setPayPick, togglePayTerm, type PayKind, type Proposal } from "./store";
 import { cn } from "@/lib/cn";
@@ -42,7 +42,7 @@ export function PayTiles({ proposal }: { proposal: Proposal }) {
   return (
     <section className="rounded-md border border-line bg-card p-4">
       <div className="mb-3 flex items-center justify-between gap-2">
-        <h2 className="text-[11px] font-bold tracking-wide text-muted uppercase">Payment options</h2>
+        <h2 className="text-sm font-semibold">Payment options</h2>
         <button
           type="button"
           className="inline-flex h-10 items-center gap-1 rounded-md bg-navy px-3 text-sm font-semibold text-card"
@@ -140,7 +140,7 @@ export function PayTiles({ proposal }: { proposal: Proposal }) {
                   ) : null}
                 </div>
                 <button type="button" aria-label="Remove payment option" className="grid size-8 shrink-0 place-items-center text-muted hover:text-alert" onClick={() => removePayOffer(proposal.oppId, offer.id)}>
-                  <X className="size-4" />
+                  <Trash2 className="size-4" />
                 </button>
               </div>
             </article>

@@ -23,7 +23,6 @@ export const NAV: NavGroup[] = [
     label: "Pipeline",
     items: [
       { label: "Leads", to: "/leads" },
-      { label: "Appointments", to: "/appointments" },
       { label: "Assessments", to: "/assessments" },
       { label: "Opportunities", to: "/opportunities" },
       { label: "Jobs", to: "/projects" },

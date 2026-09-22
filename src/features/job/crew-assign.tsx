@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { Plus } from "lucide-react";
+import { Plus, Trash2 } from "lucide-react";
 import { ackWo, addAssign, patchAssign, removeAssign, sendAssignWo, signWo, toggleAssignScope, type JobFile } from "./store";
 import { cn } from "@/lib/cn";
 
@@ -96,8 +96,8 @@ export function AssignCrew({ job }: { job: JobFile }) {
                   </button>
                 ) : null}
                 {wo ? <span className="text-[12px] text-muted">{wo.status}{wo.signedBy ? ` · ${wo.signedBy}` : ""}</span> : null}
-                <button type="button" className="ml-auto text-xs font-semibold text-alert" onClick={() => removeAssign(job.jobId, a.id)}>
-                  Remove
+                <button type="button" aria-label="Remove crew" className="ml-auto grid size-8 place-items-center rounded-md text-muted hover:bg-page hover:text-alert" onClick={() => removeAssign(job.jobId, a.id)}>
+                  <Trash2 className="size-4" />
                 </button>
               </div>
             </li>

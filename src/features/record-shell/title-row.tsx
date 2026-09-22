@@ -37,14 +37,17 @@ function StageChip({
   label,
   tone,
   onStage,
+  options,
 }: {
   label: string;
   tone: Tone;
   onStage?: (status: string) => void;
+  options?: { label: string; tone: Tone }[];
 }) {
   const [open, setOpen] = useState(false);
   const [anchor, setAnchor] = useState<DOMRect | null>(null);
   const wash = stageWash(tone);
+  const picks = options ?? LEAD_STATUSES;
   if (!onStage) {
     return (
       <span className={cn("inline-flex h-7 shrink-0 items-center rounded-md px-2 text-[11px] font-bold tracking-wide uppercase", wash)}>
@@ -56,7 +59,7 @@ function StageChip({
     <div className="relative">
       <button
         type="button"
-        aria-label="Disposition"
+        aria-label="Status"
         onClick={(e) => {
           setAnchor(e.currentTarget.getBoundingClientRect());
           setOpen((v) => !v);
@@ -68,7 +71,7 @@ function StageChip({
       </button>
       {open && anchor ? (
         <Float anchor={anchor} prefer="bottom" onClose={() => setOpen(false)}>
-          {LEAD_STATUSES.map((s) => (
+          {picks.map((s) => (
             <button
               key={s.label}
               type="button"
@@ -100,6 +103,7 @@ export function TitleRow({
   acts,
   onText,
   onStage,
+  stageOptions,
   lead,
 }: {
   kind: RecordKind;
@@ -113,20 +117,28 @@ export function TitleRow({
   acts: RecordAct[];
   onText: () => void;
   onStage?: (status: string) => void;
+  stageOptions?: { label: string; tone: Tone }[];
   lead?: Lead;
 }) {
   function pills() {
     return (
       <>
-        <StageChip label={stage} tone={stageTone} onStage={onStage} />
+        <StageChip label={stage} tone={stageTone} onStage={onStage} options={stageOptions} />
         {lead ? <DndPick lead={lead} compact /> : dndLabel ? <StageChip label={dndLabel} tone="alert" /> : null}
       </>
     );
   }
   function actions() {
     return (
-      <>
-        {moneyLabel ? <p className="mr-1 shrink-0 text-sm font-extrabold tabular-nums">{moneyLabel}</p> : null}
+      <div className="flex items-center gap-3">
+        {moneyLabel ? (
+          <>
+            <p className="inline-flex h-9 shrink-0 items-center rounded-md bg-navy px-3 text-base font-extrabold tabular-nums tracking-tight text-card md:h-10 md:text-lg">
+              {moneyLabel}
+            </p>
+            <span className="h-9 w-px shrink-0 bg-line md:h-10" aria-hidden />
+          </>
+        ) : null}
         <ActBar
           iconsOnly
           items={acts.map((act) => ({
@@ -136,7 +148,7 @@ export function TitleRow({
             menu: act.menu,
           }))}
         />
-      </>
+      </div>
     );
   }
 

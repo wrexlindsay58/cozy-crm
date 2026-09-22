@@ -14,27 +14,30 @@ export const Route = createFileRoute("/_app/leads")({
   component: LeadsPage,
 });
 
-const VIEWS = ["All", "Unmarked", "Pending", "Confirmed", "Ran", "Sold", "Dropped", "Phoenix"] as const;
+const VIEWS = ["All", "Booked", "Unmarked", "Pending", "Confirmed", "Ran", "Sold", "Dropped", "Phoenix"] as const;
 
 function LeadsPage() {
   const { q = "" } = Route.useSearch();
-  const { leads, history } = useOps();
+  const { leads, history, appointments } = useOps();
   const [view, setView] = useState<(typeof VIEWS)[number]>("All");
   const [query, setQuery] = useState(q);
   const [open, setOpen] = useState(false);
+  const booked = useMemo(() => new Set(appointments.map((a) => a.leadId)), [appointments]);
 
   const rows = useMemo(() => {
     const needle = query.trim().toLowerCase();
     return leads.filter((l) => {
       if (view === "Phoenix") {
         if (l.office !== "Phoenix") return false;
+      } else if (view === "Booked") {
+        if (!booked.has(l.id)) return false;
       } else if (view !== "All" && l.status !== view) {
         return false;
       }
       if (!needle) return true;
       return [l.name, l.city, l.setter, l.closer, l.product, l.id, l.source, l.phone, l.address, l.email].join(" ").toLowerCase().includes(needle);
     });
-  }, [leads, view, query]);
+  }, [leads, view, query, booked]);
 
   return (
     <>

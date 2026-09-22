@@ -5,7 +5,7 @@ import { RecordTable } from "@/components/record-table";
 import { ListPage } from "@/features/lists/list-page";
 import { jobTone, STAGES, tally, useJobs, type JobFile } from "@/features/job/store";
 import { useOps } from "@/features/ops/store";
-import { money, type Lead } from "@/lib/crm-data";
+import { money, accounts, type Lead } from "@/lib/crm-data";
 
 export const Route = createFileRoute("/_app/projects")({
   component: JobsPage,
@@ -13,7 +13,7 @@ export const Route = createFileRoute("/_app/projects")({
 
 const VIEWS = ["All", ...STAGES, "Holds"] as const;
 
-type JobRow = JobFile & { id: string; lead?: Lead };
+type JobRow = JobFile & { id: string; lead?: Lead; account?: (typeof accounts)[number] };
 
 function JobsPage() {
   const jobs = useJobs();
@@ -25,8 +25,9 @@ function JobsPage() {
     const needle = query.trim().toLowerCase();
     return Object.values(jobs)
       .map((j) => {
-        const lead = leads.find((l) => l.id === j.leadId) ?? leads.find((l) => l.id === j.personId);
-        return { ...j, id: j.jobId, lead } satisfies JobRow;
+        const lead = leads.find((l) => l.id === j.leadId) ?? leads.find((l) => l.id === j.personId) ?? leads.find((l) => l.name === accounts.find((a) => a.id === j.accountId)?.name);
+        const account = accounts.find((a) => a.id === j.accountId);
+        return { ...j, id: j.jobId, lead, account } satisfies JobRow;
       })
       .filter((j) => {
         if (view === "Holds") {
@@ -35,7 +36,7 @@ function JobsPage() {
           return false;
         }
         if (!needle) return true;
-        return [j.lead?.name, j.name, j.product, j.pm, j.closer, j.crew, j.jobId, j.lead?.address, j.lead?.city, j.lead?.office, j.window, j.stage, j.holds.map((h) => `${h.kind} ${h.note}`).join(" ")].join(" ").toLowerCase().includes(needle);
+        return [j.lead?.name, j.account?.name, j.name, j.product, j.pm, j.closer, j.crew, j.jobId, j.lead?.address, j.lead?.city, j.lead?.office, j.window, j.stage, j.holds.map((h) => `${h.kind} ${h.note}`).join(" ")].join(" ").toLowerCase().includes(needle);
       });
   }, [jobs, leads, view, query]);
 
@@ -62,8 +63,8 @@ function JobsPage() {
             label: "Name",
             render: (r) => (
               <span>
-                <span className="font-semibold">{r.lead?.name ?? r.name}</span>
-                {r.lead?.address ? <span className="mt-0.5 block text-[12px] font-normal text-muted">{r.lead.address}</span> : null}
+                <span className="font-semibold">{r.lead?.name ?? r.account?.name ?? r.name}</span>
+                {r.lead?.address ? <span className="mt-0.5 block text-[12px] font-normal text-muted">{r.lead.address}</span> : r.product ? <span className="mt-0.5 block text-[12px] font-normal text-muted">{r.product}</span> : null}
               </span>
             ),
           },

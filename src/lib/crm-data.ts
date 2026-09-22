@@ -87,7 +87,7 @@ export type Account = {
   last: string;
 };
 
-export type EventKind = "Sales" | "Assessment" | "Install" | "Service" | "Warranty" | "Go-back" | "Callback";
+export type EventKind = "Sales" | "Assessment" | "Site survey" | "Install" | "Service" | "Warranty" | "Go-back" | "Callback";
 
 export type Appointment = {
   id: string;

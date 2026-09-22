@@ -22,7 +22,7 @@ export function ProposalPanel({ proposal }: { proposal: Proposal }) {
   return (
     <section className="rounded-md border border-line bg-card p-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-[11px] font-bold tracking-wide text-muted uppercase">Proposal</h2>
+        <h2 className="text-sm font-semibold">Proposal</h2>
         <div className="flex flex-wrap gap-2">
           <button type="button" className="h-11 rounded-md bg-navy px-3 text-sm font-semibold text-card" onClick={present}>
             Generate & present

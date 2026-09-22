@@ -7,13 +7,13 @@ import { cn } from "@/lib/cn";
 import type { Assessment, Packet } from "./types";
 import type { Photo } from "@/lib/file-data";
 
-export function PacketList({ file }: { file: Assessment }) {
+export function PacketList({ file, readOnly = false }: { file: Assessment; readOnly?: boolean }) {
   const cats = useAssessCategories().filter((c) => c.on);
   return (
     <div className="space-y-3">
       {cats.map((def) => {
         const packet = file.packets.find((p) => p.id === def.id) ?? { id: def.id, fields: {}, photos: [], notes: "" };
-        return <PacketCard key={def.id} assessmentId={file.id} def={def} packet={packet} />;
+        return <PacketCard key={def.id} assessmentId={file.id} def={def} packet={packet} readOnly={readOnly} />;
       })}
       {cats.length === 0 ? <p className="text-sm text-muted">No categories on. Turn them on in Settings → Assessment categories.</p> : null}
     </div>
@@ -24,13 +24,15 @@ export function PacketCard({
   assessmentId,
   def,
   packet,
+  readOnly = false,
 }: {
   assessmentId: string;
   def: AssessCategory;
   packet: Packet;
+  readOnly?: boolean;
 }) {
   const filled = def.fields.filter((f) => packet.fields[f.label]).length;
-  const [open, setOpen] = useState(filled > 0 || Boolean(packet.notes) || packet.photos.length > 0);
+  const [open, setOpen] = useState(true);
   const [caption, setCaption] = useState("");
   const [look, setLook] = useState<number | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -46,13 +48,22 @@ export function PacketCard({
 
   return (
     <section className="rounded-md border border-line bg-card p-4">
+      {readOnly ? (
+        <div className="flex w-full items-center justify-between">
+          <h2 className="text-sm font-semibold">{def.label}</h2>
+          <span className="text-[11px] text-muted">
+            {filled}/{def.fields.length} · {packet.photos.length} files
+          </span>
+        </div>
+      ) : (
       <button type="button" onClick={() => setOpen((v) => !v)} className="flex w-full items-center justify-between text-left">
         <h2 className="text-[11px] font-bold tracking-wide text-muted uppercase">{def.label}</h2>
         <span className="text-[11px] text-muted">
           {filled}/{def.fields.length} · {packet.photos.length} files
         </span>
       </button>
-      {open ? (
+      )}
+      {open || readOnly ? (
         <div className="mt-3 space-y-3">
           <div className="grid gap-3 sm:grid-cols-2">
             {def.fields.map((field) => (
@@ -62,20 +73,26 @@ export function PacketCard({
                   field={field}
                   value={packet.fields[field.label] ?? ""}
                   onChange={(v) => setField(assessmentId, def.id, field.label, v)}
+                  readOnly={readOnly}
                 />
               </label>
             ))}
           </div>
           <label className="block text-sm">
             <span className="text-[11px] font-bold tracking-wide text-muted uppercase">Notes</span>
-            <textarea
-              value={packet.notes}
-              onChange={(e) => setPacketNotes(assessmentId, def.id, e.target.value)}
-              rows={3}
-              placeholder={`Measured / observed on ${def.label.toLowerCase()}.`}
-              className="mt-1 w-full rounded-md border border-line px-3 py-2 text-sm outline-none focus:border-navy"
-            />
+            {readOnly ? (
+              <p className="mt-1 text-sm">{packet.notes || "—"}</p>
+            ) : (
+              <textarea
+                value={packet.notes}
+                onChange={(e) => setPacketNotes(assessmentId, def.id, e.target.value)}
+                rows={3}
+                placeholder={`Measured / observed on ${def.label.toLowerCase()}.`}
+                className="mt-1 w-full rounded-md border border-line px-3 py-2 text-sm outline-none focus:border-navy"
+              />
+            )}
           </label>
+          {readOnly ? null : (
           <form
             className="flex flex-col gap-2 sm:flex-row"
             onSubmit={(e) => {
@@ -103,6 +120,7 @@ export function PacketCard({
               Add
             </button>
           </form>
+          )}
           {packet.photos.length ? (
             <ul className="grid grid-cols-2 gap-2 md:grid-cols-3">
               {packet.photos.map((ph, i) => (

@@ -23,6 +23,7 @@ export function ProductionProfileSettings() {
               [
                 ["needsPlan", "Plan"],
                 ["planCustomerApproval", "Customer signs plan"],
+                ["needsSurvey", "Sight survey"],
                 ["needsUtility", "Utility"],
                 ["needsPermit", "Permit"],
                 ["needsSerial", "Serials"],

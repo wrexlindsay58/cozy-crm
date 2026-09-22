@@ -48,8 +48,9 @@ function LeadFile() {
       photos={photosByPerson[lead.id] ?? []}
     >
       <FileSections
+        start="contact"
         sections={[
-          { id: "details", label: "Details", node: <LeadCard lead={lead} /> },
+          { id: "contact", label: "Contact", node: <LeadCard lead={lead} /> },
           { id: "qualify", label: "Qualified", node: <QualifyCard leadId={lead.id} /> },
           {
             id: "book",

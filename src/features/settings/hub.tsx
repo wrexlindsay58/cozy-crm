@@ -16,7 +16,7 @@ const GROUPS = [
   {
     title: "People",
     links: [
-      { to: "/settings/people", title: "People", note: "Role, office, on/off book" },
+      { to: "/settings/people", title: "People", note: "Role, office, hourly / piece / salary" },
       { to: "/settings/roles", title: "Roles", note: "Owner, closer, setter, PM, crew" },
       { to: "/settings/positions", title: "Positions", note: "Odin EmployeePositions" },
       { to: "/settings/permissions", title: "Permissions", note: "See cost, take card, edit catalog" },

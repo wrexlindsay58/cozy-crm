@@ -8,11 +8,30 @@ export type HoldRow = { kind: Hold; note: string; at: string };
 
 export const PROCESSES = ["Attic blow", "Attic removal", "HVAC set", "HVAC start-up", "Ducts", "Test-out", "Final inspection", "Punch", "Dump", "Callback"] as const;
 export type Process = (typeof PROCESSES)[number] | string;
-export const MEDIA_CATS = ["Before", "During", "After", "Serial", "Permit", "Other"] as const;
+export const MEDIA_CATS = ["Before", "During", "After", "Serial", "Permit", "Design", "Other"] as const;
 export type MediaCat = (typeof MEDIA_CATS)[number];
+export const MEDIA_TAGS = ["Before", "During", "After", "Pre-install", "Access", "Existing", "Serial", "Issue", "Design", "Other"] as const;
+export type MediaTag = (typeof MEDIA_TAGS)[number];
+export function catFromTag(tag: string): MediaCat {
+  if (tag === "Before" || tag === "Pre-install") return "Before";
+  if (tag === "During") return "During";
+  if (tag === "After") return "After";
+  if (tag === "Serial") return "Serial";
+  if (tag === "Design") return "Design";
+  if (tag === "Permit") return "Permit";
+  return "Other";
+}
 export type FileLink = { name: string; url: string };
-export type ScopeMedia = { id: string; cat: MediaCat; name: string; url: string; kind: "photo" | "video" | "doc" };
-export type ScopeKind = "product" | "adder" | "promise";
+export type ScopeMedia = {
+  id: string;
+  cat: MediaCat;
+  name: string;
+  url: string;
+  kind: "photo" | "video" | "doc";
+  caption?: string;
+  purpose?: string;
+};
+export type ScopeKind = "product" | "adder" | "promise" | "discount";
 export type PlanStatus = "Draft" | "Sent" | "Approved" | "Released";
 export type ScopePlan = { status: PlanStatus; file?: FileLink; approvedBy: string };
 export type UtilityPack = { form: string; status: "None" | "Submitted" | "Approved" | "PTO"; file?: FileLink };
@@ -23,9 +42,19 @@ export type BomLine = {
   usedQty: number;
   unit: string;
   unitCost: number;
+  actualUnitCost?: number;
   supplier: string;
   ordered: boolean;
+  received?: boolean;
+  ready?: boolean;
+  track?: "bulk" | "unit";
+  orderQty?: number;
+  leftQty?: number;
+  returnQty?: number;
+  returnCredit?: number;
+  warehouseQty?: number;
 };
+export type SurveyRoom = { id: string; name: string; area: string; registers: string };
 export type ScopeLine = {
   id: string;
   label: string;
@@ -41,6 +70,11 @@ export type ScopeLine = {
   owner: string;
   promiseDone: boolean;
   plan?: ScopePlan;
+  surveyDone?: boolean;
+  surveySkip?: string;
+  surveyFacts?: Record<string, string>;
+  surveyRooms?: SurveyRoom[];
+  surveyOn?: boolean;
   utility?: UtilityPack;
   bom: BomLine[];
 };
@@ -49,6 +83,9 @@ export type CrewAssign = {
   id: string;
   crew: string;
   truck: string;
+  vehicleKind?: string;
+  vehicleNo?: string;
+  trailerNo?: string;
   day: string;
   start: string;
   end: string;
@@ -82,6 +119,7 @@ export type JobEvent = {
   end: string;
   crew: string;
   assignId?: string;
+  why?: string;
   status: "Set" | "Dispatched" | "Done" | "No-show";
 };
 
@@ -111,19 +149,25 @@ export type ChangeOrder = {
   amount: number;
   cost: number;
   status: "Draft" | "Sent" | "Approved" | "Declined";
+  lane: "install" | "finance";
   signed: boolean;
   signedAt?: string;
 };
 export type PayStatus = "Draft" | "Sent" | "Partial" | "Paid" | "Past due" | "NSF" | "Card declined" | "Void" | "Refunded";
 export type JobPayment = { id: string; amount: number; at: string; how: string; status: PayStatus };
+export type InvoiceLine = { id: string; label: string; amount: number; qty?: number };
 export type JobInvoice = {
   id: string;
-  kind: "Deposit" | "Progress" | "Final";
+  kind: "Deposit" | "Progress" | "Final" | "Commission" | "Piece";
   amount: number;
   paid: number;
   status: PayStatus;
   file?: FileLink;
   payments: JobPayment[];
+  party?: "customer" | "pay";
+  who?: string;
+  itemize?: boolean;
+  lines?: InvoiceLine[];
 };
 
 export type EquipRow = {
@@ -138,11 +182,31 @@ export type EquipRow = {
   scopeId?: string;
 };
 export type PunchItem = { id: string; item: string; owner: string; status: "Open" | "Done" };
-export type CheckItem = { id: string; label: string; on: boolean };
+export type CheckItem = { id: string; label: string; on: boolean; callout?: string };
 export type SignedCheck = { items: CheckItem[]; signedBy: string; signedAt: string };
 export type PermitFile = { number: string; city: string; inspection: string; result: "None" | "Scheduled" | "Pass" | "Fail"; file?: FileLink };
 export type RebateFile = { utility: string; program: string; amount: number; status: "None" | "Reserved" | "Submitted" | "Approved" | "Paid"; reservation: string; file?: FileLink };
-export type TestOut = { blowerBefore: string; blowerAfter: string; ductBefore: string; ductAfter: string; notes: string };
+export type TestOut = {
+  blowerBefore: string;
+  blowerAfter: string;
+  ductBefore: string;
+  ductAfter: string;
+  notes: string;
+  facts?: Record<string, string>;
+  checks?: Record<string, boolean>;
+  results?: Record<string, "pass" | "fail">;
+  fixes?: Record<string, { ticketId?: string; eventId?: string; correctedByQc?: boolean }>;
+};
+export type SurveyKind = "hvac" | "ducts" | "attic" | "windows" | "other";
+export type JobSurvey = {
+  id: string;
+  kind: SurveyKind;
+  label: string;
+  surveyDone?: boolean;
+  surveyFacts?: Record<string, string>;
+  surveyRooms?: SurveyRoom[];
+  media: ScopeMedia[];
+};
 export type LoanStatus = "None" | "Received" | "Docs needed" | "Cancelled" | "NTP" | "Complete" | "Funded";
 export type LoanFile = {
   vendor: "GoodLeap" | "Cash" | "Card";
@@ -153,9 +217,46 @@ export type LoanFile = {
   status: LoanStatus;
   notes: string;
   fundedAmount: number;
+  paySentAt?: string;
+  payReceivedAt?: string;
 };
 export type PacketPart = { id: string; label: string; on: boolean; file?: FileLink };
 export type ClosingPacket = { sent: boolean; sentAt: string; parts: PacketPart[] };
+
+export type CommRole = "Closer" | "Split" | "Setter";
+export type CommShare = {
+  id: string;
+  who: string;
+  role: CommRole;
+  pct: number;
+  paid: boolean;
+};
+
+export const SALES_FAULTS = ["Misquote", "Mismeasure", "Missed adder", "Free promise"] as const;
+export type SalesFault = (typeof SALES_FAULTS)[number];
+export const FIELD_EXTRAS = ["Material run", "Step-through", "Install issue", "Extra on site", "Wrong equipment"] as const;
+export type FieldExtra = (typeof FIELD_EXTRAS)[number];
+export type CostHit = {
+  id: string;
+  kind: "sales" | "field";
+  reason: SalesFault | FieldExtra;
+  amount: number;
+  note: string;
+  at: string;
+};
+
+export type LaborKind = "Hourly" | "Piece" | "Salary";
+export type LaborLine = {
+  id: string;
+  who: string;
+  crew?: string;
+  kind: LaborKind;
+  qty: number;
+  rate: number;
+  actual?: number;
+  service?: string;
+  added?: boolean;
+};
 
 export type JobFile = {
   jobId: string;
@@ -169,8 +270,12 @@ export type JobFile = {
   stage: Stage;
   holds: HoldRow[];
   sold: number;
+  soldAt?: string;
   labor: number;
+  laborLines?: LaborLine[];
   commission: number;
+  commissions: CommShare[];
+  costHits?: CostHit[];
   extras: number;
   crew: string;
   truck: string;
@@ -178,6 +283,10 @@ export type JobFile = {
   assignments: CrewAssign[];
   soldNotes: string;
   scope: ScopeLine[];
+  surveys?: JobSurvey[];
+  cancelled?: boolean;
+  cancelWhy?: string;
+  cancelledAt?: string;
   warranty: boolean;
   loan: LoanFile;
   workOrders: WorkOrder[];
@@ -212,13 +321,68 @@ export function chapterFor(stage: Stage): Chapter {
 }
 
 export function materialCost(j: JobFile) {
-  return j.scope.reduce((s, sc) => s + sc.bom.reduce((b, l) => b + (l.usedQty || l.estQty) * l.unitCost, 0), 0);
+  return j.scope.reduce((s, sc) => s + sc.bom.reduce((b, l) => b + bomJobCost(l), 0), 0);
+}
+export function leftoverQty(l: BomLine) {
+  const ordered = l.orderQty ?? l.estQty;
+  return Math.max(0, ordered - (l.usedQty || 0));
+}
+export function bomJobCost(l: BomLine) {
+  const paid = l.actualUnitCost ?? l.unitCost;
+  const ordered = l.orderQty ?? l.estQty;
+  const used = l.usedQty || 0;
+  const returned = l.returnQty || 0;
+  const warehoused = l.warehouseQty || 0;
+  if (used > 0 || returned > 0 || warehoused > 0) {
+    const onJob = used > 0 ? used : Math.max(0, ordered - returned - warehoused);
+    return onJob * paid;
+  }
+  if (l.ordered) return ordered * paid;
+  return l.estQty * l.unitCost;
+}
+export function bomReturnCredit(l: BomLine) {
+  return l.returnCredit || 0;
+}
+export function bomWarehouseValue(l: BomLine) {
+  return (l.warehouseQty || 0) * (l.actualUnitCost ?? l.unitCost);
+}
+export function bomAssumed(l: BomLine) {
+  return l.estQty * l.unitCost;
+}
+export function bomOrderedCost(l: BomLine) {
+  return (l.orderQty ?? l.estQty) * (l.actualUnitCost ?? l.unitCost);
 }
 export function quotedMaterials(j: JobFile) {
   return j.scope.reduce((s, sc) => s + sc.bom.reduce((b, l) => b + l.estQty * l.unitCost, 0), 0);
 }
+
+/** Quoted paid work. Adders in. Listed discounts and sales misses sit on True Discount, not here. */
+export function commissionBase(j: JobFile) {
+  return j.scope.filter((s) => s.kind === "product" || s.kind === "adder").reduce((s, r) => s + r.amount, 0) || j.sold;
+}
+export function trueDiscount(j: JobFile) {
+  const listed = j.scope.filter((s) => s.kind === "discount" || s.amount < 0).reduce((s, r) => s + Math.abs(r.amount), 0);
+  const salesHits = (j.costHits ?? []).filter((h) => h.kind === "sales").reduce((s, h) => s + h.amount, 0);
+  const fieldHits = (j.costHits ?? []).filter((h) => h.kind === "field").reduce((s, h) => s + h.amount, 0);
+  const dollars = listed + salesHits;
+  const base = commissionBase(j);
+  const pct = base ? (dollars / base) * 100 : 0;
+  const deduction = Math.round((pct / 2.5) * 10) / 10;
+  const rate = Math.max(0, Math.round((20 - deduction) * 10) / 10);
+  return { listed, salesHits, fieldHits, dollars, pct, deduction, rate, base };
+}
+export function commissionCost(j: JobFile) {
+  const td = trueDiscount(j);
+  const shares = j.commissions ?? [];
+  const closers = shares.filter((c) => c.role !== "Setter");
+  const setters = shares.filter((c) => c.role === "Setter");
+  const closerPool = Math.round(td.base * (td.rate / 100));
+  const setterPay = setters.reduce((s, c) => s + Math.round(td.base * (c.pct / 100)), 0);
+  if (!shares.length) return closerPool || j.commission;
+  return (closers.length ? closerPool : 0) + setterPay;
+}
 export function contractTotal(j: JobFile) {
-  return j.sold + j.changeOrders.filter((c) => c.status === "Approved" && c.signed).reduce((s, c) => s + c.amount, 0);
+  return j.sold + j.changeOrders.filter((c) => c.lane !== "finance" && c.status === "Approved" && c.signed).reduce((s, c) => s + c.amount, 0);
 }
 export function agreementsSync(j: JobFile) {
   return j.installRev === j.financeRev;
@@ -245,7 +409,8 @@ export function punchHours(p: TimePunch) {
   return { travel, site, total: travel + site };
 }
 
-export function jobTone(job: Pick<JobFile, "stage" | "holds">): Tone {
+export function jobTone(job: Pick<JobFile, "stage" | "holds" | "cancelled">): Tone {
+  if (job.cancelled) return "alert";
   if (job.holds.length) return "alert";
   if (job.stage === "Closed" || job.stage === "In progress") return "up";
   if (job.stage === "Punch" || job.stage === "Test-out" || job.stage === "Permit") return "alert";
@@ -254,6 +419,7 @@ export function jobTone(job: Pick<JobFile, "stage" | "holds">): Tone {
 }
 
 export function inferStage(j: JobFile): Stage {
+  if (j.cancelled) return j.stage;
   if (j.stage === "Closed") return "Closed";
   const invoiced = j.invoices.some((i) => i.status !== "Draft" && i.status !== "Void");
   const punchOpen = j.punch.some((p) => p.status === "Open");
@@ -277,7 +443,8 @@ export function closeBlocks(j: JobFile): string[] {
   if (j.punch.some((p) => p.status === "Open")) out.push("Open punch");
   if (j.workOrders.some((w) => w.status !== "Signed" && w.status !== "Done" && w.status !== "On truck")) out.push("Work order not signed");
   if (j.loan.vendor === "GoodLeap" && j.loan.status !== "Funded") out.push("GoodLeap not funded");
-  if (j.installRev !== j.financeRev) out.push("Agreements out of sync");
+  if (j.changeOrders.some((c) => c.lane !== "finance" && !c.signed)) out.push("Install CO not signed");
+  if (j.changeOrders.some((c) => c.lane === "finance" && !c.signed)) out.push("GoodLeap CO not signed");
   if (j.scope.some((s) => s.plan && s.plan.status !== "Released" && s.kind === "product")) out.push("Plan not released");
   if (!j.preCheck.signedAt) out.push("Pre-install not signed");
   if (!j.postCheck.signedAt) out.push("Post-install not signed");
@@ -350,7 +517,7 @@ export function emptyRebate(): RebateFile {
   return { utility: "", program: "", amount: 0, status: "None", reservation: "" };
 }
 export function emptyTest(): TestOut {
-  return { blowerBefore: "", blowerAfter: "", ductBefore: "", ductAfter: "", notes: "" };
+  return { blowerBefore: "", blowerAfter: "", ductBefore: "", ductAfter: "", notes: "", facts: {}, checks: {} };
 }
 export function cashLoan(): LoanFile {
   return { vendor: "Cash", amount: 0, dealerFee: 0, term: 0, rate: 0, status: "None", notes: "", fundedAmount: 0 };

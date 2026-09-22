@@ -1,16 +1,62 @@
 import { useSyncExternalStore } from "react";
 import { reps } from "@/lib/crm-data";
 
+export type PayKind = "Hourly" | "Piece" | "Salary";
 export type Person = {
   name: string;
   role: string;
   office: string;
   active: boolean;
   sold: number;
+  payKind: PayKind;
+  rate: number;
+  pieceRates?: Record<string, number>;
 };
+
+export const VEHICLE_KINDS = ["Box Truck", "Van", "Van and Trailer", "Pickup and Trailer", "Pickup", "Trailer"] as const;
+export type VehicleKind = (typeof VEHICLE_KINDS)[number];
+export type CrewVehicle = { kind: VehicleKind; number: string; trailer?: string };
+export type ShopCrew = { name: string; members: string[]; vehicle: CrewVehicle };
+
+export function needsTrailerNo(kind: string) {
+  return kind === "Van and Trailer" || kind === "Pickup and Trailer";
+}
+export function vehicleLabel(kind: string, number: string, trailer?: string) {
+  if (needsTrailerNo(kind)) {
+    const head = kind.replace(" and Trailer", "");
+    return `${head} ${number || "—"}${trailer ? ` + Trailer ${trailer}` : ""}`;
+  }
+  return `${kind} ${number || "—"}`;
+}
+export function vehicleMissing(kind: string, number: string, trailer?: string) {
+  if (!number.trim()) return true;
+  if (kind === "Pickup and Trailer" && !trailer?.trim()) return true;
+  if (needsTrailerNo(kind) && !trailer?.trim()) return true;
+  return false;
+}
+
+export const SHOP_CREWS: ShopCrew[] = [
+  { name: "Crew 1 — Evan", members: ["Evan Cole", "Luis Cruz"], vehicle: { kind: "Van", number: "2" } },
+  { name: "Crew 2 — Tasha", members: ["Tasha Reed", "Omar Diaz"], vehicle: { kind: "Box Truck", number: "4" } },
+  { name: "Crew 3 — Marco", members: ["Rico Marquez", "Sam Patel"], vehicle: { kind: "Pickup and Trailer", number: "7", trailer: "3" } },
+];
 
 export type PermKey = "seeCost" | "takeCard" | "editCatalog";
 export type RolePerms = Record<string, Record<PermKey, boolean>>;
+
+function seedPay(role: string, name: string): { payKind: PayKind; rate: number; pieceRates?: Record<string, number> } {
+  if (name === "Omar Diaz") {
+    return {
+      payKind: "Piece",
+      rate: 185,
+      pieceRates: { "Attic blow": 185, "Attic removal": 210, "HVAC set": 450, "Ducts": 275, "Test-out": 90 },
+    };
+  }
+  if (name === "Tasha Reed") return { payKind: "Hourly", rate: 32 };
+  if (role === "Crew") return { payKind: "Hourly", rate: 28 };
+  if (role === "PM") return { payKind: "Salary", rate: 240 };
+  return { payKind: "Salary", rate: 0 };
+}
 
 const seedPeople: Person[] = [
   ...reps.map((r) => ({
@@ -19,10 +65,14 @@ const seedPeople: Person[] = [
     office: r.office,
     active: true,
     sold: r.sold,
+    ...seedPay(r.role, r.name),
   })),
-  { name: "Tasha Reed", role: "PM", office: "Scottsdale", active: true, sold: 0 },
-  { name: "Evan Cole", role: "PM", office: "Phoenix", active: true, sold: 0 },
-  { name: "Omar Diaz", role: "Crew", office: "Phoenix", active: true, sold: 0 },
+  { name: "Tasha Reed", role: "PM", office: "Scottsdale", active: true, sold: 0, ...seedPay("PM", "Tasha Reed") },
+  { name: "Evan Cole", role: "PM", office: "Phoenix", active: true, sold: 0, ...seedPay("PM", "Evan Cole") },
+  { name: "Omar Diaz", role: "Crew", office: "Phoenix", active: true, sold: 0, ...seedPay("Crew", "Omar Diaz") },
+  { name: "Luis Cruz", role: "Crew", office: "Phoenix", active: true, sold: 0, ...seedPay("Crew", "Luis Cruz") },
+  { name: "Rico Marquez", role: "Crew", office: "Dallas", active: true, sold: 0, ...seedPay("Crew", "Rico Marquez") },
+  { name: "Sam Patel", role: "Crew", office: "Dallas", active: true, sold: 0, ...seedPay("Crew", "Sam Patel") },
 ];
 
 const seedPerms: RolePerms = {
@@ -114,5 +164,21 @@ export function addDepartment(name: string) {
   departments = [...departments, n];
   emit();
 }
+export function payFor(name: string, service = "") {
+  const p = people.find((r) => r.name === name);
+  const kind = p?.payKind ?? "Hourly";
+  if (kind === "Piece") {
+    const rate = (service && p?.pieceRates?.[service]) || p?.rate || 185;
+    return { kind, rate };
+  }
+  return { kind, rate: p?.rate ?? 28 };
+}
+export function crewOf(name: string) {
+  return SHOP_CREWS.find((c) => c.members.includes(name))?.name ?? "";
+}
+export function membersOf(crew: string) {
+  return SHOP_CREWS.find((c) => c.name === crew)?.members ?? [];
+}
+export const PAY_KINDS: PayKind[] = ["Hourly", "Piece", "Salary"];
 export const ROLES = ["Owner", "Closer", "Setter", "PM", "Crew"];
 export const OFFICES = ["Phoenix", "Scottsdale", "Dallas", "Fort Worth", "North Phoenix"];

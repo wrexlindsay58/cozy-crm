@@ -1,10 +1,11 @@
 import { useState } from "react";
-import { Plus, X } from "lucide-react";
+import { Plus, Trash2 } from "lucide-react";
 import { money } from "@/lib/crm-data";
 import { addersOf, discountsOf, itemBySku, productsOf, useCatalog } from "@/features/catalog/store";
 import { Float } from "@/components/float";
 import { acceptOption, addCustom, addLine, lineAmount, optionTotal, removeLine, removeOption, renameOption, setPick, setQty, unacceptOption, type OptCard, type OptLine, type Proposal } from "./store";
 import { cn } from "@/lib/cn";
+import { PayOnOption } from "./pay-on-option";
 
 type Menu = "product" | "adder" | "discount" | null;
 
@@ -31,10 +32,10 @@ export function OptionCard({ proposal, option }: { proposal: Proposal; option: O
   const discs = discountsOf(catalog).filter((p) => !have.has(p.sku));
 
   return (
-    <article className={cn("flex flex-col rounded-md border bg-card p-4", accepted ? "border-navy ring-1 ring-navy" : "border-line")}>
+    <article className={cn("flex flex-col rounded-md border bg-card p-4", accepted ? "border-navy bg-info-bg/40 ring-1 ring-navy" : "border-line")}>
       <div className="mb-3 flex items-start justify-between gap-2">
         <label className="min-w-0 flex-1 text-[11px] font-bold tracking-wide text-muted uppercase">
-          Option name
+          {accepted ? "Sold option" : "Option name"}
           <input
             value={option.name}
             disabled={locked}
@@ -45,7 +46,7 @@ export function OptionCard({ proposal, option }: { proposal: Proposal; option: O
         <p className="text-lg font-extrabold tabular-nums">{money(total)}</p>
         {!locked && proposal.options.length > 1 ? (
           <button type="button" aria-label="Remove option" className="grid size-8 place-items-center text-muted hover:text-alert" onClick={() => removeOption(proposal.oppId, option.id)}>
-            <X className="size-4" />
+            <Trash2 className="size-4" />
           </button>
         ) : null}
       </div>
@@ -54,6 +55,7 @@ export function OptionCard({ proposal, option }: { proposal: Proposal; option: O
           <LineRow key={l.sku} proposal={proposal} option={option} line={l} locked={locked} accepted={accepted} />
         ))}
       </ul>
+      <PayOnOption proposal={proposal} option={option} />
       {!locked ? (
         <div className="mt-3 flex flex-wrap gap-2">
           {(["product", "adder", "discount"] as const).map((kind) => (
@@ -156,7 +158,7 @@ function LineRow({
         <span className="w-20 text-right tabular-nums">{amount}</span>
         {!locked ? (
           <button type="button" aria-label={`Take off ${line.label}`} className="grid size-8 place-items-center text-muted hover:text-alert" onClick={() => removeLine(proposal.oppId, option.id, line.sku)}>
-            <X className="size-3.5" />
+            <Trash2 className="size-3.5" />
           </button>
         ) : null}
       </div>

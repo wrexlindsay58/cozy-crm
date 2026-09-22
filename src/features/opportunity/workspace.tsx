@@ -20,16 +20,17 @@ export function OppWorkspace({ proposal }: { proposal: Proposal }) {
   const [showAllOpts, setShowAllOpts] = useState(false);
   return (
     <FileSections
+      start="options"
       sections={[
-        { id: "lead", label: "Lead", node: lead ? <LeadCard lead={lead} locked /> : null },
-        { id: "assess", label: "Assessment", node: <AssessSnap leadId={proposal.personId} /> },
+        { id: "contact", label: "Contact", done: true, node: lead ? <LeadCard lead={lead} locked /> : null },
+        { id: "assess", label: "Assessment", done: true, node: <AssessSnap leadId={proposal.personId} /> },
         {
           id: "options",
           label: "Options",
           node: (
             <div className="space-y-3">
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <h2 className="text-[11px] font-bold tracking-wide text-muted uppercase">Proposal options</h2>
+                <h2 className="text-sm font-semibold">Proposal options</h2>
                 {!proposal.accepted ? (
                   <div className="flex flex-wrap gap-2">
                     <button

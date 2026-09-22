@@ -6,15 +6,49 @@ import { useAdminSettings } from "@/features/admin-settings/store";
 const inputClass = "mt-1 h-11 w-full rounded-md border border-line bg-card px-3 text-sm outline-none focus:border-navy";
 const selectClass = `${inputClass} appearance-none pr-10`;
 
-export function PropertyCard({ file }: { file: Assessment }) {
+export function PropertyCard({ file, readOnly = false }: { file: Assessment; readOnly?: boolean }) {
   const p = file.property;
   const { utilities } = useAdminSettings();
   function set(key: keyof typeof p, value: string) {
+    if (readOnly) return;
     setProperty(file.id, { [key]: value });
+  }
+  if (readOnly) {
+    const facts: [string, string][] = [
+      ["Year built", p.yearBuilt],
+      ["Sq ft", p.sqft],
+      ["Stories", p.stories],
+      ["Occupancy", p.occupancy],
+      ["HOA", p.hoa],
+      ["Utility", p.utility],
+      ["Both home", p.bothHome],
+      ["Indoor °F", p.indoorTemp],
+      ["Outdoor °F", p.outdoorTemp],
+      ["Hot rooms", p.hotRooms],
+      ["Cold rooms", p.coldRooms],
+      ["Access", p.access],
+      ["Electrical", p.electrical],
+      ["Notes", p.notes],
+    ];
+    return (
+      <section className="rounded-md border border-line bg-card p-4">
+        <h2 className="mb-3 text-sm font-semibold">House facts</h2>
+        <div className="grid gap-x-6 gap-y-3 sm:grid-cols-2">
+          {facts
+            .filter(([, v]) => v)
+            .map(([label, value]) => (
+              <div key={label} className={label === "Notes" || label === "Access" ? "sm:col-span-2" : ""}>
+                <p className="text-[11px] font-bold tracking-wide text-muted uppercase">{label}</p>
+                <p className="mt-0.5 text-sm">{value}</p>
+              </div>
+            ))}
+        </div>
+      </section>
+    );
   }
   return (
     <section className="rounded-md border border-line bg-card p-4">
-      <h2 className="mb-3 text-[11px] font-bold tracking-wide text-muted uppercase">House facts</h2>
+      <h2 className="mb-3 text-sm font-semibold">House facts</h2>
       <div className="grid gap-3 sm:grid-cols-3">
         <label className="block text-sm">
           <span className="text-[11px] font-bold tracking-wide text-muted uppercase">Year built</span>

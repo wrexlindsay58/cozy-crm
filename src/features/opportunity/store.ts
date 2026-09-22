@@ -4,7 +4,7 @@ import { defaultSkus } from "@/lib/pricebook";
 import { buildOption, defaultPicks, itemBySku, unitFor, type CatalogKind } from "@/features/catalog/store";
 import { PACKAGES, type PackageId } from "./packages";
 import { getDealerFeePct } from "@/features/money-settings/store";
-import { money, opportunities } from "@/lib/crm-data";
+import { money, opportunities, leads } from "@/lib/crm-data";
 
 export type OptLine = {
   sku: string;
@@ -85,9 +85,23 @@ export function optionTotal(opt: OptCard) {
   }
   return Math.max(0, sub);
 }
-function seedFor(oppId: string, personId: string, closer: string, product: string): Proposal {
+function defaultOffers(oppId: string): PayOffer[] {
+  return [
+    { id: `${oppId}-cash`, kind: "cash", terms: [] },
+    { id: `${oppId}-card`, kind: "card", terms: [] },
+    { id: `${oppId}-gl`, kind: "finance", financer: "GoodLeap", terms: [120, 144] },
+  ];
+}
+
+function seedFor(oppId: string, personId: string, closer: string, product: string, stage: string): Proposal {
   const products = defaultSkus(product);
   const a = linesFrom(products);
+  const payOffers = defaultOffers(oppId);
+  const lead = leads.find((l) => l.id === personId);
+  const won = /^Won/.test(stage);
+  const cash = /cash/i.test(lead?.finance ?? "") || /cash/i.test(lead?.notes ?? "");
+  const financeId = payOffers.find((o) => o.kind === "finance")?.id ?? payOffers[0].id;
+  const cashId = payOffers.find((o) => o.kind === "cash")?.id ?? payOffers[0].id;
   return {
     oppId,
     personId,
@@ -98,16 +112,20 @@ function seedFor(oppId: string, personId: string, closer: string, product: strin
       { id: "B", name: "Good / better", lines: a.map((l) => ({ ...l })) },
       { id: "C", name: "Good", lines: a.map((l) => ({ ...l })) },
     ],
-    pay: "cash",
-    payOffers: [],
+    accepted: won ? "A" : undefined,
+    pay: cash ? "cash" : "goodleap",
+    payOffers,
+    payPick: won ? (cash ? { offerId: cashId } : { offerId: financeId, term: 120 }) : { offerId: cashId },
     goodleapTerm: "10yr",
-    goodleapStatus: "Not run",
-    proposalStatus: "Draft",
-    signStatus: "—",
+    goodleapStatus: won && !cash ? "Approved" : "Not run",
+    proposalStatus: won ? "Sent" : "Draft",
+    signStatus: won ? "Signed" : "—",
     documents: [],
   };
 }
-let proposals: Record<string, Proposal> = Object.fromEntries(opportunities.map((o) => [o.id, seedFor(o.id, o.leadId, o.closer, o.product)]));
+let proposals: Record<string, Proposal> = Object.fromEntries(
+  opportunities.map((o) => [o.id, seedFor(o.id, o.leadId, o.closer, o.product, o.stage)]),
+);
 const listeners = new Set<() => void>();
 function emit() {
   listeners.forEach((l) => l());

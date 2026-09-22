@@ -1,46 +1,69 @@
 import { useState } from "react";
-import { ackWo, addAssign, addEvent, patchAssign, patchEvent, removeAssign, sendAssignWo, setEventStatus, signWo, toggleAssignScope, type JobFile } from "./store";
-import { PROCESSES } from "./types";
+import { ChevronDown, Plus, Trash2 } from "lucide-react";
+import { addAssign, addEvent, patchAssign, patchEvent, removeAssign, removeEvent, sendAssignWo, setEventStatus, toggleAssignScope, type JobFile } from "./store";
+import { processFor } from "./types";
 import { cn } from "@/lib/cn";
+import { JobCard } from "./job-card";
+import { CLOCKS, clock12, clock24 } from "./clock";
+import { Tip } from "@/components/tip";
+import { Float } from "@/components/float";
 
-const CREWS = ["Crew 2 — Tasha", "Crew 1 — Evan", "Crew 3 — Marco"];
+import { SHOP_CREWS, VEHICLE_KINDS, needsTrailerNo, vehicleLabel, vehicleMissing } from "@/features/staff/store";
+import { FillField, FillRow, FILL_IN, FILL_IN_ERR } from "./fill-row";
 const SUBS = ["Valley Electric", "AeroSeal Co"];
+const STATUSES = ["Set", "Dispatched", "Done", "No-show"] as const;
+const DAY_WHY = ["Extra scope", "Weather", "Materials", "Punch", "Test-out", "Callback", "Access", "Other"];
 
 export function CrewChapter({ job }: { job: JobFile }) {
   const [open, setOpen] = useState<string | null>(job.assignments[0]?.id ?? null);
-  const [process, setProcess] = useState<string>(PROCESSES[0]);
-  const [scopeId, setScopeId] = useState(job.scope.find((s) => s.kind === "product")?.id ?? "");
+  const crewsOnJob = [...new Set(job.assignments.map((a) => (a.kind === "sub" ? a.company || a.crew : a.crew)).filter(Boolean))];
+  const [who, setWho] = useState(crewsOnJob[0] || SHOP_CREWS[0].name);
   const [day, setDay] = useState("");
-  const [start, setStart] = useState("07:00");
-  const [end, setEnd] = useState("15:00");
+  const [start, setStart] = useState("7:00a");
+  const [end, setEnd] = useState("3:00p");
+  const [why, setWhy] = useState(DAY_WHY[0]);
   const products = job.scope.filter((s) => s.kind !== "promise");
 
   return (
-    <div className="space-y-4">
-      <section className="rounded-md border border-line bg-card p-5">
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-[11px] font-bold tracking-wide text-muted uppercase">Crew</h2>
-          <button type="button" className="h-9 rounded-md border border-line px-3 text-xs font-semibold" onClick={() => addAssign(job.jobId)}>
+    <div className="min-w-0 space-y-3">
+      <JobCard
+        kicker="Crews"
+        title={`${job.assignments.length} assigned · ${job.events.length} days on the book`}
+        done={job.assignments.length > 0 && job.assignments.every((a) => a.woId)}
+        actions={
+          <button type="button" className="h-8 rounded-md border border-line px-3 text-xs font-semibold" onClick={() => addAssign(job.jobId)}>
             Add crew
           </button>
-        </div>
-        <ul className="divide-y divide-line">
+        }
+      >
+        <ul className="space-y-4">
           {job.assignments.map((a) => {
             const wo = job.workOrders.find((w) => w.id === a.woId);
             const who = a.kind === "sub" ? a.company || a.crew : a.crew;
             const names = a.scopes.map((id) => job.scope.find((s) => s.id === id)?.label).filter(Boolean).join(" · ");
             const expanded = open === a.id;
+            const status = wo?.status ?? "Draft";
             return (
-              <li key={a.id} className="py-3">
-                <button type="button" className="flex w-full items-center justify-between gap-3 text-left" onClick={() => setOpen(expanded ? null : a.id)}>
-                  <span className="min-w-0">
-                    <span className="block text-sm font-semibold">{who}</span>
-                    <span className="block truncate text-[12px] text-muted">
-                      {a.day || "No date"} {a.start}–{a.end} · {names || "No scope"}
+              <li key={a.id} className="min-w-0 rounded-md border border-line p-3">
+                <div className="flex min-w-0 items-start gap-2">
+                  <button type="button" className="min-w-0 flex-1 text-left" onClick={() => setOpen(expanded ? null : a.id)}>
+                    <span className="block text-[11px] font-bold tracking-wide text-muted uppercase">{a.kind === "sub" ? "Sub" : "In-house"}</span>
+                    <span className="mt-0.5 block truncate text-sm font-semibold">{who}</span>
+                    <span className="mt-0.5 block truncate text-[11px] text-muted">
+                      {a.day || "No date"} {clock12(a.start)}–{clock12(a.end)}
+                      {a.vehicleKind || a.truck ? ` · ${a.truck || vehicleLabel(a.vehicleKind || "Box Truck", a.vehicleNo || "", a.trailerNo)}` : ""}
                     </span>
+                    <span className="mt-0.5 block truncate text-[11px] text-muted">{names || "No install"}</span>
+                  </button>
+                  <span className="flex shrink-0 items-center gap-1 pt-0.5">
+                    <span className="text-[11px] font-bold tracking-wide text-muted uppercase">{status}</span>
+                    <Tip label="Remove" on>
+                      <button type="button" aria-label="Remove crew" className="grid size-8 place-items-center rounded-md text-muted hover:bg-page hover:text-alert" onClick={() => removeAssign(job.jobId, a.id)}>
+                        <Trash2 className="size-4" />
+                      </button>
+                    </Tip>
                   </span>
-                  <span className="shrink-0 text-[11px] font-bold tracking-wide text-muted uppercase">{wo?.status ?? "No WO"}</span>
-                </button>
+                </div>
                 {expanded ? (
                   <div className="mt-3 space-y-3">
                     <div className="flex flex-wrap gap-1.5">
@@ -50,40 +73,31 @@ export function CrewChapter({ job }: { job: JobFile }) {
                         </button>
                       ))}
                     </div>
-                    <div className="grid gap-2 sm:grid-cols-4">
-                      <select value={a.kind === "sub" ? a.company : a.crew} onChange={(e) => patchAssign(job.jobId, a.id, a.kind === "sub" ? { company: e.target.value, crew: e.target.value } : { crew: e.target.value })} className="h-10 rounded-md border border-line px-2 text-sm">
-                        {(a.kind === "sub" ? SUBS : CREWS).map((c) => (
+                    <div className="grid min-w-0 gap-2 sm:grid-cols-2 lg:grid-cols-4">
+                      <select value={a.kind === "sub" ? a.company : a.crew} onChange={(e) => patchAssign(job.jobId, a.id, a.kind === "sub" ? { company: e.target.value, crew: e.target.value } : { crew: e.target.value })} className="h-10 min-w-0 rounded-md border border-line px-2 text-sm">
+                        {(a.kind === "sub" ? SUBS : SHOP_CREWS.map((c) => c.name)).map((c) => (
                           <option key={c}>{c}</option>
                         ))}
                       </select>
-                      <input type="date" value={a.day} onChange={(e) => patchAssign(job.jobId, a.id, { day: e.target.value })} className="h-10 rounded-md border border-line px-2 text-sm" />
-                      <input type="time" value={a.start} onChange={(e) => patchAssign(job.jobId, a.id, { start: e.target.value })} className="h-10 rounded-md border border-line px-2 text-sm" />
-                      <input type="time" value={a.end} onChange={(e) => patchAssign(job.jobId, a.id, { end: e.target.value })} className="h-10 rounded-md border border-line px-2 text-sm" />
+                      <input type="date" value={a.day} onChange={(e) => patchAssign(job.jobId, a.id, { day: e.target.value })} className="h-10 min-w-0 rounded-md border border-line px-2 text-sm" />
+                      <select value={clock12(a.start)} onChange={(e) => patchAssign(job.jobId, a.id, { start: clock24(e.target.value) })} className="h-10 min-w-0 rounded-md border border-line px-2 text-sm">
+                        {CLOCKS.map((h) => (
+                          <option key={h}>{h}</option>
+                        ))}
+                      </select>
+                      <select value={clock12(a.end)} onChange={(e) => patchAssign(job.jobId, a.id, { end: clock24(e.target.value) })} className="h-10 min-w-0 rounded-md border border-line px-2 text-sm">
+                        {CLOCKS.map((h) => (
+                          <option key={h}>{h}</option>
+                        ))}
+                      </select>
                     </div>
-                    <div className="flex flex-wrap gap-1.5">
-                      {products.map((s) => (
-                        <button key={s.id} type="button" onClick={() => toggleAssignScope(job.jobId, a.id, s.id)} className={cn("h-8 rounded-md px-2.5 text-[12px] font-semibold", a.scopes.includes(s.id) ? "bg-navy text-card" : "border border-line")}>
-                          {s.label}
-                        </button>
-                      ))}
-                    </div>
-                    <div className="flex flex-wrap items-center gap-2">
+                    {a.kind === "internal" ? <VehicleFields jobId={job.jobId} assignId={a.id} kind={a.vehicleKind || "Box Truck"} number={a.vehicleNo || ""} trailer={a.trailerNo || ""} /> : null}
+                    <InstallPick job={job} assignId={a.id} selected={a.scopes} products={products} />
+                    <div className="flex min-w-0 items-center gap-2">
                       <button type="button" className="h-10 rounded-md bg-navy px-3 text-sm font-semibold text-card" onClick={() => sendAssignWo(job.jobId, a.id)}>
-                        {wo ? "Resend WO" : "Send work order"}
+                        {status === "Draft" ? "Send work order" : "Resend WO"}
                       </button>
-                      {wo?.status === "Sent" ? (
-                        <button type="button" className="h-10 rounded-md border border-line px-3 text-sm font-semibold" onClick={() => ackWo(job.jobId, wo.id, who)}>
-                          Acknowledge
-                        </button>
-                      ) : null}
-                      {wo && wo.status !== "Signed" && wo.status !== "Done" ? (
-                        <button type="button" className="h-10 rounded-md border border-line px-3 text-sm font-semibold" onClick={() => signWo(job.jobId, wo.id, who)}>
-                          E-sign
-                        </button>
-                      ) : null}
-                      <button type="button" className="ml-auto text-xs font-semibold text-alert" onClick={() => removeAssign(job.jobId, a.id)}>
-                        Remove
-                      </button>
+                      <span className="ml-auto shrink-0 text-[11px] font-bold tracking-wide text-muted uppercase">{status}</span>
                     </div>
                   </div>
                 ) : null}
@@ -91,62 +105,237 @@ export function CrewChapter({ job }: { job: JobFile }) {
             );
           })}
         </ul>
-      </section>
+      </JobCard>
 
-      <section className="rounded-md border border-line bg-card p-5">
-        <h2 className="mb-3 text-[11px] font-bold tracking-wide text-muted uppercase">Days</h2>
+      <JobCard kicker="Schedule" title="When we’re on site">
+        {job.events.length === 0 ? <p className="mb-3 text-sm text-muted">No days on the book yet.</p> : null}
         <ul className="divide-y divide-line">
           {job.events.map((e) => {
             const scope = job.scope.find((s) => s.id === e.scopeId);
             return (
-              <li key={e.id} className="flex flex-col gap-2 py-3 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                  <p className="text-sm font-semibold">{e.process}</p>
-                  <p className="text-[12px] text-muted">
-                    {scope?.label} · {e.day} · {e.start}–{e.end} · {e.crew}
-                  </p>
-                </div>
-                <div className="flex flex-wrap items-center gap-1">
-                  <input type="time" value={e.start} onChange={(ev) => patchEvent(job.jobId, e.id, { start: ev.target.value })} className="h-8 rounded-md border border-line px-1 text-[12px]" />
-                  <input type="time" value={e.end} onChange={(ev) => patchEvent(job.jobId, e.id, { end: ev.target.value })} className="h-8 rounded-md border border-line px-1 text-[12px]" />
-                  {(["Set", "Dispatched", "Done", "No-show"] as const).map((s) => (
-                    <button key={s} type="button" onClick={() => setEventStatus(job.jobId, e.id, s)} className={cn("h-8 rounded-md px-2 text-[11px] font-semibold", e.status === s ? "bg-navy text-card" : "border border-line")}>
-                      {s}
+              <li key={e.id} className="min-w-0 py-3 first:pt-0">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold">{prettyDay(e.day)}</p>
+                    <p className="truncate text-[11px] text-muted">
+                      {e.crew}
+                      {scope?.label ? ` · ${scope.label}` : ""}
+                      {e.why ? ` · ${e.why}` : ""}
+                    </p>
+                  </div>
+                  <Tip label="Remove day" on>
+                    <button type="button" aria-label="Remove day" className="grid size-8 shrink-0 place-items-center rounded-md text-muted hover:bg-page hover:text-alert" onClick={() => removeEvent(job.jobId, e.id)}>
+                      <Trash2 className="size-4" />
                     </button>
-                  ))}
+                  </Tip>
+                </div>
+                <div className="mt-2 grid min-w-0 grid-cols-2 gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,9rem)]">
+                  <label className="min-w-0 text-[11px] font-bold tracking-wide text-muted uppercase">
+                    Start
+                    <select value={clock12(e.start)} onChange={(ev) => patchEvent(job.jobId, e.id, { start: clock24(ev.target.value) })} className="mt-1 h-10 w-full min-w-0 rounded-md border border-line px-2 text-sm font-semibold normal-case tracking-normal">
+                      {CLOCKS.map((h) => (
+                        <option key={h}>{h}</option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="min-w-0 text-[11px] font-bold tracking-wide text-muted uppercase">
+                    End
+                    <select value={clock12(e.end)} onChange={(ev) => patchEvent(job.jobId, e.id, { end: clock24(ev.target.value) })} className="mt-1 h-10 w-full min-w-0 rounded-md border border-line px-2 text-sm font-semibold normal-case tracking-normal">
+                      {CLOCKS.map((h) => (
+                        <option key={h}>{h}</option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="col-span-2 min-w-0 text-[11px] font-bold tracking-wide text-muted uppercase sm:col-span-1">
+                    Status
+                    <select value={e.status} onChange={(ev) => setEventStatus(job.jobId, e.id, ev.target.value as (typeof STATUSES)[number])} className="mt-1 h-10 w-full min-w-0 rounded-md border border-line px-2 text-sm font-semibold normal-case tracking-normal">
+                      {STATUSES.map((s) => (
+                        <option key={s}>{s}</option>
+                      ))}
+                    </select>
+                  </label>
                 </div>
               </li>
             );
           })}
         </ul>
         <form
-          className="mt-3 grid gap-2 sm:grid-cols-5"
+          className="mt-3 min-w-0 space-y-2 border-t border-line pt-3"
           onSubmit={(e) => {
             e.preventDefault();
-            addEvent(job.jobId, process, scopeId, day, start, end);
+            if (!day) return;
+            const a = job.assignments.find((x) => (x.kind === "sub" ? x.company || x.crew : x.crew) === who);
+            const sid = a?.scopes[0] || products[0]?.id || "";
+            const label = job.scope.find((s) => s.id === sid)?.label ?? "";
+            addEvent(job.jobId, processFor(label), sid, day, clock24(start), clock24(end), who, why);
             setDay("");
           }}
         >
-          <select value={process} onChange={(e) => setProcess(e.target.value)} className="h-10 rounded-md border border-line px-2 text-sm">
-            {PROCESSES.map((p) => (
-              <option key={p}>{p}</option>
-            ))}
-          </select>
-          <select value={scopeId} onChange={(e) => setScopeId(e.target.value)} className="h-10 rounded-md border border-line px-2 text-sm">
-            {products.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.label}
-              </option>
-            ))}
-          </select>
-          <input type="date" value={day} onChange={(e) => setDay(e.target.value)} className="h-10 rounded-md border border-line px-2 text-sm" />
-          <input type="time" value={start} onChange={(e) => setStart(e.target.value)} className="h-10 rounded-md border border-line px-2 text-sm" />
-          <button type="submit" className="h-10 rounded-md bg-navy px-3 text-sm font-semibold text-card">
-            Add day
-          </button>
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-[11px] font-bold tracking-wide text-muted uppercase">Add a day</p>
+            <button type="submit" aria-label="Add day" className="grid size-8 shrink-0 place-items-center rounded-md bg-navy text-card">
+              <Plus className="size-4" />
+            </button>
+          </div>
+          <div className="grid min-w-0 gap-2 sm:grid-cols-2">
+            <label className="block min-w-0 text-[11px] font-bold tracking-wide text-muted uppercase">
+              Crew
+              <select value={who} onChange={(e) => setWho(e.target.value)} className="mt-1 h-10 w-full min-w-0 rounded-md border border-line px-2 text-sm font-semibold normal-case tracking-normal">
+                {(crewsOnJob.length ? crewsOnJob : SHOP_CREWS.map((c) => c.name)).map((c) => (
+                  <option key={c}>{c}</option>
+                ))}
+              </select>
+            </label>
+            <label className="block min-w-0 text-[11px] font-bold tracking-wide text-muted uppercase">
+              Day
+              <input type="date" value={day} onChange={(e) => setDay(e.target.value)} className="mt-1 h-10 w-full min-w-0 rounded-md border border-line px-2 text-sm font-semibold normal-case tracking-normal" />
+            </label>
+            <label className="block min-w-0 text-[11px] font-bold tracking-wide text-muted uppercase sm:col-span-2">
+              Reason
+              <select value={why} onChange={(e) => setWhy(e.target.value)} className="mt-1 h-10 w-full min-w-0 rounded-md border border-line px-2 text-sm font-semibold normal-case tracking-normal">
+                {DAY_WHY.map((r) => (
+                  <option key={r}>{r}</option>
+                ))}
+              </select>
+            </label>
+          </div>
+          <div className="grid min-w-0 grid-cols-2 gap-2">
+            <label className="min-w-0 text-[11px] font-bold tracking-wide text-muted uppercase">
+              Start
+              <select value={start} onChange={(e) => setStart(e.target.value)} className="mt-1 h-10 w-full min-w-0 rounded-md border border-line px-2 text-sm font-semibold normal-case tracking-normal">
+                {CLOCKS.map((h) => (
+                  <option key={h}>{h}</option>
+                ))}
+              </select>
+            </label>
+            <label className="min-w-0 text-[11px] font-bold tracking-wide text-muted uppercase">
+              End
+              <select value={end} onChange={(e) => setEnd(e.target.value)} className="mt-1 h-10 w-full min-w-0 rounded-md border border-line px-2 text-sm font-semibold normal-case tracking-normal">
+                {CLOCKS.map((h) => (
+                  <option key={h}>{h}</option>
+                ))}
+              </select>
+            </label>
+          </div>
         </form>
-        <input type="time" value={end} onChange={(e) => setEnd(e.target.value)} className="mt-2 h-10 w-36 rounded-md border border-line px-2 text-sm" aria-label="End" />
-      </section>
+      </JobCard>
+    </div>
+  );
+}
+
+function prettyDay(iso: string) {
+  if (!iso) return "Needs a day";
+  const [y, m, d] = iso.split("-").map(Number);
+  if (!y || !m || !d) return iso;
+  return new Date(y, m - 1, d).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
+}
+
+function InstallPick({
+  job,
+  assignId,
+  selected,
+  products,
+}: {
+  job: JobFile;
+  assignId: string;
+  selected: string[];
+  products: JobFile["scope"];
+}) {
+  const [open, setOpen] = useState(false);
+  const [anchor, setAnchor] = useState<DOMRect | null>(null);
+  const label = selected.length ? selected.map((id) => job.scope.find((s) => s.id === id)?.label).filter(Boolean).join(", ") : "Pick installs";
+  return (
+    <div className="min-w-0">
+      <p className="mb-1 text-[11px] font-bold tracking-wide text-muted uppercase">Install</p>
+      <button
+        type="button"
+        className="flex h-10 w-full min-w-0 items-center justify-between gap-2 rounded-md border border-line px-3 text-left text-sm"
+        onClick={(e) => {
+          setAnchor(e.currentTarget.getBoundingClientRect());
+          setOpen((v) => !v);
+        }}
+      >
+        <span className="min-w-0 truncate">{label}</span>
+        <ChevronDown className="size-4 shrink-0 text-muted" />
+      </button>
+      {open && anchor ? (
+        <Float anchor={anchor} prefer="bottom" onClose={() => setOpen(false)}>
+          {products.map((s) => {
+            const on = selected.includes(s.id);
+            return (
+              <button
+                key={s.id}
+                type="button"
+                className="flex h-10 w-full min-w-56 items-center justify-between gap-3 px-3 text-sm hover:bg-page"
+                onClick={() => toggleAssignScope(job.jobId, assignId, s.id)}
+              >
+                <span>{s.label}</span>
+                <span className={cn("text-[11px] font-bold uppercase", on ? "text-navy" : "text-muted")}>{on ? "On" : "Off"}</span>
+              </button>
+            );
+          })}
+        </Float>
+      ) : null}
+    </div>
+  );
+}
+
+function VehicleFields({
+  jobId,
+  assignId,
+  kind,
+  number,
+  trailer,
+}: {
+  jobId: string;
+  assignId: string;
+  kind: string;
+  number: string;
+  trailer: string;
+}) {
+  const miss = vehicleMissing(kind, number, trailer);
+  const combo = needsTrailerNo(kind);
+  return (
+    <div>
+      <FillRow min="7rem">
+        <FillField label="Vehicle">
+          <select
+            value={kind}
+            onChange={(e) => {
+              const next = e.target.value;
+              patchAssign(jobId, assignId, { vehicleKind: next, trailerNo: needsTrailerNo(next) ? trailer : "" });
+            }}
+            className={FILL_IN}
+          >
+            {VEHICLE_KINDS.map((k) => (
+              <option key={k}>{k}</option>
+            ))}
+          </select>
+        </FillField>
+        <FillField label={kind === "Trailer" ? "Trailer #" : "Vehicle #"}>
+          <input
+            value={number}
+            onChange={(e) => patchAssign(jobId, assignId, { vehicleNo: e.target.value })}
+            placeholder="#"
+            className={miss && !number.trim() ? FILL_IN_ERR : FILL_IN}
+          />
+        </FillField>
+        {combo ? (
+          <FillField label="Trailer #">
+            <input
+              value={trailer}
+              onChange={(e) => patchAssign(jobId, assignId, { trailerNo: e.target.value })}
+              placeholder="#"
+              className={miss && !trailer.trim() ? FILL_IN_ERR : FILL_IN}
+            />
+          </FillField>
+        ) : null}
+      </FillRow>
+      {miss ? (
+        <p className="mt-1 text-[12px] font-semibold text-alert">
+          {kind === "Pickup and Trailer" ? "Pickup and Trailer needs the pickup number and the trailer number." : "Need the vehicle number."}
+        </p>
+      ) : null}
     </div>
   );
 }

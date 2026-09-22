@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { JobWorkspace } from "@/features/job/workspace";
-import { jobTone, tally, useJob } from "@/features/job/store";
+import { cancelJob, jobTone, setStage, STAGES, tally, useJob } from "@/features/job/store";
 import { RecordShell } from "@/features/record-shell/record-shell";
 import { scrollFileSection } from "@/features/record-shell/file-sections";
 import { useOps } from "@/features/ops/store";
@@ -32,6 +32,8 @@ function JobFilePage() {
       subtitle={lead ? placeLine(lead.address, lead.city, lead.office) : `${job.product} · ${job.window}`}
       stage={job.stage}
       stageTone={jobTone(job)}
+      onStage={(status) => setStage(job.jobId, status as (typeof STAGES)[number])}
+      stageOptions={STAGES.map((s) => ({ label: s, tone: jobTone({ stage: s, holds: [] }) }))}
       moneyLabel={money(t.revenue)}
       owner={{ name: job.pm, role: "PM" }}
       followers={followersByPerson[personId] ?? followersByPerson[job.accountId] ?? [{ name: job.closer, role: "Closer" }]}
@@ -61,6 +63,7 @@ function JobFilePage() {
       history={history?.[personId] ?? history?.[job.accountId] ?? []}
       tickets={(tickets ?? []).filter((tix) => tix.related === job.jobId || tix.related === personId || tix.related === job.accountId)}
       photos={photosByPerson[personId] ?? photosByPerson[job.accountId] ?? []}
+      onCancelJob={job.cancelled ? undefined : (why) => cancelJob(job.jobId, why)}
     >
       <JobWorkspace job={job} lead={lead} focus={focus} />
     </RecordShell>

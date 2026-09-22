@@ -1,37 +1,45 @@
 import { useState } from "react";
-import { ChevronDown } from "lucide-react";
+import { Pencil } from "lucide-react";
 import { assessmentForLead, useAssessment, useAssessments } from "@/features/assessment/store";
-import { useAssessCategories } from "@/features/assessment/categories";
-import { PacketList } from "@/features/assessment/packets";
+import { PacketCard } from "@/features/assessment/packets";
 import { PropertyCard } from "@/features/assessment/property";
+import { useAssessCategories } from "@/features/assessment/categories";
+import { Tip } from "@/components/tip";
 import { cn } from "@/lib/cn";
 
 export function AssessSnap({ leadId }: { leadId: string }) {
   useAssessments();
   const found = assessmentForLead(leadId);
   const file = useAssessment(found?.id ?? "");
-  const cats = useAssessCategories();
-  const [open, setOpen] = useState(false);
-  if (!file) return null;
-  const label = (id: string) => cats.find((c) => c.id === id)?.label ?? id;
-  const filled = file.packets.filter((p) => Object.keys(p.fields).length || p.notes || p.photos.length);
-  const line = filled.length ? filled.map((p) => label(p.id)).join(" · ") : file.status;
+  const cats = useAssessCategories().filter((c) => c.on);
+  const [edit, setEdit] = useState(false);
+  if (!file) return <p className="text-sm text-muted">No assessment on this file.</p>;
 
   return (
-    <section className="rounded-md border border-line bg-card p-4">
-      <button type="button" className="flex w-full items-start justify-between gap-2 text-left" onClick={() => setOpen((v) => !v)}>
-        <span className="min-w-0">
-          <span className="block text-[11px] font-bold tracking-wide text-muted uppercase">Assessment {file.id}</span>
-          {!open ? <span className="mt-1 block truncate text-sm">{line}</span> : null}
-        </span>
-        <ChevronDown className={cn("mt-0.5 size-4 shrink-0 text-muted transition-transform", open && "rotate-180")} />
-      </button>
-      {open ? (
-        <div className="mt-3 space-y-3">
-          <PropertyCard file={file} />
-          <PacketList file={file} />
+    <div className="space-y-3">
+      <div className="flex items-center justify-between gap-2">
+        <div className="min-w-0">
+          <h2 className="text-sm font-semibold">Assessment</h2>
+          <p className="mt-0.5 text-[11px] text-muted">
+            {file.id} · {file.status}
+          </p>
         </div>
-      ) : null}
-    </section>
+        <Tip label={edit ? "Done" : "Edit"} on>
+          <button
+            type="button"
+            aria-label={edit ? "Done editing" : "Edit assessment"}
+            onClick={() => setEdit((v) => !v)}
+            className={cn("grid size-8 place-items-center rounded-md", edit ? "bg-navy text-card" : "text-muted hover:bg-page hover:text-navy")}
+          >
+            <Pencil className="size-4" />
+          </button>
+        </Tip>
+      </div>
+      <PropertyCard file={file} readOnly={!edit} />
+      {cats.map((def) => {
+        const packet = file.packets.find((p) => p.id === def.id) ?? { id: def.id, fields: {}, photos: [], notes: "" };
+        return <PacketCard key={def.id} assessmentId={file.id} def={def} packet={packet} readOnly={!edit} />;
+      })}
+    </div>
   );
 }

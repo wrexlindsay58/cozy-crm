@@ -37,4 +37,7 @@ export type RecordShellProps = {
   actionId?: string;
   actionKind?: ActionKind;
   actionTitle?: string;
+  onStage?: (status: string) => void;
+  stageOptions?: { label: string; tone: Tone }[];
+  onCancelJob?: (why: string) => void;
 };

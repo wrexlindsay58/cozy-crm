@@ -7,6 +7,7 @@ export type ProdProfile = {
   on: boolean;
   needsPlan: boolean;
   planCustomerApproval: boolean;
+  needsSurvey: boolean;
   needsUtility: boolean;
   needsPermit: boolean;
   needsSerial: boolean;
@@ -24,6 +25,7 @@ const seed: ProdProfile[] = [
     on: true,
     needsPlan: false,
     planCustomerApproval: false,
+    needsSurvey: false,
     needsUtility: false,
     needsPermit: false,
     needsSerial: false,
@@ -42,6 +44,7 @@ const seed: ProdProfile[] = [
     on: true,
     needsPlan: false,
     planCustomerApproval: false,
+    needsSurvey: true,
     needsUtility: false,
     needsPermit: true,
     needsSerial: true,
@@ -62,6 +65,7 @@ const seed: ProdProfile[] = [
     on: true,
     needsPlan: true,
     planCustomerApproval: false,
+    needsSurvey: true,
     needsUtility: false,
     needsPermit: false,
     needsSerial: false,
@@ -82,6 +86,7 @@ const seed: ProdProfile[] = [
     on: true,
     needsPlan: true,
     planCustomerApproval: true,
+    needsSurvey: true,
     needsUtility: true,
     needsPermit: true,
     needsSerial: true,
@@ -132,6 +137,6 @@ export function patchProfile(id: string, row: Partial<ProdProfile>) {
 export function addProfile(label: string) {
   const name = label.trim();
   if (!name) return;
-  rows = [...rows, { id: `p-${Date.now()}`, label: name, on: true, needsPlan: false, planCustomerApproval: false, needsUtility: false, needsPermit: false, needsSerial: false, needsTestOut: false, unit: "each", supplier: "", process: `Install · ${name}`, bom: [] }];
+  rows = [...rows, { id: `p-${Date.now()}`, label: name, on: true, needsPlan: false, planCustomerApproval: false, needsSurvey: false, needsUtility: false, needsPermit: false, needsSerial: false, needsTestOut: false, unit: "each", supplier: "", process: `Install · ${name}`, bom: [] }];
   emit();
 }

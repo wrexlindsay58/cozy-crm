@@ -30,7 +30,7 @@ export function QualifyCard({ leadId }: { leadId: string }) {
   return (
     <section className="rounded-md border border-line bg-card p-4">
       <div className="mb-3 flex items-center justify-between gap-2">
-        <h2 className="text-[11px] font-bold tracking-wide text-muted uppercase">Qualified</h2>
+        <h2 className="text-sm font-semibold">Qualified</h2>
         <span
           className={cn(
             "inline-flex h-6 items-center rounded-md px-2 text-[11px] font-bold tracking-wide uppercase",

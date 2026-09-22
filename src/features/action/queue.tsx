@@ -153,10 +153,10 @@ function ViewDesc({ text }: { text: string }) {
 function PersonMark({ label, name }: { label: string; name: string }) {
   if (!name) return null;
   return (
-    <div className="flex shrink-0 items-center gap-1.5">
+    <div className="shrink-0">
       <p className="text-[10px] font-bold tracking-wide text-muted uppercase">{label}</p>
       <Tip label={name} on>
-        <span className="shrink-0" aria-label={`${label} ${name}`}>
+        <span className="mt-0.5 inline-flex shrink-0" aria-label={`${label} ${name}`}>
           <Initials name={name} />
         </span>
       </Tip>
@@ -166,19 +166,21 @@ function PersonMark({ label, name }: { label: string; name: string }) {
 
 function ActionPeople({ owner, assigned, following }: { owner: string; assigned: string; following: string[] }) {
   return (
-    <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2">
+    <div className="mt-2 flex flex-wrap items-start gap-x-6 gap-y-2">
       <PersonMark label="Owner" name={owner} />
       <PersonMark label="Assigned" name={assigned} />
-      <div className="ml-auto flex min-w-0 items-center justify-end gap-1.5">
-        <p className="shrink-0 text-[10px] font-bold tracking-wide text-muted uppercase">Following</p>
-        {following.length === 0 ? <p className="text-sm text-muted">None</p> : null}
-        {following.map((name) => (
-          <Tip key={name} label={name} on>
-            <span className="shrink-0" aria-label={name}>
-              <Initials name={name} />
-            </span>
-          </Tip>
-        ))}
+      <div className="ml-auto min-w-0">
+        <p className="text-right text-[10px] font-bold tracking-wide text-muted uppercase">Followers</p>
+        <div className="mt-0.5 flex min-w-0 items-center justify-end gap-1.5">
+          {following.length === 0 ? <p className="text-sm text-muted">None</p> : null}
+          {following.map((name) => (
+            <Tip key={name} label={name} on>
+              <span className="shrink-0" aria-label={name}>
+                <Initials name={name} />
+              </span>
+            </Tip>
+          ))}
+        </div>
       </div>
     </div>
   );

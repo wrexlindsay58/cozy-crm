@@ -23,6 +23,7 @@ const EVENTS: {
 }[] = [
   { id: "Sales", assign: ["Closer", "Owner"], crew: false, scope: false, length: "2h", hint: "Both home? Gate code? Dog?" },
   { id: "Assessment", assign: ["Closer", "Owner"], crew: false, scope: false, length: "1.5h", hint: "What are we walking? Hatch, condenser, ducts." },
+  { id: "Site survey", assign: ["PM", "Crew"], crew: true, scope: true, length: "1.5h", hint: "Size, type, placement. Room measurements. Registers." },
   { id: "Install", assign: ["PM"], crew: true, scope: true, length: "All day", hint: "Scope on the truck. Access, dump, HOA." },
   { id: "Service", assign: ["PM", "Crew"], crew: true, scope: true, length: "1h", hint: "What's broken. Fee if it is a paid call." },
   { id: "Warranty", assign: ["PM", "Crew"], crew: true, scope: true, length: "1h", hint: "What failed and when we installed." },
@@ -215,8 +216,14 @@ export function BookWidget({
 
       <h3 className="sr-only">Events</h3>
       {mine.length === 0 ? <p className="mt-2 text-sm text-muted">Nothing scheduled yet.</p> : null}
-      <ul className="mt-2 space-y-2">
-        {mine.map((a) => (
+      {(["Sales", "Assessment", "Install", "Service", "Warranty", "Go-back", "Callback"] as const).map((kind) => {
+        const rows = mine.filter((a) => (a.kind ?? "Sales") === kind);
+        if (!rows.length) return null;
+        return (
+          <div key={kind} className="mt-3">
+            <p className="mb-1.5 text-[11px] font-bold tracking-wide text-muted uppercase">{kind}</p>
+            <ul className="space-y-2">
+              {rows.map((a) => (
           <li key={a.id} className="rounded-md border border-line px-3 py-2 text-sm">
             <div className="flex flex-wrap items-center gap-2">
               <span className="font-semibold">
@@ -233,8 +240,11 @@ export function BookWidget({
             {a.notes ? <p className="mt-1">{a.notes}</p> : null}
             {a.scope ? <p className="mt-1 text-[11px] text-muted">{a.scope}</p> : null}
           </li>
-        ))}
-      </ul>
+              ))}
+            </ul>
+          </div>
+        );
+      })}
       {history?.[leadId]?.length ? (
         <p className="mt-3 text-[11px] text-muted">File history stays on History. Last: {history[leadId][0]?.what}</p>
       ) : null}

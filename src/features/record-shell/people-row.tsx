@@ -21,12 +21,14 @@ export function PeopleRow({
   seedFollowers,
   canDrop,
   actionId,
+  onCancelJob,
 }: {
   personId: string;
   owner: PersonRef;
   seedFollowers: PersonRef[];
   canDrop?: boolean;
   actionId?: string;
+  onCancelJob?: (why: string) => void;
 }) {
   const { followers, leads, actions } = useOps();
   const { people, departments } = useStaff();
@@ -34,7 +36,7 @@ export function PeopleRow({
   const list = action
     ? (action.followers ?? []).map((name) => ({ name, role: "Follow" }))
     : (followers[personId] ?? seedFollowers);
-  const [mode, setMode] = useState<"idle" | "follow" | "transfer" | "drop" | "merge">("idle");
+  const [mode, setMode] = useState<"idle" | "follow" | "transfer" | "drop" | "merge" | "cancel">("idle");
   const [pick, setPick] = useState(`p:${people[0]?.name ?? ""}`);
   const [reason, setReason] = useState("");
   const [newFollow, setNewFollow] = useState("");
@@ -42,7 +44,7 @@ export function PeopleRow({
   const [into, setInto] = useState(others[0]?.id ?? "");
   const houseMoves = !actionId;
 
-  function setPanel(next: "idle" | "follow" | "transfer" | "drop" | "merge") {
+  function setPanel(next: "idle" | "follow" | "transfer" | "drop" | "merge" | "cancel") {
     setMode((cur) => (cur === next ? "idle" : next));
   }
 
@@ -58,23 +60,25 @@ export function PeopleRow({
 
   function followChips() {
     return (
-      <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
+      <div className="min-w-0 flex-1">
         <p className="text-[10px] font-bold tracking-wide text-muted uppercase">Followers</p>
-        {list.length === 0 ? <p className="text-sm text-muted">None</p> : null}
-        {list.map((f) => (
-          <span key={f.name} className="group inline-flex items-center gap-1.5 text-sm">
-            <Initials name={f.name} />
-            <span className="font-medium">{f.name}</span>
-            <button
-              type="button"
-              className="text-[11px] font-semibold text-muted opacity-0 hover:text-stop group-hover:opacity-100 group-focus-within:opacity-100"
-              onClick={() => dropFollow(f.name)}
-              aria-label={`Remove ${f.name}`}
-            >
-              x
-            </button>
-          </span>
-        ))}
+        <div className="mt-0.5 flex min-w-0 flex-wrap items-center gap-2">
+          {list.length === 0 ? <p className="text-sm text-muted">None</p> : null}
+          {list.map((f) => (
+            <span key={f.name} className="group inline-flex items-center gap-1.5 text-sm">
+              <Initials name={f.name} />
+              <span className="font-medium">{f.name}</span>
+              <button
+                type="button"
+                className="text-[11px] font-semibold text-muted opacity-0 hover:text-stop group-hover:opacity-100 group-focus-within:opacity-100"
+                onClick={() => dropFollow(f.name)}
+                aria-label={`Remove ${f.name}`}
+              >
+                x
+              </button>
+            </span>
+          ))}
+        </div>
       </div>
     );
   }
@@ -89,6 +93,7 @@ export function PeopleRow({
             ...(houseMoves
               ? [
                   { label: "Transfer", onClick: () => setPanel("transfer") },
+                  ...(onCancelJob ? [{ label: "Cancel job", onClick: () => setPanel("cancel") }] : []),
                   ...(canDrop
                     ? [
                         { label: "Merge", onClick: () => setPanel("merge") },
@@ -105,10 +110,10 @@ export function PeopleRow({
 
   function ownerBlock() {
     return (
-      <div className="flex shrink-0 items-center gap-2">
-        <Initials name={owner.name} />
-        <div>
-          <p className="text-[10px] font-bold tracking-wide text-muted uppercase">Owner</p>
+      <div className="shrink-0">
+        <p className="text-[10px] font-bold tracking-wide text-muted uppercase">Owner</p>
+        <div className="mt-0.5 flex items-center gap-2">
+          <Initials name={owner.name} />
           <p className="text-sm font-semibold">{owner.name}</p>
         </div>
       </div>
@@ -118,33 +123,35 @@ export function PeopleRow({
   return (
     <div className="border-b border-line bg-card px-4 py-2 md:px-5">
       <div className="flex flex-col gap-2 md:hidden">
-        <div className="flex items-center gap-6">
-          <div className="flex shrink-0 items-center gap-1.5">
+        <div className="flex items-start gap-6">
+          <div className="shrink-0">
             <p className="text-[10px] font-bold tracking-wide text-muted uppercase">Owner</p>
             <Tip label={owner.name} on>
-              <span className="shrink-0" aria-label={`Owner ${owner.name}`}>
+              <span className="mt-0.5 inline-flex shrink-0" aria-label={`Owner ${owner.name}`}>
                 <Initials name={owner.name} />
               </span>
             </Tip>
           </div>
-          <div className="flex min-w-0 flex-1 items-center justify-end gap-1.5 overflow-x-auto">
-            <p className="shrink-0 text-[10px] font-bold tracking-wide text-muted uppercase">Followers</p>
-            {list.length === 0 ? <p className="text-sm text-muted">None</p> : null}
-            {list.map((f) => (
-              <Tip key={f.name} label={f.name} on>
-                <span className="shrink-0" aria-label={f.name}>
-                  <Initials name={f.name} />
-                </span>
-              </Tip>
-            ))}
+          <div className="min-w-0 flex-1">
+            <p className="text-[10px] font-bold tracking-wide text-muted uppercase">Followers</p>
+            <div className="mt-0.5 flex min-w-0 items-center justify-end gap-1.5 overflow-x-auto">
+              {list.length === 0 ? <p className="text-sm text-muted">None</p> : null}
+              {list.map((f) => (
+                <Tip key={f.name} label={f.name} on>
+                  <span className="shrink-0" aria-label={f.name}>
+                    <Initials name={f.name} />
+                  </span>
+                </Tip>
+              ))}
+            </div>
           </div>
         </div>
         {peopleActs(true)}
       </div>
-      <div className="hidden min-w-0 flex-nowrap items-center gap-6 overflow-x-auto md:flex">
+      <div className="hidden min-w-0 flex-nowrap items-start gap-6 overflow-x-auto md:flex">
         {ownerBlock()}
         {followChips()}
-        <div className="ml-auto shrink-0">{peopleActs()}</div>
+        <div className="ml-auto shrink-0 self-center">{peopleActs()}</div>
       </div>
       {mode === "follow" ? (
         <div className="mt-2 flex flex-wrap gap-2">
@@ -259,6 +266,23 @@ export function PeopleRow({
             }}
           >
             Drop
+          </button>
+        </div>
+      ) : null}
+      {mode === "cancel" && onCancelJob ? (
+        <div className="mt-2 flex flex-wrap gap-2">
+          <input value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Why we're cancelling" className="h-11 min-w-40 flex-1 rounded-md border border-line bg-card px-3 text-sm" />
+          <button
+            type="button"
+            className="h-11 rounded-md border border-alert px-3 text-sm font-semibold text-alert"
+            onClick={() => {
+              if (!reason.trim()) return;
+              onCancelJob(reason.trim());
+              setReason("");
+              setMode("idle");
+            }}
+          >
+            Cancel job
           </button>
         </div>
       ) : null}

@@ -7,7 +7,7 @@ export function VisitBoard({ file, open }: { file: AccountFile; open: boolean })
   const d = defaultsFor(kind);
   return (
     <section className="rounded-md border border-line bg-card p-4">
-      <h2 className="mb-3 text-[11px] font-bold tracking-[0.14em] text-muted uppercase">Visits</h2>
+      <h2 className="mb-3 text-sm font-semibold">Visits</h2>
       {open ? (
         <div className="mb-3 flex flex-wrap gap-2">
           {VISIT_KINDS.map((k) => (

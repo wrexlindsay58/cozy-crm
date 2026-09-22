@@ -17,11 +17,17 @@ export function FieldInput({
   field,
   value,
   onChange,
+  readOnly = false,
 }: {
   field: AssessField;
   value: string;
   onChange: (v: string) => void;
+  readOnly?: boolean;
 }) {
+  if (readOnly) {
+    const shown = value?.trim() ? value : "—";
+    return <p className="mt-1 text-sm">{shown}</p>;
+  }
   const options = field.options ?? [];
   if (field.kind === "multi") {
     const on = split(value);
@@ -33,7 +39,10 @@ export function FieldInput({
             <button
               key={opt}
               type="button"
-              onClick={() => onChange(hit ? on.filter((x) => x !== opt).join(", ") : [...on, opt].join(", "))}
+              onClick={() => {
+                if (readOnly) return;
+                onChange(hit ? on.filter((x) => x !== opt).join(", ") : [...on, opt].join(", "));
+              }}
               className={cn(
                 "h-7 rounded-md px-2 text-[11px] font-semibold",
                 hit ? "border border-navy bg-info-bg text-navy" : "border border-line text-muted hover:border-navy hover:text-ink",
@@ -49,7 +58,7 @@ export function FieldInput({
   if (field.kind === "select") {
     return (
       <span className="relative block">
-        <select value={value} onChange={(e) => onChange(e.target.value)} className={selectClass}>
+        <select value={value} onChange={(e) => onChange(e.target.value)} disabled={readOnly} className={selectClass}>
           <option value="">—</option>
           {options.map((o) => (
             <option key={o}>{o}</option>
@@ -69,6 +78,7 @@ export function FieldInput({
           <select
             value={mode}
             onChange={(e) => onChange(e.target.value === OTHER ? OTHER : e.target.value)}
+            disabled={readOnly}
             className={selectClass}
           >
             <option value="">—</option>
@@ -83,6 +93,7 @@ export function FieldInput({
           <input
             value={value === OTHER ? "" : value}
             onChange={(e) => onChange(e.target.value || OTHER)}
+            disabled={readOnly}
             placeholder="Not on the list"
             className={inputClass}
           />
@@ -94,6 +105,7 @@ export function FieldInput({
     <input
       value={value}
       onChange={(e) => onChange(e.target.value)}
+      disabled={readOnly}
       inputMode={field.kind === "number" ? "decimal" : undefined}
       className={inputClass}
     />

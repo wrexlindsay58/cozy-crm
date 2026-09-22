@@ -6,6 +6,7 @@ import { BookWidget } from "@/features/lead/book-widget";
 import { dndOn, descendantsOf, setLeadStatus, useOps } from "@/features/ops/store";
 import { setCallFrom, setSmsFrom } from "@/features/from/store";
 import { useMoneySettings } from "@/features/money-settings/store";
+import { FileMedia } from "./file-media";
 import { PhotoRail, HistoryList } from "./side-rails";
 import { FormAnswers } from "./form-answers";
 import { PeopleRow } from "./people-row";
@@ -100,7 +101,8 @@ export function RecordShell(props: RecordShellProps) {
           related={props.related}
           acts={acts}
           onText={openThread}
-          onStage={props.kind === "lead" && lead ? (status) => setLeadStatus(lead.id, status) : undefined}
+          onStage={props.onStage ?? (props.kind === "lead" && lead ? (status) => setLeadStatus(lead.id, status) : undefined)}
+          stageOptions={props.stageOptions}
           lead={lead}
         />
         <PeopleRow
@@ -109,17 +111,16 @@ export function RecordShell(props: RecordShellProps) {
           seedFollowers={props.followers}
           canDrop={props.kind === "lead"}
           actionId={props.actionId}
+          onCancelJob={props.onCancelJob}
         />
       </div>
 
-      <div className="flex min-h-0 min-w-0 flex-1 flex-col lg:flex-row">
-        <div className={cn("flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden", mobileTalk && "max-lg:hidden")}>
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col lg:grid lg:grid-cols-[auto_minmax(0,1fr)_minmax(0,1fr)] lg:grid-rows-[minmax(0,1fr)]">
+        <div className={cn("flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden lg:contents", mobileTalk && "max-lg:hidden")}>
           <FilePane
             foot={
               <>
-                <div className="px-0">
-                  <PhotoRail personId={props.personId} photos={props.photos} />
-                </div>
+                <FileMedia personId={props.personId} photos={props.photos} />
                 <button
                   type="button"
                   className="mt-3 flex h-11 w-full items-center justify-center rounded-md border border-line text-sm font-semibold text-navy lg:hidden"
@@ -137,7 +138,7 @@ export function RecordShell(props: RecordShellProps) {
         <aside
           className={cn(
             "flex min-h-0 min-w-0 shrink-0 flex-col border-line bg-card",
-            "h-[55vh] border-t lg:h-auto lg:w-[45%] lg:min-w-[40%] lg:max-w-[50%] lg:border-t-0 lg:border-l",
+            "h-[55vh] border-t lg:col-start-3 lg:row-start-1 lg:h-auto lg:w-auto lg:min-w-0 lg:max-w-none lg:border-t-0 lg:border-l",
             !mobileTalk && "max-lg:hidden",
             mobileTalk && "max-lg:h-auto max-lg:flex-1 max-lg:border-t-0",
           )}
