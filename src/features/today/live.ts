@@ -1,4 +1,4 @@
-import { cashOut, dayGoals, referrals, reviews, snapshot } from "@/lib/snapshot";
+import { cashOut, dayGoals, referrals, reviews, snapshot, surveys } from "@/lib/snapshot";
 import { tickets, type Lead } from "@/lib/crm-data";
 import type { Resource } from "@/features/book/roster";
 import { familyOf, isWatch, type BookEvent } from "@/features/book/types";
@@ -18,7 +18,48 @@ function pack(rows: { label: string; n: number; tone: string; ink?: boolean; mar
 }
 export type Rank = { id: string; name: string; role: string; amount: number; why: string; href: string };
 export type Trend = { now: number; yest: number; goal: number; money?: boolean };
-export type HourBar = { h: number; label: string; sales: number; prod: number; yestSales: number; yestProd: number };
+export type FlowBar = { key: string; label: string; now: number; yest: number };
+export type SparkPt = { h: number; spend: number; sold: number };
+export type FieldNow = {
+  demand: number;
+  capacity: number;
+  demandPct: number;
+  crewsOut: number;
+  crewsIdle: number;
+  crewsN: number;
+  installsDone: number;
+  installsLive: number;
+  installsWait: number;
+  repsOut: number;
+  repsIdle: number;
+  repsN: number;
+  runsLeft: number;
+  runsLive: number;
+  runsDone: number;
+  qcOut: number;
+  qcFail: number;
+  qcDone: number;
+  qcReason: string;
+  tixAdded: number;
+  tixDone: number;
+  tixOpen: number;
+  tixCat: string;
+  reviews: number;
+  reviewScore: number;
+  referrals: number;
+  surveys: number;
+  qcTechs: number;
+  bookValue: number;
+  holds: number;
+  late: number;
+  perCrew: number;
+  qcPassPct: number;
+  installSplit: Split[];
+  runNowSplit: Split[];
+  qcSplit: Split[];
+  crewSplit: Split[];
+  repSplit: Split[];
+};
 
 function valueOf(e: BookEvent, leads: Lead[]) {
   return leads.find((l) => l.id === e.personId)?.value ?? 0;
@@ -26,13 +67,6 @@ function valueOf(e: BookEvent, leads: Lead[]) {
 
 function whoName(id: string, roster: Resource[]) {
   return roster.find((r) => r.id === id)?.name ?? id;
-}
-
-function hourLabel(h: number) {
-  if (h === 0 || h === 24) return "12a";
-  if (h === 12) return "12p";
-  if (h < 12) return `${h}a`;
-  return `${h - 12}p`;
 }
 
 export function buildToday(opts: {
@@ -77,10 +111,53 @@ export function buildToday(opts: {
   const ads = new Set(["Google", "Website", "Canvass"]);
   const marketingSold = soldEv.filter((e) => ads.has(leads.find((l) => l.id === e.personId)?.source ?? "")).reduce((s, e) => s + valueOf(e, leads), 0);
   const marketingSpend = snapshot.marketingToday;
+  const ticket = soldN ? Math.round(sold / soldN) : 0;
+  const yestTicket = yestSoldEv.length ? Math.round(yesterday / yestSoldEv.length) : 0;
+  const mktBySource = pack(
+    ["Google", "Website", "Canvass"].map((label, i) => ({
+      label,
+      n: soldEv.filter((e) => (leads.find((l) => l.id === e.personId)?.source ?? "") === label).reduce((s, e) => s + valueOf(e, leads), 0),
+      tone: i === 2 ? LIVE : i === 0 ? MID : STEEL,
+    })),
+  );
   const payroll = snapshot.payrollToday;
   const cashIn = snapshot.cashInToday;
   const spent = snapshot.cashOutToday;
   const expected = snapshot.expectedInToday;
+  const hourKeys = Array.from({ length: 16 }, (_, i) => i + 6);
+  const soldByHour = hourKeys.map((h) =>
+    soldEv
+      .filter((e) => ads.has(leads.find((l) => l.id === e.personId)?.source ?? "") && Math.floor(hourOf(e.end)) === h)
+      .reduce((s, e) => s + valueOf(e, leads), 0),
+  );
+  const soldSum = soldByHour.reduce((s, n) => s + n, 0) || 1;
+  const mktSpark: SparkPt[] = hourKeys.map((h, i) => ({
+    h,
+    sold: soldByHour[i],
+    spend: (soldByHour[i] / soldSum) * 0.6 * marketingSpend + (0.4 * marketingSpend) / hourKeys.length,
+  }));
+  const dealSpark = hourKeys.map((h) => ({
+    h,
+    n: soldEv.filter((e) => Math.floor(hourOf(e.end)) === h).length,
+  }));
+  const catTone = [LIVE, STEEL, MID, WASH, "var(--color-go)"];
+  const catN: Record<string, number> = {};
+  const CAT: Record<string, string> = {
+    "T-91": "HOA",
+    "T-88": "Callback",
+    "T-86": "HOA",
+    "T-84": "Permit",
+    "T-81": "Callback",
+    "T-79": "Material",
+    "T-74": "Callback",
+    "T-70": "Material",
+    "T-66": "Warranty",
+  };
+  for (const row of tickets) {
+    const c = CAT[row.id] ?? "Callback";
+    catN[c] = (catN[c] ?? 0) + 1;
+  }
+  const actionCats = pack(Object.entries(catN).map(([label, n], i) => ({ label, n, tone: catTone[i % catTone.length] })));
 
   const closers = roster.filter((r) => r.kind === "closer" && (office === "all" || r.office === office));
   const crews = roster.filter((r) => r.kind === "crew" && (office === "all" || r.office === office));
@@ -142,15 +219,14 @@ export function buildToday(opts: {
   const k = ends(crewRank);
   const s = ends(setterRank);
 
-  const hours = Array.from({ length: 16 }, (_, i) => i + 6);
-  const strip: HourBar[] = hours.map((h) => ({
-    h,
-    label: hourLabel(h),
-    sales: day.filter((e) => familyOf(e.type) === "sales" && Math.floor(hourOf(e.start)) === h).length,
-    prod: day.filter((e) => familyOf(e.type) === "production" && Math.floor(hourOf(e.start)) === h).length,
-    yestSales: yest.filter((e) => familyOf(e.type) === "sales" && Math.floor(hourOf(e.start)) === h).length,
-    yestProd: yest.filter((e) => familyOf(e.type) === "production" && Math.floor(hourOf(e.start)) === h).length,
-  }));
+  const flow: FlowBar[] = [
+    { key: "lead", label: "Leads", now: snapshot.leadsToday, yest: snapshot.leadsYest },
+    { key: "appt", label: "Appts.", now: sales.length, yest: yestSales.length },
+    { key: "run", label: "Runs", now: passed.length, yest: yestPassed.length },
+    { key: "deal", label: "Deals", now: soldN, yest: yestSoldEv.length },
+    { key: "job", label: "Jobs", now: prod.length, yest: yestProd.length },
+    { key: "cancel", label: "Cancels", now: cancelled, yest: snapshot.cancelledYest },
+  ];
 
   const ranN =
     nosit.length +
@@ -164,6 +240,11 @@ export function buildToday(opts: {
 
   const appt = pack([
     { label: "Passed", n: passed.length, tone: STEEL, ink: true },
+    { label: "Left", n: left.length, tone: MID },
+  ]);
+  const runSplit = pack([
+    { label: "Closed", n: soldN, tone: LIVE },
+    { label: "Ran", n: Math.max(0, passed.length - soldN), tone: STEEL, ink: true },
     { label: "Left", n: left.length, tone: MID },
   ]);
   const jobSplit = pack([
@@ -183,18 +264,98 @@ export function buildToday(opts: {
   ]);
 
   const behindN = day.filter((e) => familyOf(e.type) === "production" && e.status !== "Done" && hourOf(e.end) <= hour).length;
+  const svcTypes = new Set(["Service", "Warranty", "Go-back", "Test-out", "Inspection", "Punch"]);
+  const svc = day.filter((e) => svcTypes.has(e.type));
+  const crewOut = crews.filter((r) => prod.some((e) => e.resourceId === r.id || e.crewId === r.id));
+  const repOut = closers.filter((r) => sales.some((e) => e.resourceId === r.id));
+  const installsLive = prod.filter((e) => e.status === "Dispatched").length;
+  const installsWait = prod.filter((e) => e.status === "Set" || e.hold).length;
+  const runsLive = sales.filter(
+    (e) => hourOf(e.start) <= hour && hourOf(e.end) > hour && e.status !== "Done" && e.status !== "No-sit" && e.status !== "No-show",
+  ).length;
+  const demandN = prod.length;
+  const capacityN = Math.max(crews.length, 1);
+  const demandPct = Math.round((demandN / capacityN) * 100);
+  const qcDoneN = Math.max(snapshot.qcDone, svc.filter((e) => e.status === "Done").length);
+  const qcFailN = snapshot.qcFailed;
+  const qcAll = qcDoneN + qcFailN;
+  const field: FieldNow = {
+    demand: demandN,
+    capacity: capacityN,
+    demandPct,
+    crewsOut: crewOut.length,
+    crewsIdle: Math.max(0, crews.length - crewOut.length),
+    crewsN: crews.length,
+    installsDone: jobsDone,
+    installsLive,
+    installsWait,
+    repsOut: repOut.length,
+    repsIdle: Math.max(0, closers.length - repOut.length),
+    repsN: closers.length,
+    runsLeft: left.length,
+    runsLive,
+    runsDone: passed.length,
+    qcOut: new Set(svc.map((e) => e.resourceId).filter(Boolean)).size,
+    qcFail: qcFailN,
+    qcDone: qcDoneN,
+    qcReason: snapshot.qcReason,
+    tixAdded,
+    tixDone: tixClosed,
+    tixOpen,
+    tixCat: snapshot.actionCat,
+    reviews: snapshot.reviewsToday,
+    reviewScore: snapshot.reviewScore,
+    referrals: snapshot.referralsToday,
+    surveys: snapshot.surveysToday,
+    qcTechs: snapshot.qcTechs,
+    bookValue: prod.reduce((s, e) => s + valueOf(e, leads), 0),
+    holds: prod.filter((e) => e.hold).length,
+    late: behindN,
+    perCrew: Math.round((demandN / capacityN) * 10) / 10,
+    qcPassPct: qcAll ? Math.round((qcDoneN / qcAll) * 100) : 100,
+    installSplit: pack([
+      { label: "Done", n: jobsDone, tone: LIVE },
+      { label: "Live", n: installsLive, tone: STEEL, ink: true },
+      { label: "Pending", n: installsWait, tone: WASH, ink: true },
+    ]),
+    runNowSplit: pack([
+      { label: "Left", n: left.length, tone: MID },
+      { label: "Live", n: runsLive, tone: STEEL, ink: true },
+      { label: "Done", n: passed.length, tone: LIVE },
+    ]),
+    qcSplit: pack([
+      { label: "Pass", n: Math.max(snapshot.qcDone, svc.filter((e) => e.status === "Done").length), tone: "var(--color-go)" },
+      { label: "Fail", n: snapshot.qcFailed, tone: "var(--color-stop)", mark: snapshot.qcFailed ? "stop" : undefined },
+      { label: "Fixed", n: snapshot.qcFixed, tone: LIVE },
+      { label: "Pending", n: snapshot.qcPending, tone: WASH, ink: true },
+    ]),
+    crewSplit: pack([
+      { label: "Out", n: crewOut.length, tone: LIVE },
+      { label: "Idle", n: Math.max(0, crews.length - crewOut.length), tone: WASH, ink: true },
+    ]),
+    repSplit: pack([
+      { label: "Out", n: repOut.length, tone: LIVE },
+      { label: "Idle", n: Math.max(0, closers.length - repOut.length), tone: WASH, ink: true },
+    ]),
+  };
+  const demandMark: Mark | undefined =
+    demandPct >= 105 && demandPct <= 125 ? "go" : demandPct < 95 || demandPct > 150 ? "stop" : "watch";
   const marks = {
     sales: sold > yesterday ? ("go" as const) : sold < yesterday * 0.8 ? ("watch" as const) : undefined,
     close: closeRate < 25 ? ("stop" as const) : closeRate >= 50 ? ("go" as const) : undefined,
     cashOut: spent > cashIn ? ("stop" as const) : undefined,
     behind: behindN ? ("stop" as const) : undefined,
     mkt: marketingSpend && marketingSold / marketingSpend >= 8 ? ("go" as const) : undefined,
+    ticket: ticket >= dayGoals.ticket ? ("go" as const) : ticket && ticket < yestTicket * 0.85 ? ("watch" as const) : undefined,
+    demand: demandMark,
+    deals: soldN > yestSoldEv.length ? ("go" as const) : soldN < yestSoldEv.length ? ("watch" as const) : undefined,
   };
 
   const trends = {
     sales: { now: sold, yest: yesterday, goal: dayGoals.sales, money: true },
     close: { now: closeRate, yest: yestClose, goal: dayGoals.close },
     cashIn: { now: cashIn, yest: snapshot.cashInYest, goal: dayGoals.cashIn, money: true },
+    ticket: { now: ticket, yest: yestTicket, goal: dayGoals.ticket, money: true },
     cashOut: { now: spent, yest: snapshot.cashOutYest, goal: dayGoals.cashOut, money: true },
     sits: { now: passed.length + left.length, yest: yestPassed.length + yestLeft.length, goal: dayGoals.sits },
     left: { now: left.length, yest: yestLeft.length, goal: 0 },
@@ -205,16 +366,22 @@ export function buildToday(opts: {
     marketing: { now: marketingSold, yest: snapshot.marketingSoldYest, goal: dayGoals.marketing, money: true },
     reviews: { now: snapshot.reviewsToday, yest: snapshot.reviewsYest, goal: dayGoals.reviews },
     referrals: { now: snapshot.referralsToday, yest: snapshot.referralsYest, goal: dayGoals.referrals },
+    demand: { now: demandPct, yest: 0, goal: dayGoals.demand },
+    deals: { now: soldN, yest: yestSoldEv.length, goal: dayGoals.deals },
+    surveys: { now: snapshot.surveysToday, yest: snapshot.surveysYest, goal: dayGoals.surveys },
   };
 
   return {
     sold,
     soldN,
+    ticket,
     yesterday,
     closeRate,
     decided,
     passed: passed.length,
     left: left.length,
+    ran: passed.length,
+    closed: soldN,
     onBook: left.reduce((s, e) => s + valueOf(e, leads), 0),
     cashIn,
     spent,
@@ -222,6 +389,10 @@ export function buildToday(opts: {
     cashOut,
     marketingSpend,
     marketingSold,
+    mktBySource,
+    mktSpark,
+    dealSpark,
+    actionCats,
     payroll,
     payrollYest: snapshot.payrollYesterday,
     jobsDone,
@@ -234,9 +405,11 @@ export function buildToday(opts: {
     reviewScore: snapshot.reviewScore,
     reviewCount: snapshot.reviewCount,
     referrals,
-    strip,
+    surveys,
+    flow,
     mix,
     appt,
+    runSplit,
     jobSplit,
     tix,
     leadSplit,
@@ -249,5 +422,6 @@ export function buildToday(opts: {
     top: [...c.top, ...k.top, ...s.top],
     bottom: [...c.bottom, ...k.bottom, ...s.bottom],
     nosit: nosit.length,
+    field,
   };
 }

@@ -24,12 +24,12 @@ export const snapshot = {
   ticketsClosedYest: 4,
   cashInYest: 16220,
   cashOutYest: 7900,
-  leadsToday: 6,
-  leadsYest: 5,
-  calledToday: 4,
-  notCalledToday: 2,
-  calledYest: 4,
-  notCalledYest: 1,
+  leadsToday: 18,
+  leadsYest: 14,
+  calledToday: 12,
+  notCalledToday: 6,
+  calledYest: 10,
+  notCalledYest: 4,
   cancelledToday: 1,
   cancelledYest: 0,
   referralsToday: 2,
@@ -46,6 +46,15 @@ export const snapshot = {
   reviewScore: 4.8,
   reviewCount: 214,
   referralsWeek: 6,
+  qcFailed: 1,
+  qcDone: 3,
+  qcFixed: 1,
+  qcPending: 2,
+  qcReason: "Register blow-by",
+  actionCat: "HOA",
+  qcTechs: 3,
+  surveysToday: 5,
+  surveysYest: 3,
 };
 
 export const dayGoals = {
@@ -59,8 +68,12 @@ export const dayGoals = {
   ticketsClosed: 3,
   payroll: 7000,
   marketing: 28000,
+  ticket: 12000,
   reviews: 4,
   referrals: 2,
+  demand: 110,
+  deals: 4,
+  surveys: 6,
 };
 
 export const runs = {
@@ -220,4 +233,11 @@ export const referrals = [
   { id: "F-5", from: "Cho", to: "Patterson neighbor", status: "Set" },
   { id: "F-4", from: "Alvarez", to: "Sister in Glendale", status: "Set" },
   { id: "F-3", from: "Rahman", to: "Office manager", status: "Set" },
+];
+
+export const surveys = [
+  { id: "S-4", name: "Ben Cho", score: 5, note: "Crew on time. Attic clean." },
+  { id: "S-3", name: "The Whitakers", score: 5, note: "Second job. Same quality." },
+  { id: "S-2", name: "Renee Alvarez", score: 4, note: "House is quieter." },
+  { id: "S-1", name: "Owen Briggs", score: 5, note: "Would refer a neighbor." },
 ];
