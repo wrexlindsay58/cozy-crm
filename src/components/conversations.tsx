@@ -46,31 +46,31 @@ import { Tip } from "@/components/tip";
 import { PageTitle } from "@/components/ui-bits";
 
 const WHO = [
-  { id: "all", label: "All contacts", icon: Users },
-  { id: "mine", label: "Assigned to me", icon: User },
-  { id: "following", label: "Followed by me", icon: UserPlus },
+  { id: "all", label: "All contacts", face: "All", icon: Users },
+  { id: "mine", label: "Assigned to me", face: "Mine", icon: User },
+  { id: "following", label: "Followed by me", face: "Follow", icon: UserPlus },
 ] as const;
 
 const CHANNEL = [
-  { id: "all", label: "All talk", icon: MessagesSquare },
-  { id: "sms", label: "SMS", icon: Smartphone },
-  { id: "call", label: "Phone", icon: Phone },
-  { id: "email", label: "Email", icon: Mail },
+  { id: "all", label: "All talk", face: "Talk", icon: MessagesSquare },
+  { id: "sms", label: "SMS", face: "SMS", icon: Smartphone },
+  { id: "call", label: "Phone", face: "Phone", icon: Phone },
+  { id: "email", label: "Email", face: "Email", icon: Mail },
 ] as const;
 
 const TYPE = [
-  { id: "all", label: "All types", icon: Layers },
-  { id: "customer", label: "Customer", icon: MessageSquare },
-  { id: "internal", label: "Internal", icon: Users },
+  { id: "all", label: "All types", face: "Type", icon: Layers },
+  { id: "customer", label: "Customer", face: "Customer", icon: MessageSquare },
+  { id: "internal", label: "Internal", face: "Internal", icon: Users },
 ] as const;
 
 const PIPE = [
-  { id: "all", label: "All pipelines", icon: GitBranch },
-  { id: "Lead", label: "Lead", icon: GitBranch },
-  { id: "Assessment", label: "Assessment", icon: GitBranch },
-  { id: "Opportunity", label: "Opportunity", icon: GitBranch },
-  { id: "Job", label: "Job", icon: GitBranch },
-  { id: "Account", label: "Account", icon: GitBranch },
+  { id: "all", label: "All pipelines", face: "Pipe", icon: GitBranch },
+  { id: "Lead", label: "Lead", face: "Lead", icon: GitBranch },
+  { id: "Assessment", label: "Assessment", face: "Assess", icon: GitBranch },
+  { id: "Opportunity", label: "Opportunity", face: "Opp", icon: GitBranch },
+  { id: "Job", label: "Job", face: "Job", icon: GitBranch },
+  { id: "Account", label: "Account", face: "Account", icon: GitBranch },
 ] as const;
 
 type Lane = ConvLane;
@@ -230,7 +230,7 @@ export function Conversations() {
       </header>
 
       <div className="flex min-h-0 min-w-0 flex-1">
-        <aside className={cn("flex w-full shrink-0 flex-col border-r border-line bg-card md:w-[clamp(18rem,34%,40rem)]", mobileThread && "max-md:hidden")}>
+        <aside className={cn("flex w-full shrink-0 flex-col border-r border-line bg-card @container md:w-[clamp(18rem,34%,40rem)]", mobileThread && "max-md:hidden")}>
           <div className="border-b border-line px-2 py-2">
             <label className="relative block">
               <Search className="pointer-events-none absolute top-1/2 left-3 size-3.5 -translate-y-1/2 text-faint" />
@@ -241,10 +241,11 @@ export function Conversations() {
                 className="h-10 w-full rounded-md border border-line bg-page pr-3 pl-9 text-sm outline-none"
               />
             </label>
-            <div className="mt-1.5 flex items-center gap-0.5 overflow-x-auto">
+            <div className="mt-1.5 flex w-full items-center gap-0.5">
               <Pick items={WHO} value={who} onChange={setWho} />
               <IconChip
                 label="Starred"
+                face="Star"
                 icon={Star}
                 on={starredOnly}
                 filled={starredOnly}
@@ -252,11 +253,12 @@ export function Conversations() {
               />
               <IconChip
                 label="Unread"
+                face="New"
                 icon={Inbox}
                 on={unreadOnly}
                 onClick={() => setUnreadOnly((v) => !v)}
               />
-              <span className="mx-0.5 h-4 w-px shrink-0 bg-line" />
+              <span className="h-4 w-px shrink-0 bg-line" />
               <Pick items={CHANNEL} value={channel} onChange={setChannel} />
               <Pick items={TYPE} value={talkType} onChange={setTalkType} />
               <Pick items={PIPE} value={pipe} onChange={setPipe} />
@@ -511,7 +513,7 @@ function Pick<T extends string>({
   value,
   onChange,
 }: {
-  items: readonly { id: T; label: string; icon: typeof Star }[];
+  items: readonly { id: T; label: string; face?: string; icon: typeof Star }[];
   value: T;
   onChange: (v: T) => void;
 }) {
@@ -522,7 +524,7 @@ function Pick<T extends string>({
   const hot = value !== items[0].id;
   return (
     <>
-      <Tip label={current.label} on side="bottom">
+      <Tip label={current.label} on side="bottom" className="min-w-0 flex-1">
         <button
           type="button"
           aria-label={current.label}
@@ -532,12 +534,13 @@ function Pick<T extends string>({
             setOpen((v) => !v);
           }}
           className={cn(
-            "inline-flex h-8 shrink-0 items-center rounded-md px-1.5",
+            "inline-flex h-8 w-full min-w-0 items-center justify-center gap-1 rounded-md px-1",
             hot ? "bg-navy text-card" : "text-muted hover:bg-page",
           )}
         >
-          <Icon className="size-3.5" />
-          <ChevronDown className="size-3 opacity-70" />
+          <Icon className="size-3.5 shrink-0" />
+          <span className="hidden min-w-0 truncate text-[11px] font-semibold @min-[30rem]:inline">{current.face ?? current.label}</span>
+          <ChevronDown className="size-3 shrink-0 opacity-70" />
         </button>
       </Tip>
       {open && anchor ? (
@@ -583,7 +586,7 @@ function ExtraPick({ value, onChange }: { value: Extra; onChange: (v: Extra) => 
   ];
   return (
     <>
-      <Tip label="Filters" on side="bottom">
+      <Tip label="Filters" on side="bottom" className="min-w-0 flex-1">
         <button
           type="button"
           aria-label="Filters"
@@ -592,10 +595,11 @@ function ExtraPick({ value, onChange }: { value: Extra; onChange: (v: Extra) => 
             setAnchor(e.currentTarget.getBoundingClientRect());
             setOpen((v) => !v);
           }}
-          className={cn("inline-flex h-8 shrink-0 items-center rounded-md px-1.5", hot ? "bg-navy text-card" : "text-muted hover:bg-page")}
+          className={cn("inline-flex h-8 w-full min-w-0 items-center justify-center gap-1 rounded-md px-1", hot ? "bg-navy text-card" : "text-muted hover:bg-page")}
         >
-          <ListFilter className="size-3.5" />
-          <ChevronDown className="size-3 opacity-70" />
+          <ListFilter className="size-3.5 shrink-0" />
+          <span className="hidden min-w-0 truncate text-[11px] font-semibold @min-[30rem]:inline">More</span>
+          <ChevronDown className="size-3 shrink-0 opacity-70" />
         </button>
       </Tip>
       {open && anchor ? (
@@ -639,26 +643,29 @@ function ExtraPick({ value, onChange }: { value: Extra; onChange: (v: Extra) => 
 
 function IconChip({
   label,
+  face,
   icon: Icon,
   on,
   onClick,
   filled,
 }: {
   label: string;
+  face?: string;
   icon: typeof Star;
   on: boolean;
   onClick: () => void;
   filled?: boolean;
 }) {
   return (
-    <Tip label={label} on side="bottom">
+    <Tip label={label} on side="bottom" className="min-w-0 flex-1">
       <button
         type="button"
         aria-label={label}
         onClick={onClick}
-        className={cn("grid size-8 shrink-0 place-items-center rounded-md", on ? "bg-navy text-card" : "text-muted hover:bg-page")}
+        className={cn("inline-flex h-8 w-full min-w-0 items-center justify-center gap-1 rounded-md px-1", on ? "bg-navy text-card" : "text-muted hover:bg-page")}
       >
-        <Icon className={cn("size-3.5", filled && "fill-current")} />
+        <Icon className={cn("size-3.5 shrink-0", filled && "fill-current")} />
+        <span className="hidden min-w-0 truncate text-[11px] font-semibold @min-[30rem]:inline">{face ?? label}</span>
       </button>
     </Tip>
   );
