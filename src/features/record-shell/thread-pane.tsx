@@ -1,7 +1,7 @@
 import { useRef, useState } from "react";
 import { ChevronDown, Braces, DollarSign, FileText, Link, Paperclip, Phone, Plus, Smile } from "lucide-react";
 import { addHistory, dndOn, useOps } from "@/features/ops/store";
-import { sendMessage, useThread } from "@/features/thread/store";
+import { sendMessage, useThread, isBlocked } from "@/features/thread/store";
 import { kindFromFile } from "@/features/photos/store";
 import type { DndChannel } from "@/lib/crm-data";
 import { cannedFor, COMPOSE_EMOJI, CUSTOM_VALUES, PAY_ASKS, TRIGGER_LINKS } from "@/lib/canned";
@@ -137,6 +137,11 @@ export function ThreadPane({
               : `All talk · ${houseRows.length}`}
           </p>
         </button>
+      ) : null}
+      {mode === "customer" && isBlocked(personId) ? (
+        <p className="shrink-0 border-b border-line bg-stop-bg px-3 py-2 text-[12px] font-semibold text-stop">
+          Blocked. This contact can't reach this inbox.
+        </p>
       ) : null}
       <div className="min-h-0 flex-1 space-y-3 overflow-auto p-3">
         {rows.length === 0 ? <p className="text-sm text-muted">{emptyCopy}</p> : null}

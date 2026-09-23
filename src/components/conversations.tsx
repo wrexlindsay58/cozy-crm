@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import {
   BellOff,
+  Ban,
   Calendar,
   ChevronDown,
   ChevronLeft,
@@ -29,12 +30,12 @@ import { ClickToCall } from "@/features/lead/click-to-call";
 import { DndPick } from "@/features/lead/dnd-pick";
 import { MarksPanel } from "@/features/lead/marks-bar";
 import { BookWidget } from "@/features/lead/book-widget";
-import { useOps, dndOn } from "@/features/ops/store";
+import { useOps, dndOn, addHistory } from "@/features/ops/store";
 import { setCallFrom, setSmsFrom, useFrom } from "@/features/from/store";
 import { useMoneySettings } from "@/features/money-settings/store";
 import { useStaff } from "@/features/staff/store";
 import { useAssessments } from "@/features/assessment/store";
-import { isRead, isStarred, markRead, toggleStar, useMessages } from "@/features/thread/store";
+import { blockAndDelete, blockContacts, isBlocked, isHidden, isRead, isStarred, markRead, toggleStar, unblockContacts, useMessages } from "@/features/thread/store";
 import { HistoryList, PhotoRail } from "@/features/record-shell/side-rails";
 import { FormAnswers } from "@/features/record-shell/form-answers";
 import { type ConvLane } from "@/features/record-shell/lanes";
@@ -165,7 +166,10 @@ export function Conversations() {
         const pipe = pipelineOf(p.leadId ?? p.id, p.name);
         const appt = appointments.find((a) => a.leadId === (p.leadId ?? p.id));
         const starred = isStarred(p.id) || isStarred(p.leadId ?? "");
-        const dndOn = Boolean(lead?.dnd?.length);
+        const dndOnFlag = Boolean(lead?.dnd?.length);
+        const ids = [p.id, p.leadId ?? "", acc?.id ?? ""].filter(Boolean);
+        const blocked = ids.some((id) => isBlocked(id));
+        const hidden = ids.some((id) => isHidden(id));
         return {
           ...p,
           msgs,
@@ -176,13 +180,16 @@ export function Conversations() {
           pipe,
           appt,
           starred,
-          dndOn,
+          dndOn: dndOnFlag,
+          blocked,
+          hidden,
           status: lead?.status ?? "",
           tone: lead?.tone ?? toneForStatus(lead?.status ?? ""),
           openActions: tickets.some((tix) => (tix.related === p.id || tix.related === p.leadId) && tix.status !== "Complete" && tix.status !== "Cancel"),
         };
       })
       .filter((p) => {
+        if (p.hidden) return false;
         if (who === "mine" && !p.assigned) return false;
         if (who === "following" && !p.following) return false;
         if (starredOnly && !p.starred) return false;
@@ -292,6 +299,7 @@ export function Conversations() {
                         <span className="min-w-0 flex-1">
                           <span className="flex items-center gap-1">
                             <span className={cn("truncate text-sm", t.unread ? "font-bold" : "font-semibold")}>{t.name}</span>
+                            {t.blocked ? <Ban className="size-3 shrink-0 text-stop" /> : null}
                             {t.dndOn ? <BellOff className="size-3 shrink-0 text-alert" /> : null}
                           </span>
                         </span>
@@ -371,6 +379,7 @@ export function Conversations() {
                       <Star className={cn("size-4", starred && "fill-navy text-navy")} />
                     </button>
                   </Tip>
+                  <BlockMenu name={active.name} ids={[active.id, personId, acc?.id ?? ""]} />
                 </div>
                 <p className="mt-1 text-[11px] text-muted">
                   {active.phone}
@@ -415,6 +424,7 @@ export function Conversations() {
                       <Star className={cn("size-4", starred && "fill-navy text-navy")} />
                     </button>
                   </Tip>
+                  <BlockMenu name={active.name} ids={[active.id, personId, acc?.id ?? ""]} />
                 </div>
               </header>
               <LaneHead lane={lane} onLane={setLane} />
@@ -458,6 +468,79 @@ export function Conversations() {
         </section>
       </div>
     </div>
+  );
+}
+
+function BlockMenu({ name, ids }: { name: string; ids: string[] }) {
+  const clean = ids.filter(Boolean);
+  const blocked = clean.some((id) => isBlocked(id));
+  const [open, setOpen] = useState(false);
+  const [anchor, setAnchor] = useState<DOMRect | null>(null);
+
+  function close() {
+    setOpen(false);
+  }
+
+  return (
+    <>
+      <Tip label={blocked ? "Blocked" : "Block"} on={!open}>
+        <button
+          type="button"
+          aria-label={blocked ? "Blocked" : "Block"}
+          aria-expanded={open}
+          className={cn(
+            "grid size-9 shrink-0 place-items-center rounded-md border",
+            blocked ? "border-stop text-stop" : "border-line text-navy",
+          )}
+          onClick={(e) => {
+            setAnchor(e.currentTarget.getBoundingClientRect());
+            setOpen((v) => !v);
+          }}
+        >
+          <Ban className="size-4" />
+        </button>
+      </Tip>
+      {open && anchor ? (
+        <Float anchor={anchor} prefer="bottom" onClose={close}>
+          {blocked ? (
+            <button
+              type="button"
+              className="block w-full min-w-52 px-3 py-2 text-left text-sm hover:bg-page"
+              onClick={() => {
+                unblockContacts(clean);
+                addHistory(clean[0] ?? "", SHOP_ACTOR, `Unblocked ${name}.`);
+                close();
+              }}
+            >
+              Unblock
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="block w-full min-w-52 px-3 py-2 text-left text-sm hover:bg-page"
+              onClick={() => {
+                blockContacts(clean);
+                addHistory(clean[0] ?? "", SHOP_ACTOR, `Blocked ${name}.`);
+                close();
+              }}
+            >
+              Block
+            </button>
+          )}
+          <button
+            type="button"
+            className="block w-full min-w-52 px-3 py-2 text-left text-sm text-stop hover:bg-page"
+            onClick={() => {
+              blockAndDelete(clean);
+              addHistory(clean[0] ?? "", SHOP_ACTOR, `Blocked ${name} and deleted the conversation.`);
+              close();
+            }}
+          >
+            Delete and block
+          </button>
+        </Float>
+      ) : null}
+    </>
   );
 }
 

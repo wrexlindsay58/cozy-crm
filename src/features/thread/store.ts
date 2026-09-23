@@ -147,6 +147,45 @@ export function isRead(personId: string) {
   return read.has(personId);
 }
 
+let blocked = new Set<string>();
+let hidden = new Set<string>();
+
+export function isBlocked(personId: string) {
+  return blocked.has(personId);
+}
+
+export function isHidden(personId: string) {
+  return hidden.has(personId);
+}
+
+export function blockContacts(ids: string[]) {
+  const next = new Set(blocked);
+  for (const id of ids) if (id) next.add(id);
+  blocked = next;
+  emit();
+}
+
+export function unblockContacts(ids: string[]) {
+  const next = new Set(blocked);
+  for (const id of ids) next.delete(id);
+  blocked = next;
+  emit();
+}
+
+export function blockAndDelete(ids: string[]) {
+  const keep = new Set(ids.filter(Boolean));
+  const nextBlocked = new Set(blocked);
+  const nextHidden = new Set(hidden);
+  for (const id of keep) {
+    nextBlocked.add(id);
+    nextHidden.add(id);
+  }
+  blocked = nextBlocked;
+  hidden = nextHidden;
+  messages = messages.filter((m) => !keep.has(m.personId));
+  emit();
+}
+
 export function useMessages() {
   return useSyncExternalStore(
     (cb) => {
