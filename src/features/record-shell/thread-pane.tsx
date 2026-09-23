@@ -172,6 +172,8 @@ export function ThreadPane({
                     setSubject(`Re: ${base}`);
                   }}
                 />
+              ) : row.msg.channel === "note" ? (
+                <NoteCard key={row.msg.id} msg={row.msg} />
               ) : (
                 <Bubble key={row.msg.id} msg={row.msg} contact={contact} />
               ),
@@ -322,6 +324,24 @@ function stitch(rows: ThreadMessage[]): Stitched[] {
   return out;
 }
 
+function NoteCard({ msg }: { msg: ThreadMessage }) {
+  const name = msg.by || "Cozy";
+  return (
+    <article className="rounded-md border border-line bg-card px-3 py-3">
+      <div className="flex items-start gap-2">
+        <Initial name={name} />
+        <div className="min-w-0 flex-1">
+          <p className="text-[11px] font-semibold text-muted">
+            {name} · note · {msg.at}
+          </p>
+          <p className="mt-1 whitespace-pre-wrap text-sm">{msg.text}</p>
+        </div>
+      </div>
+      <CommentBox personId={msg.personId} nest={{ kind: "note", id: msg.id, title: msg.text.slice(0, 48) }} />
+    </article>
+  );
+}
+
 function Bubble({ msg, contact }: { msg: ThreadMessage; contact: string }) {
   const name = whoName(msg, contact);
   const mine = msg.from === "shop";
@@ -336,7 +356,6 @@ function Bubble({ msg, contact }: { msg: ThreadMessage; contact: string }) {
         {msg.files?.length ? (
           <p className={cn("mt-1 text-[11px] text-muted", mine && "text-right")}>{msg.files.map((f) => f.name).join(" · ")}</p>
         ) : null}
-        {msg.channel === "note" ? <CommentBox personId={msg.personId} nest={{ kind: "note", id: msg.id, title: msg.text.slice(0, 48) }} /> : null}
       </div>
     </div>
   );
