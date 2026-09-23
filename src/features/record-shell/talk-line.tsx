@@ -1,11 +1,13 @@
 import { useRef, useState } from "react";
 import { MessageSquare } from "lucide-react";
-import { addHistory } from "@/features/ops/store";
+import { addHistory, useOps } from "@/features/ops/store";
 import { sendMessage, toggleReaction } from "@/features/thread/store";
 import { SHOP_ACTOR } from "@/lib/chrome";
+import { accounts } from "@/lib/crm-data";
 import { cn } from "@/lib/cn";
 import type { ThreadMessage, ThreadNest } from "@/lib/file-data";
 import { Tip } from "@/components/tip";
+import { Initial, whoName } from "./who-mark";
 
 export const QUICK_EMOJI = ["👍", "✅", "👀", "❗", "🎉"];
 const HOVER_MS = 1400;
@@ -17,13 +19,21 @@ export function TalkLine({
   nest,
   replies = [],
   ink = "ink",
+  contact,
 }: {
   msg: ThreadMessage;
   personId: string;
   nest?: ThreadNest;
   replies?: ThreadMessage[];
   ink?: "ink" | "card";
+  contact?: string;
 }) {
+  const { leads } = useOps();
+  const who =
+    contact ??
+    leads.find((l) => l.id === personId)?.name ??
+    accounts.find((a) => a.id === personId)?.name ??
+    "Customer";
   const [reply, setReply] = useState(false);
   const [draft, setDraft] = useState("");
   const light = ink === "card";
@@ -38,10 +48,10 @@ export function TalkLine({
 
   return (
     <div className={cn(msg.replyTo && "ml-3 border-l-2 border-line pl-2")}>
-      <MsgBody msg={msg} light={light} onReply={() => setReply((v) => !v)} replyCount={replies.length} />
+      <MsgBody msg={msg} light={light} contact={who} onReply={() => setReply((v) => !v)} replyCount={replies.length} />
       {replies.map((r) => (
         <div key={r.id} className="mt-2 ml-3 border-l-2 border-line pl-2">
-          <MsgBody msg={r} light={false} onReply={() => setReply(true)} replyCount={0} />
+          <MsgBody msg={r} light={false} contact={who} onReply={() => setReply(true)} replyCount={0} />
         </div>
       ))}
       {reply ? (
@@ -71,17 +81,22 @@ export function TalkLine({
 function MsgBody({
   msg,
   light,
+  contact,
   onReply,
   replyCount,
 }: {
   msg: ThreadMessage;
   light: boolean;
+  contact: string;
   onReply: () => void;
   replyCount: number;
 }) {
   const reveal = useHoldReveal();
+  const name = whoName(msg, contact);
   return (
-    <div>
+    <div className="flex items-start gap-2">
+      <Initial name={name} />
+      <div className="min-w-0 flex-1">
       <div
         onMouseEnter={reveal.enter}
         onMouseLeave={reveal.leave}
@@ -90,8 +105,10 @@ function MsgBody({
         onPointerCancel={reveal.up}
         onContextMenu={(e) => e.preventDefault()}
       >
-        <p className={cn("text-sm", light ? "text-card" : "text-ink")}>{msg.text}</p>
-        <p className={cn("mt-0.5 text-[10px]", light ? "text-card/70" : "text-muted")}>{msg.at}</p>
+        <p className={cn("text-[10px] font-semibold", light ? "text-card/70" : "text-muted")}>
+          {name} · {msg.channel} · {msg.at}
+        </p>
+        <p className={cn("mt-0.5 text-sm", light ? "text-card" : "text-ink")}>{msg.text}</p>
         {reveal.on ? <EmojiPicker msg={msg} light={light} /> : null}
       </div>
       <button
@@ -105,6 +122,7 @@ function MsgBody({
         <MessageSquare className="size-3.5" />
         Reply{replyCount ? ` ${replyCount}` : ""}
       </button>
+      </div>
     </div>
   );
 }

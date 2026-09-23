@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import { ChevronDown, Braces, DollarSign, FileText, Link, Paperclip, Phone, Plus, Smile } from "lucide-react";
-import { addHistory, dndOn } from "@/features/ops/store";
+import { addHistory, dndOn, useOps } from "@/features/ops/store";
 import { sendMessage, useThread } from "@/features/thread/store";
 import { kindFromFile } from "@/features/photos/store";
 import type { DndChannel } from "@/lib/crm-data";
@@ -12,8 +12,10 @@ import { useMoneySettings } from "@/features/money-settings/store";
 import { TalkLine } from "./talk-line";
 import { CommentBox } from "./comment-box";
 import { CallCard } from "./call-card";
-import { EmailCard } from "./email-card";
+import { EmailThread } from "./email-card";
 import { cn } from "@/lib/cn";
+import { accounts } from "@/lib/crm-data";
+import { Initial, whoName } from "./who-mark";
 import type { FileKind, ThreadMessage, ThreadNest } from "@/lib/file-data";
 
 export function ThreadPane({
@@ -39,11 +41,17 @@ export function ThreadPane({
   scope?: "action" | "house";
   onScope?: (next: "action" | "house") => void;
 }) {
+  const { leads } = useOps();
+  const contact =
+    leads.find((l) => l.id === personId)?.name ??
+    accounts.find((a) => a.id === personId)?.name ??
+    "Customer";
   const ids = scope === "action" && actionIds?.length ? actionIds : undefined;
   const rows = useThread(personId, mode, ids);
   const houseRows = useThread(personId, mode);
   const [draft, setDraft] = useState("");
   const [subject, setSubject] = useState("");
+  const [replyRoot, setReplyRoot] = useState<ThreadMessage | null>(null);
   const [channel, setChannel] = useState<"sms" | "email">("sms");
   const [files, setFiles] = useState<{ name: string; kind: FileKind; src?: string }[]>([]);
   const from = useFrom();
@@ -65,9 +73,15 @@ export function ThreadPane({
       sendMessage(personId, draft, "internal", { ...stamp, nest });
     } else if (channel === "email") {
       if (blockEmail) return;
-      sendMessage(personId, draft, "email", { subject, files: files.length ? files : undefined, ...stamp });
+      sendMessage(personId, draft, "email", {
+        subject,
+        replyTo: replyRoot?.id,
+        files: files.length ? files : undefined,
+        ...stamp,
+      });
       addHistory(personId, "Wrex Lindsay", `Email sent${subject.trim() ? `. ${subject.trim()}` : "."}`);
       setSubject("");
+      setReplyRoot(null);
     } else {
       if (blockText) return;
       sendMessage(personId, draft, "sms", { files: files.length ? files : undefined, ...stamp });
@@ -135,29 +149,31 @@ export function ThreadPane({
                   items={block.items}
                   replies={rows.filter((m) => m.replyTo)}
                   personId={personId}
+                  contact={contact}
                 />
               ) : (
                 block.items.map((m) => (
-                  <PlainInternal key={m.id} msg={m} personId={personId} replies={rows.filter((r) => r.replyTo === m.id)} />
+                  <PlainInternal key={m.id} msg={m} personId={personId} contact={contact} replies={rows.filter((r) => r.replyTo === m.id)} />
                 ))
               ),
             )
-          : rows.map((m) =>
-              m.channel === "call" ? (
-                <CallCard key={m.id} msg={m} />
-              ) : m.channel === "email" ? (
-                <EmailCard key={m.id} msg={m} />
+          : stitch(rows).map((row) =>
+              row.kind === "call" ? (
+                <CallCard key={row.msg.id} msg={row.msg} contact={contact} />
+              ) : row.kind === "mail" ? (
+                <EmailThread
+                  key={row.thread[0]?.id}
+                  thread={row.thread}
+                  contact={contact}
+                  onReply={(root) => {
+                    setChannel("email");
+                    setReplyRoot(root);
+                    const base = (root.subject ?? "Email").replace(/^Re:\s*/i, "");
+                    setSubject(`Re: ${base}`);
+                  }}
+                />
               ) : (
-                <div key={m.id} className={cn("max-w-[92%]", m.from === "shop" || mode === "notes" ? "ml-auto" : "")}>
-                  <p className="text-[10px] font-semibold text-muted">
-                    {mode === "notes" ? "Note" : m.from === "shop" ? "Cozy" : "Customer"} · {m.channel} · {m.at}
-                  </p>
-                  <p className={cn("mt-0.5 rounded-md px-2.5 py-2 text-sm", m.from === "shop" || mode === "notes" ? "bg-navy text-card" : "bg-page text-ink")}>
-                    {m.text}
-                  </p>
-                  {m.files?.length ? <p className="mt-1 text-[11px] text-muted">{m.files.map((f) => f.name).join(" · ")}</p> : null}
-                  {mode === "notes" ? <CommentBox personId={personId} nest={{ kind: "note", id: m.id, title: m.text.slice(0, 48) }} /> : null}
-                </div>
+                <Bubble key={row.msg.id} msg={row.msg} contact={contact} />
               ),
             )}
       </div>
@@ -203,13 +219,30 @@ export function ThreadPane({
           </div>
         ) : null}
         {mode === "customer" && channel === "email" ? (
-          <input
-            value={subject}
-            onChange={(e) => setSubject(e.target.value)}
-            placeholder="Subject"
-            disabled={blockEmail}
-            className="mb-2 h-11 w-full rounded-md border border-line bg-card px-3 text-sm outline-none focus:border-navy disabled:opacity-50"
-          />
+          <>
+            {replyRoot ? (
+              <p className="mb-2 flex items-center justify-between gap-2 rounded-md border border-line px-3 py-2 text-[12px]">
+                <span className="min-w-0 truncate">Reply · {(replyRoot.subject ?? "Email").replace(/^Re:\s*/i, "")}</span>
+                <button
+                  type="button"
+                  className="shrink-0 font-semibold text-navy"
+                  onClick={() => {
+                    setReplyRoot(null);
+                    setSubject("");
+                  }}
+                >
+                  Cancel
+                </button>
+              </p>
+            ) : null}
+            <input
+              value={subject}
+              onChange={(e) => setSubject(e.target.value)}
+              placeholder="Subject"
+              disabled={blockEmail}
+              className="mb-2 h-11 w-full rounded-md border border-line bg-card px-3 text-sm outline-none focus:border-navy disabled:opacity-50"
+            />
+          </>
         ) : null}
         <label className="sr-only" htmlFor={`composer-${personId}-${mode}`}>
           {placeholder}
@@ -246,6 +279,69 @@ export function ThreadPane({
   );
 }
 
+type Stitched =
+  | { kind: "call"; msg: ThreadMessage }
+  | { kind: "sms"; msg: ThreadMessage }
+  | { kind: "mail"; thread: ThreadMessage[] };
+
+function stitch(rows: ThreadMessage[]): Stitched[] {
+  const mail = rows.filter((m) => m.channel === "email");
+  const byId = new Map(mail.map((m) => [m.id, m]));
+  function rootOf(m: ThreadMessage) {
+    let cur = m;
+    const seen = new Set<string>();
+    while (cur.replyTo && byId.has(cur.replyTo) && !seen.has(cur.id)) {
+      seen.add(cur.id);
+      const next = byId.get(cur.replyTo);
+      if (!next) break;
+      cur = next;
+    }
+    return cur.id;
+  }
+  const groups = new Map<string, ThreadMessage[]>();
+  for (const m of mail) {
+    const id = rootOf(m);
+    const list = groups.get(id) ?? [];
+    list.push(m);
+    groups.set(id, list);
+  }
+  const last = new Map<string, string>();
+  for (const [id, list] of groups) last.set(id, list[list.length - 1]?.id ?? id);
+  const out: Stitched[] = [];
+  for (const m of rows) {
+    if (m.channel === "email") {
+      const id = rootOf(m);
+      if (m.id !== last.get(id)) continue;
+      const thread = groups.get(id);
+      if (thread) out.push({ kind: "mail", thread });
+      continue;
+    }
+    if (m.channel === "call") out.push({ kind: "call", msg: m });
+    else out.push({ kind: "sms", msg: m });
+  }
+  return out;
+}
+
+function Bubble({ msg, contact }: { msg: ThreadMessage; contact: string }) {
+  const name = whoName(msg, contact);
+  const mine = msg.from === "shop";
+  return (
+    <div className={cn("flex max-w-[92%] items-end gap-2", mine && "ml-auto flex-row-reverse")}>
+      <Initial name={name} />
+      <div className="min-w-0">
+        <p className={cn("text-[10px] font-semibold text-muted", mine && "text-right")}>
+          {name} · {msg.channel} · {msg.at}
+        </p>
+        <p className={cn("mt-0.5 rounded-md px-2.5 py-2 text-sm", mine ? "bg-navy text-card" : "bg-page text-ink")}>{msg.text}</p>
+        {msg.files?.length ? (
+          <p className={cn("mt-1 text-[11px] text-muted", mine && "text-right")}>{msg.files.map((f) => f.name).join(" · ")}</p>
+        ) : null}
+        {msg.channel === "note" ? <CommentBox personId={msg.personId} nest={{ kind: "note", id: msg.id, title: msg.text.slice(0, 48) }} /> : null}
+      </div>
+    </div>
+  );
+}
+
 function groupInternal(rows: ThreadMessage[]) {
   const blocks: { nest?: ThreadNest; items: ThreadMessage[] }[] = [];
   for (const m of rows) {
@@ -265,11 +361,13 @@ function NestBlock({
   items,
   replies,
   personId,
+  contact,
 }: {
   nest: ThreadNest;
   items: ThreadMessage[];
   replies: ThreadMessage[];
   personId: string;
+  contact: string;
 }) {
   const label = nest.kind === "ticket" ? "Ticket" : nest.kind === "task" ? "Task" : nest.kind === "request" ? "Request" : nest.kind === "note" ? "Note" : "Media";
   return (
@@ -279,20 +377,17 @@ function NestBlock({
       </p>
       <div className="mt-2 space-y-3">
         {items.map((m) => (
-          <TalkLine key={m.id} msg={m} personId={personId} nest={nest} replies={replies.filter((r) => r.replyTo === m.id)} />
+          <TalkLine key={m.id} msg={m} personId={personId} contact={contact} nest={nest} replies={replies.filter((r) => r.replyTo === m.id)} />
         ))}
       </div>
     </div>
   );
 }
 
-function PlainInternal({ msg, personId, replies }: { msg: ThreadMessage; personId: string; replies: ThreadMessage[] }) {
+function PlainInternal({ msg, personId, contact, replies }: { msg: ThreadMessage; personId: string; contact: string; replies: ThreadMessage[] }) {
   return (
     <div className="rounded-md border border-line p-2.5">
-      <p className="text-[10px] font-bold tracking-wide text-muted uppercase">Internal · {msg.at}</p>
-      <div className="mt-1">
-        <TalkLine msg={msg} personId={personId} replies={replies} />
-      </div>
+      <TalkLine msg={msg} personId={personId} contact={contact} replies={replies} />
     </div>
   );
 }

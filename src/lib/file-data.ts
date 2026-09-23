@@ -26,6 +26,7 @@ export type ThreadMessage = {
   personId: string;
   channel: "sms" | "call" | "email" | "internal" | "note";
   from: "shop" | "customer";
+  by?: string;
   at: string;
   text: string;
   subject?: string;
@@ -78,7 +79,25 @@ export const photosByPerson: Record<string, Photo[]> = {
   ],
 };
 
-export const seedThread: ThreadMessage[] = [
+const SHOP_BY: Record<string, string> = {
+  "M-1": "Priya Shah",
+  "M-1c": "Priya Shah",
+  "M-3": "Priya Shah",
+  "M-3e": "Priya Shah",
+  "M-3ef": "Priya Shah",
+  "M-4": "Dana Ortiz",
+  "M-5": "Tasha Reed",
+  "M-6": "Priya Shah",
+  "M-7": "Priya Shah",
+  "M-8": "Wrex Lindsay",
+  "M-9": "Marco Velez",
+  "M-91a": "Priya Shah",
+  "M-91c": "Tasha Reed",
+  "M-91k": "Marco Velez",
+  "M-91r": "Amber Quinn",
+};
+
+const threadSeed: ThreadMessage[] = [
   {
     id: "M-1",
     personId: "L-4821",
@@ -122,6 +141,26 @@ export const seedThread: ThreadMessage[] = [
     at: "Sep 12 8:20a",
     subject: "Sunday 6:00p confirmed",
     text: "Elena, confirming Marco Sunday at 6:00p for attic and air seal. Both of you home. Dog in the backyard is fine.",
+  },
+  {
+    id: "M-3er",
+    personId: "L-4821",
+    channel: "email",
+    from: "customer",
+    replyTo: "M-3e",
+    at: "Sep 12 9:05a",
+    subject: "Re: Sunday 6:00p confirmed",
+    text: "Thanks. We'll both be home. Dog stays in the backyard.",
+  },
+  {
+    id: "M-3ef",
+    personId: "L-4821",
+    channel: "email",
+    from: "shop",
+    replyTo: "M-3e",
+    at: "Sep 12 9:18a",
+    subject: "Re: Sunday 6:00p confirmed",
+    text: "Perfect. Marco will text when he is 20 minutes out.",
   },
   {
     id: "M-4",
@@ -242,3 +281,7 @@ export const seedThread: ThreadMessage[] = [
     text: "Can we move Sunday? Kids have a game.",
   },
 ];
+
+export const seedThread: ThreadMessage[] = threadSeed.map((m) =>
+  m.from === "shop" ? { ...m, by: SHOP_BY[m.id] ?? "Wrex Lindsay" } : m,
+);

@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { Pause, Play } from "lucide-react";
 import type { ThreadMessage } from "@/lib/file-data";
+import { cn } from "@/lib/cn";
+import { Initial, whoName } from "./who-mark";
 
 function fmt(sec: number) {
   const s = Math.max(0, Math.floor(sec));
@@ -9,7 +11,9 @@ function fmt(sec: number) {
   return `${m}:${r.toString().padStart(2, "0")}`;
 }
 
-export function CallCard({ msg }: { msg: ThreadMessage }) {
+export function CallCard({ msg, contact }: { msg: ThreadMessage; contact: string }) {
+  const name = whoName(msg, contact);
+  const out = msg.from === "shop";
   const dur = msg.durationSec && msg.durationSec > 0 ? msg.durationSec : 60;
   const [playing, setPlaying] = useState(false);
   const [t, setT] = useState(0);
@@ -38,9 +42,11 @@ export function CallCard({ msg }: { msg: ThreadMessage }) {
   const pct = Math.min(100, (t / dur) * 100);
 
   return (
-    <div className="rounded-md border border-line bg-page p-3">
-      <p className="text-[11px] font-semibold text-muted">
-        Call {msg.direction ?? "Out"} · {msg.result ?? "Answered"} · {msg.at}
+    <div className={cn("flex items-start gap-2", out && "flex-row-reverse")}>
+      <Initial name={name} />
+      <div className="min-w-0 flex-1 rounded-md border border-line bg-page p-3">
+      <p className={cn("text-[11px] font-semibold text-muted", out && "text-right")}>
+        {name} · call · {msg.direction ?? "Out"} · {msg.result ?? "Answered"} · {msg.at}
       </p>
       <p className="mt-1 text-sm">{msg.text}</p>
       <div className="mt-2 flex items-center gap-2">
@@ -72,6 +78,7 @@ export function CallCard({ msg }: { msg: ThreadMessage }) {
         <span className="w-16 shrink-0 text-right text-[11px] font-semibold tabular-nums text-muted">
           {fmt(t)} / {fmt(dur)}
         </span>
+      </div>
       </div>
     </div>
   );

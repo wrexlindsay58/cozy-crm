@@ -29,7 +29,9 @@ import { ClickToCall } from "@/features/lead/click-to-call";
 import { DndPick } from "@/features/lead/dnd-pick";
 import { MarksPanel } from "@/features/lead/marks-bar";
 import { BookWidget } from "@/features/lead/book-widget";
-import { useOps } from "@/features/ops/store";
+import { useOps, dndOn } from "@/features/ops/store";
+import { setCallFrom, setSmsFrom, useFrom } from "@/features/from/store";
+import { useMoneySettings } from "@/features/money-settings/store";
 import { useStaff } from "@/features/staff/store";
 import { useAssessments } from "@/features/assessment/store";
 import { isRead, isStarred, markRead, toggleStar, useMessages } from "@/features/thread/store";
@@ -228,7 +230,7 @@ export function Conversations() {
       </header>
 
       <div className="flex min-h-0 min-w-0 flex-1">
-        <aside className={cn("flex w-full shrink-0 flex-col border-r border-line bg-card md:w-72", mobileThread && "max-md:hidden")}>
+        <aside className={cn("flex w-full shrink-0 flex-col border-r border-line bg-card md:w-[clamp(18rem,34%,40rem)]", mobileThread && "max-md:hidden")}>
           <div className="border-b border-line px-2 py-2">
             <label className="relative block">
               <Search className="pointer-events-none absolute top-1/2 left-3 size-3.5 -translate-y-1/2 text-faint" />
@@ -356,23 +358,17 @@ export function Conversations() {
                     {active.pipe.label}
                   </span>
                   {lead ? <DndPick lead={lead} compact /> : null}
-                  <Tip label={starred ? "Unstar" : "Star"} on>
-                    <button type="button" aria-label={starred ? "Unstar" : "Star"} className="grid size-9 shrink-0 place-items-center rounded-md border border-line" onClick={() => toggleStar(active.id)}>
-                      <Star className={cn("size-4", starred && "fill-navy text-navy")} />
-                    </button>
-                  </Tip>
+                  <PhoneSplit disabled={dndOn(lead, "call") || !active.phone} onCall={() => setCallOpen(true)} />
                   <Tip label="Book" on>
                     <button type="button" aria-label="Book" className="grid size-9 shrink-0 place-items-center rounded-md border border-line" onClick={() => setLane("book")}>
                       <Calendar className="size-4" />
                     </button>
                   </Tip>
-                  {active.phone ? (
-                    <Tip label="Call" on>
-                      <button type="button" aria-label="Call" className="grid size-9 shrink-0 place-items-center rounded-md border border-line" onClick={() => setCallOpen(true)}>
-                        <Phone className="size-4" />
-                      </button>
-                    </Tip>
-                  ) : null}
+                  <Tip label={starred ? "Unstar" : "Star"} on>
+                    <button type="button" aria-label={starred ? "Unstar" : "Star"} className="grid size-9 shrink-0 place-items-center rounded-md border border-line" onClick={() => toggleStar(active.id)}>
+                      <Star className={cn("size-4", starred && "fill-navy text-navy")} />
+                    </button>
+                  </Tip>
                 </div>
                 <p className="mt-1 text-[11px] text-muted">
                   {active.phone}
@@ -380,9 +376,15 @@ export function Conversations() {
                   {active.appt ? ` · Sep ${active.appt.day} ${active.appt.time}` : ""}
                 </p>
               </header>
-              <header className="hidden min-h-14 items-center gap-2 border-b border-line px-3 py-2 md:flex">
-                <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-2">
+              <header className="hidden min-h-14 items-center gap-3 border-b border-line px-3 py-2 md:flex">
+                <div className="min-w-0">
+                  <div className="flex min-w-0 flex-wrap items-center gap-2">
+                    <h2 className="min-w-0 truncate text-base font-bold">{active.name}</h2>
+                    <Tip label="Open file" on>
+                      <a href={active.pipe.href} aria-label="Open file" className="grid size-9 shrink-0 place-items-center rounded-md border border-line text-navy">
+                        <SquareArrowOutUpRight className="size-4" />
+                      </a>
+                    </Tip>
                     {active.status ? (
                       <span className={cn("h-7 rounded-md px-2 text-[11px] font-bold tracking-wide uppercase leading-7", stageWash(active.tone))}>
                         {active.status}
@@ -392,23 +394,6 @@ export function Conversations() {
                       {active.pipe.label}
                     </span>
                     {lead ? <DndPick lead={lead} compact /> : null}
-                    <Tip label={starred ? "Unstar" : "Star"} on>
-                      <button type="button" aria-label={starred ? "Unstar" : "Star"} className="grid size-9 place-items-center rounded-md border border-line" onClick={() => toggleStar(active.id)}>
-                        <Star className={cn("size-4", starred && "fill-navy text-navy")} />
-                      </button>
-                    </Tip>
-                    <Tip label="Book" on>
-                      <button type="button" aria-label="Book" className="grid size-9 place-items-center rounded-md border border-line" onClick={() => setLane("book")}>
-                        <Calendar className="size-4" />
-                      </button>
-                    </Tip>
-                    {active.phone ? (
-                      <Tip label="Call" on>
-                        <button type="button" aria-label="Call" className="grid size-9 place-items-center rounded-md border border-line" onClick={() => setCallOpen(true)}>
-                          <Phone className="size-4" />
-                        </button>
-                      </Tip>
-                    ) : null}
                   </div>
                   <p className="text-[11px] text-muted">
                     {active.phone}
@@ -416,14 +401,19 @@ export function Conversations() {
                     {active.appt ? ` · Sep ${active.appt.day} ${active.appt.time}` : ""}
                   </p>
                 </div>
-                <a href={active.pipe.href} className="ml-auto flex min-w-0 max-w-[14rem] shrink-0 items-center gap-2">
-                  <h2 className="min-w-0 truncate text-base font-bold">{active.name}</h2>
-                  <Tip label="Open file" on>
-                    <span aria-label="Open file" className="grid size-9 shrink-0 place-items-center rounded-md border border-line text-navy">
-                      <SquareArrowOutUpRight className="size-4" />
-                    </span>
+                <div className="ml-auto flex shrink-0 items-center gap-2">
+                  <PhoneSplit disabled={dndOn(lead, "call") || !active.phone} onCall={() => setCallOpen(true)} />
+                  <Tip label="Book" on>
+                    <button type="button" aria-label="Book" className="grid size-9 place-items-center rounded-md border border-line" onClick={() => setLane("book")}>
+                      <Calendar className="size-4" />
+                    </button>
                   </Tip>
-                </a>
+                  <Tip label={starred ? "Unstar" : "Star"} on>
+                    <button type="button" aria-label={starred ? "Unstar" : "Star"} className="grid size-9 place-items-center rounded-md border border-line" onClick={() => toggleStar(active.id)}>
+                      <Star className={cn("size-4", starred && "fill-navy text-navy")} />
+                    </button>
+                  </Tip>
+                </div>
               </header>
               <LaneHead lane={lane} onLane={setLane} />
               <div className="min-h-0 flex-1 overflow-hidden">
@@ -465,6 +455,53 @@ export function Conversations() {
           )}
         </section>
       </div>
+    </div>
+  );
+}
+
+function PhoneSplit({ onCall, disabled }: { onCall: () => void; disabled?: boolean }) {
+  const { numbers } = useMoneySettings();
+  const { callFrom } = useFrom();
+  const [open, setOpen] = useState(false);
+  const [anchor, setAnchor] = useState<DOMRect | null>(null);
+  return (
+    <div className={cn("inline-flex h-9 overflow-hidden rounded-md border border-line bg-card", disabled && "opacity-40")}>
+      <Tip label="Call" on>
+        <button type="button" aria-label="Call" disabled={disabled} className="grid w-9 place-items-center disabled:cursor-not-allowed" onClick={onCall}>
+          <Phone className="size-4" />
+        </button>
+      </Tip>
+      <span className="w-px self-stretch bg-line" />
+      <button
+        type="button"
+        aria-label="Call from"
+        disabled={disabled}
+        className="grid w-7 place-items-center disabled:cursor-not-allowed"
+        onClick={(e) => {
+          setAnchor(e.currentTarget.getBoundingClientRect());
+          setOpen((v) => !v);
+        }}
+      >
+        <ChevronDown className="size-3.5 opacity-80" />
+      </button>
+      {open && anchor ? (
+        <Float anchor={anchor} prefer="bottom" onClose={() => setOpen(false)}>
+          {numbers.map((n) => (
+            <button
+              key={n.number}
+              type="button"
+              className={cn("block w-full min-w-52 px-3 py-2 text-left text-sm hover:bg-page", n.number === callFrom && "font-semibold")}
+              onClick={() => {
+                setCallFrom(n.number);
+                setSmsFrom(n.number);
+                setOpen(false);
+              }}
+            >
+              {n.office} · {n.number}
+            </button>
+          ))}
+        </Float>
+      ) : null}
     </div>
   );
 }
