@@ -1,9 +1,13 @@
 import { useSyncExternalStore } from "react";
 import { addHistory, createAction, setWorkStatus } from "@/features/ops/store";
 import { kindFromFile, putPhoto } from "@/features/photos/store";
-import { crewOf, membersOf, payFor, SHOP_CREWS, vehicleLabel } from "@/features/staff/store";
+import { crewOf, membersOf, payFor, SHOP_CREWS, vehicleLabel, actingName } from "@/features/staff/store";
 import { putFromJob } from "@/features/book/store";
+import { sendMessage } from "@/features/thread/store";
+import { closeBlockers, packetLines, packetOn } from "./closeout";
+import { isAccepted, splitSoldNotes } from "./types";
 import { seedJobs } from "./seed";
+import { prepClear } from "./prep";
 import {
   closeBlocks,
   catFromTag,
@@ -22,8 +26,18 @@ import {
   type EquipRow,
   type CostHit,
   type FieldExtra,
+  type FieldIssue,
+  type Acceptance,
   type Hold,
   type JobEvent,
+  cashLoan,
+  defaultChecks,
+  defaultPacket,
+  defaultPost,
+  defaultPre,
+  emptyPermit,
+  emptyRebate,
+  emptyTest,
   type JobFile,
   type JobInvoice,
   type JobSurvey,
@@ -81,6 +95,77 @@ export function useJobs() {
 export function useJob(jobId: string) {
   return useJobs()[jobId];
 }
+export function jobForLead(leadId: string) {
+  return Object.values(jobs).find((j) => j.leadId === leadId);
+}
+export function openSoldJob(input: { leadId: string; personId: string; name: string; product: string; closer: string; sold: number; accountId?: string }) {
+  const existing = jobForLead(input.leadId);
+  if (existing) return existing;
+  const jobId = `P-${320 + Object.keys(jobs).length}`;
+  const scope: ScopeLine = {
+    id: `SC-${jobId}`,
+    label: input.product,
+    kind: "product",
+    categoryId: "hvac",
+    amount: input.sold,
+    qty: 1,
+    notes: "",
+    quotedCost: 0,
+    estHours: 0,
+    media: [],
+    owner: input.closer,
+    promiseDone: false,
+    bom: [],
+  };
+  const row: JobFile = {
+    jobId,
+    personId: input.personId,
+    leadId: input.leadId,
+    accountId: input.accountId ?? "",
+    name: input.name,
+    product: input.product,
+    pm: input.closer,
+    closer: input.closer,
+    stage: "Sold",
+    holds: [],
+    sold: input.sold,
+    soldAt: "Today",
+    labor: 0,
+    commission: 0,
+    commissions: [],
+    extras: 0,
+    crew: "",
+    truck: "",
+    window: "",
+    assignments: [],
+    soldNotes: "",
+    scope: [scope],
+    warranty: false,
+    loan: cashLoan(),
+    workOrders: [],
+    pos: [],
+    changeOrders: [],
+    invoices: [],
+    events: [],
+    punch: [],
+    equipment: [],
+    checks: defaultChecks(),
+    punches: [],
+    access: "",
+    permit: emptyPermit(),
+    rebate: emptyRebate(),
+    testOut: emptyTest(),
+    preCheck: defaultPre(),
+    postCheck: defaultPost(),
+    packet: defaultPacket(),
+    installRev: 1,
+    financeRev: 1,
+  };
+  jobs = { ...jobs, [jobId]: row };
+  addHistory(input.personId, actingName(), `Job ${jobId} opened.`);
+  emit();
+  return row;
+}
 export function approvedCos(job: JobFile) {
   return job.changeOrders.filter((c) => c.status === "Approved").reduce((s, c) => s + c.amount, 0);
 }
@@ -94,10 +179,10 @@ export function isPayBill(i: JobInvoice) {
   return i.party === "pay" || i.kind === "Commission" || i.kind === "Piece";
 }
 export function invoiced(job: JobFile) {
-  return job.invoices.filter((i) => !isPayBill(i) && i.status !== "Void" && i.status !== "Draft").reduce((s, i) => s + i.amount, 0);
+  return job.invoices.filter((i) => !isPayBill(i) && i.status !== "Void" && i.status !== "Draft" && i.status !== "Refunded").reduce((s, i) => s + i.amount, 0);
 }
 export function paid(job: JobFile) {
-  return job.invoices.filter((i) => !isPayBill(i)).reduce((s, i) => s + i.paid, 0);
+  return job.invoices.filter((i) => !isPayBill(i) && i.status !== "Void" && i.status !== "Refunded").reduce((s, i) => s + i.paid, 0);
 }
 export function quotedCost(job: JobFile) {
   return job.scope.reduce((s, r) => s + r.quotedCost, 0);
@@ -143,6 +228,7 @@ export function tally(job: JobFile) {
   const invoicedAmt = invoiced(job);
   const paidAmt = paid(job);
   const funded = job.loan.vendor === "GoodLeap" ? job.loan.fundedAmount : 0;
+  const refunds = job.invoices.filter((i) => i.status === "Refunded" && (i.party ?? "customer") === "customer").reduce((s, i) => s + i.amount, 0);
   return {
     revenue,
     cost,
@@ -157,8 +243,9 @@ export function tally(job: JobFile) {
     discounts,
     cogs,
     commission: comm,
-    gross: revenue - cogs,
-    margin: revenue - cogs - comm,
+    gross: revenue - cogs - refunds,
+    refunds,
+    margin: revenue - cogs - comm - refunds,
     quotedMargin: revenue - quoted - comm,
     invoiced: invoicedAmt,
     paid: paidAmt,
@@ -498,13 +585,13 @@ export function sendAssignWo(jobId: string, assignId: string) {
     return next;
   });
 }
-export function ackWo(jobId: string, woId: string, who: string) {
+export function ackWo(jobId: string, woId: string, who = actingName()) {
   patch(jobId, (j) => {
     addHistory(j.personId, who, `WO ${woId} acknowledged.`);
     return { ...j, workOrders: j.workOrders.map((w) => (w.id === woId ? { ...w, status: "Acked", ackedAt: "Now", ackedBy: who } : w)) };
   });
 }
-export function signWo(jobId: string, woId: string, who: string) {
+export function signWo(jobId: string, woId: string, who = actingName()) {
   patch(jobId, (j) => {
     addHistory(j.personId, who, `WO ${woId} signed.`);
     const assign = j.assignments.find((a) => a.woId === woId);
@@ -543,9 +630,142 @@ export function setSoldNotes(jobId: string, soldNotes: string) {
     return { ...j, soldNotes };
   }, { nudge: false });
 }
+
+function ensureAcceptance(j: JobFile): Acceptance {
+  return j.acceptance ?? { reviewed: [], notes: splitSoldNotes(j.soldNotes), discrepancies: [] };
+}
+export function syncAcceptance(jobId: string, rows: string[]) {
+  patch(jobId, (j) => {
+    const file = ensureAcceptance(j);
+    if (file.rows?.join("|") === rows.join("|") && j.acceptance) return j;
+    return { ...j, acceptance: { ...file, rows } };
+  }, { nudge: false });
+}
+export function reviewLine(jobId: string, lineId: string) {
+  patch(jobId, (j) => {
+    if (isAccepted(j)) return j;
+    const file = ensureAcceptance(j);
+    if (file.reviewed.includes(lineId) || file.discrepancies.some((d) => d.lineId === lineId)) return j;
+    addHistory(j.personId, actingName(), "Reviewed a sold line.");
+    return { ...j, acceptance: { ...file, reviewed: [...file.reviewed, lineId] } };
+  }, { nudge: false });
+}
+export function flagLine(jobId: string, lineId: string, what: string) {
+  const text = what.trim();
+  if (!text) return;
+  patch(jobId, (j) => {
+    if (isAccepted(j)) return j;
+    const file = ensureAcceptance(j);
+    addHistory(j.personId, actingName(), `Discrepancy. ${text}`);
+    return { ...j, acceptance: { ...file, reviewed: file.reviewed.filter((id) => id !== lineId), discrepancies: [...file.discrepancies, { id: `D-${Date.now()}`, lineId, what: text, how: "open", note: "" }] } };
+  }, { nudge: false });
+}
+export function resolveDiscrepancy(jobId: string, id: string, how: "clarified" | "as-is" | "co", note: string, amount = 0) {
+  patch(jobId, (j) => {
+    if (isAccepted(j)) return j;
+    const file = ensureAcceptance(j);
+    const disc = file.discrepancies.find((d) => d.id === id);
+    if (!disc) return j;
+    let coId = disc.coId;
+    let changeOrders = j.changeOrders;
+    if (how === "co" && !coId) {
+      coId = `CO-${j.changeOrders.length + 1}`;
+      changeOrders = [{ id: coId, why: note.trim() || disc.what, amount: amount || 0, cost: 0, status: "Draft", lane: "install", signed: false }, ...j.changeOrders];
+    }
+    addHistory(j.personId, actingName(), how === "co" ? "Discrepancy moved to a change order." : how === "as-is" ? "Discrepancy kept." : "Discrepancy clarified.");
+    return { ...j, changeOrders, acceptance: { ...file, discrepancies: file.discrepancies.map((d) => (d.id === id ? { ...d, how, note: note.trim(), coId } : d)) } };
+  }, { nudge: false });
+}
+export function setAcceptNote(jobId: string, id: string, row: Partial<Acceptance["notes"][number]>) {
+  patch(jobId, (j) => {
+    if (isAccepted(j)) return j;
+    const file = ensureAcceptance(j);
+    addHistory(j.personId, actingName(), row.state === "asked" ? `Asked the rep. ${row.question || ""}`.trim() : "Rep note cleared.");
+    return { ...j, acceptance: { ...file, notes: file.notes.map((n) => (n.id === id ? { ...n, ...row } : n)) } };
+  }, { nudge: false });
+}
+export function answerAcceptNote(jobId: string, id: string, answer: string) {
+  const text = answer.trim();
+  if (!text) return;
+  patch(jobId, (j) => {
+    const file = ensureAcceptance(j);
+    addHistory(j.personId, actingName(), `Rep answered. ${text}`);
+    return { ...j, acceptance: { ...file, notes: file.notes.map((n) => (n.id === id ? { ...n, answer: text } : n)) } };
+  }, { nudge: false });
+}
+export function requestSurvey(jobId: string) {
+  patch(jobId, (j) => {
+    if (isAccepted(j)) return j;
+    const file = ensureAcceptance(j);
+    addHistory(j.personId, actingName(), "Site survey requested before acceptance.");
+    return { ...j, acceptance: { ...file, surveyAsked: true } };
+  }, { nudge: false });
+}
+export function acceptJob(jobId: string) {
+  patch(jobId, (j) => {
+    if (isAccepted(j)) return j;
+    const file = ensureAcceptance(j);
+    addHistory(j.personId, actingName(), "Job accepted.");
+    return { ...j, acceptance: { ...file, by: actingName(), at: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric" }) } };
+  }, { nudge: false });
+}
+export function setPrep(jobId: string, day: string, itemId: string, row: { scheduled?: boolean; confirmed?: boolean }) {
+  patch(jobId, (j) => {
+    if (!isAccepted(j) || !day) return j;
+    const cur = j.prep?.[day]?.[itemId] ?? {};
+    const nextMark = { ...cur, ...row, by: actingName() };
+    if (row.scheduled === false) nextMark.confirmed = false;
+    addHistory(j.personId, actingName(), `Prep ${itemId} on ${day}. ${nextMark.confirmed ? "Confirmed" : nextMark.scheduled ? "Scheduled" : "Open"}.`);
+    const next = { ...j, prep: { ...j.prep, [day]: { ...j.prep?.[day], [itemId]: nextMark } } };
+    if (!prepClear(next, day)) {
+      next.events = next.events.map((e) => (e.day === day && e.status === "Dispatched" ? { ...e, status: "Set" as const } : e));
+    }
+    return next;
+  }, { nudge: false });
+}
+export function toggleInventory(jobId: string, assignId: string, lineId: string) {
+  patch(jobId, (j) => {
+    const assign = j.assignments.find((a) => a.id === assignId);
+    if (!assign || assign.inventory?.signedAt || !isAccepted(j) || !prepClear(j, assign.day)) return j;
+    addHistory(j.personId, actingName(), `Inventory check on ${assign.crew}.`);
+    return {
+      ...j,
+      assignments: j.assignments.map((a) => {
+        if (a.id !== assignId) return a;
+        const checked = new Set(a.inventory?.checked ?? []);
+        const checkedBy = { ...(a.inventory?.checkedBy ?? {}) };
+        if (checked.has(lineId)) {
+          checked.delete(lineId);
+          delete checkedBy[lineId];
+        } else {
+          checked.add(lineId);
+          checkedBy[lineId] = actingName();
+        }
+        return { ...a, inventory: { ...a.inventory, checked: [...checked], checkedBy } };
+      }),
+    };
+  }, { nudge: false });
+}
+export function signInventory(jobId: string, assignId: string, signature: string) {
+  if (!signature) return;
+  patch(jobId, (j) => {
+    const assign = j.assignments.find((a) => a.id === assignId);
+    if (!assign || !isAccepted(j) || !prepClear(j, assign.day)) return j;
+    addHistory(j.personId, actingName(), `Inventory signed for ${assign.crew || "crew"}.`);
+    return {
+      ...j,
+      assignments: j.assignments.map((a) =>
+        a.id === assignId
+          ? { ...a, inventory: { checked: a.inventory?.checked ?? [], checkedBy: a.inventory?.checkedBy, signedBy: actingName(), signedAt: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric" }), signature } }
+          : a,
+      ),
+    };
+  }, { nudge: false });
+}
 export function addCostHit(jobId: string, kind: CostHit["kind"], reason: SalesFault | FieldExtra, amount: number, note = "") {
   if (amount <= 0) return;
   patch(jobId, (j) => {
+    if (kind === "field" && !isAccepted(j)) return j;
     const row: CostHit = {
       id: `CH-${Date.now()}`,
       kind,
@@ -554,7 +774,7 @@ export function addCostHit(jobId: string, kind: CostHit["kind"], reason: SalesFa
       note: note.trim(),
       at: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric" }),
     };
-    addHistory(j.personId, j.pm, `${reason} ${kind === "sales" ? "true discount" : "field extra"} $${amount}.`);
+    addHistory(j.personId, actingName(), `${reason} ${kind === "sales" ? "true discount" : "field extra"} $${amount}.`);
     return { ...j, costHits: [...(j.costHits ?? []), row] };
   }, { nudge: false });
 }
@@ -567,7 +787,7 @@ export function addScopeMedia(jobId: string, scopeId: string, file: File, cat: M
   const row: ScopeMedia = { id: `M-${Date.now()}`, cat, name: extra?.name?.trim() || file.name, url, kind, caption: extra?.caption, purpose: extra?.purpose };
   patch(jobId, (j) => {
     const line = j.scope.find((s) => s.id === scopeId);
-    addHistory(j.personId, j.pm, `Media ${row.name} on ${line?.label ?? "job"}${row.caption ? `. ${row.caption}` : ""}.`);
+    addHistory(j.personId, actingName(), `Media ${row.name} on ${line?.label ?? "job"}${row.caption ? `. ${row.caption}` : ""}.`);
     putPhoto(j.personId, { id: row.id, personId: j.personId, caption: `${row.purpose || cat} · ${row.caption || row.name}`, tone: "info", src: url, kind: kindFromFile(file), name: row.name });
     return { ...j, scope: j.scope.map((s) => (s.id === scopeId ? { ...s, media: [row, ...s.media] } : s)) };
   }, { nudge: false });
@@ -575,8 +795,9 @@ export function addScopeMedia(jobId: string, scopeId: string, file: File, cat: M
 export function addChangeOrder(jobId: string, why: string, amount: number, cost: number, lane: ChangeOrder["lane"] = "install") {
   if (!why.trim() || amount <= 0) return;
   patch(jobId, (j) => {
+    if (!isAccepted(j)) return j;
     const row: ChangeOrder = { id: `CO-${j.changeOrders.length + 1}`, why: why.trim(), amount, cost, status: "Approved", lane, signed: false };
-    addHistory(j.personId, j.pm, `${lane === "finance" ? "GoodLeap" : "Install"} change order ${why.trim()} +$${amount}.`);
+    addHistory(j.personId, actingName(), `${lane === "finance" ? "GoodLeap" : "Install"} change order ${why.trim()} +$${amount}.`);
     return {
       ...j,
       changeOrders: [row, ...j.changeOrders],
@@ -702,7 +923,11 @@ export function patchLoan(jobId: string, row: Partial<LoanFile>) {
   });
 }
 export function setEventStatus(jobId: string, id: string, status: JobEvent["status"]) {
-  patch(jobId, (j) => ({ ...j, events: j.events.map((e) => (e.id === id ? { ...e, status } : e)) }));
+  patch(jobId, (j) => {
+    const event = j.events.find((e) => e.id === id);
+    if (status === "Dispatched" && event && !prepClear(j, event.day)) return j;
+    return { ...j, events: j.events.map((e) => (e.id === id ? { ...e, status } : e)) };
+  });
 }
 export function addEvent(jobId: string, process: string, scopeId: string, day: string, start = "07:00", end = "15:00", crew?: string, why?: string) {
   const id = `EV-${Date.now()}`;
@@ -756,10 +981,16 @@ export function removeEvent(jobId: string, id: string) {
 }
 export function addPunch(jobId: string, item: string) {
   if (!item.trim()) return;
-  patch(jobId, (j) => ({ ...j, punch: [{ id: `PU-${Date.now()}`, item: item.trim(), owner: j.crew, status: "Open" }, ...j.punch] }));
+  patch(jobId, (j) => {
+    if (!isAccepted(j)) return j;
+    return { ...j, punch: [{ id: `PU-${Date.now()}`, item: item.trim(), owner: actingName(), status: "Open" }, ...j.punch] };
+  });
 }
 export function togglePunch(jobId: string, id: string) {
-  patch(jobId, (j) => ({ ...j, punch: j.punch.map((p) => (p.id === id ? { ...p, status: p.status === "Open" ? "Done" : "Open" } : p)) }));
+  patch(jobId, (j) => {
+    if (!isAccepted(j)) return j;
+    return { ...j, punch: j.punch.map((p) => (p.id === id ? { ...p, status: p.status === "Open" ? "Done" : "Open" } : p)) };
+  });
 }
 export function addEquip(jobId: string, name: string, eta: string) {
   if (!name.trim()) return;
@@ -784,16 +1015,34 @@ export function crewsOnJob(j: JobFile) {
   return on.length ? on : [];
 }
 export function addTimePunch(jobId: string, who: string, day: string) {
-  if (!who.trim()) return;
-  const row: TimePunch = { id: `HR-${Date.now()}`, who: who.trim(), day: day || "Today", leftYard: "", onSite: "", complete: "", back: "" };
-  patch(jobId, (j) => ({ ...j, punches: [row, ...j.punches] }));
+  if (!who.trim() || !day.trim()) return;
+  patch(jobId, (j) => {
+    if (!isAccepted(j)) return j;
+    if (j.punches.some((p) => p.who === who.trim() && p.day === day)) return j;
+    addHistory(j.personId, actingName(), `Clock opened for ${who.trim()} on ${day}.`);
+    const row: TimePunch = { id: `HR-${Date.now()}`, who: who.trim(), day, leftYard: "", onSite: "", complete: "", back: "" };
+    return { ...j, punches: [row, ...j.punches] };
+  });
 }
 export function patchPunchClock(jobId: string, id: string, row: Partial<TimePunch>) {
   patch(jobId, (j) => {
+    if (!isAccepted(j)) return j;
+    const prev = j.punches.find((p) => p.id === id);
+    if (row.back && prev && !prev.back) addHistory(j.personId, actingName(), `${prev.who} back at the shop.`);
     const punches = j.punches.map((p) => (p.id === id ? { ...p, ...row } : p));
     const labor = punches.reduce((s, p) => s + Math.round(punchHours(p).total * 55), 0);
     return { ...j, punches, labor: labor || j.labor };
   });
+}
+export function addFieldIssue(jobId: string, type: FieldIssue["type"], note: string) {
+  const text = note.trim();
+  if (!text) return;
+  patch(jobId, (j) => {
+    if (!isAccepted(j)) return j;
+    const row: FieldIssue = { id: `IS-${Date.now()}`, type, note: text, by: actingName(), at: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric" }) };
+    addHistory(j.personId, actingName(), `${type}. ${text}`);
+    return { ...j, issues: [row, ...(j.issues ?? [])] };
+  }, { nudge: false });
 }
 export function setAccess(jobId: string, access: string) {
   patch(jobId, (j) => {
@@ -812,27 +1061,30 @@ export function patchTest(jobId: string, row: Partial<TestOut>) {
 }
 export function togglePre(jobId: string, id: string) {
   patch(jobId, (j) => {
-    const items = j.preCheck.items.map((i) => (i.id === id ? { ...i, on: !i.on } : i));
+    if (!isAccepted(j)) return j;
+    const items = j.preCheck.items.map((i) => (i.id === id ? { ...i, on: !i.on, by: !i.on ? actingName() : undefined } : i));
     const row = items.find((i) => i.id === id);
-    addHistory(j.personId, j.pm, `Pre-install ${row?.label ?? id} ${row?.on ? "checked" : "cleared"}.`);
+    addHistory(j.personId, actingName(), `Pre-install ${row?.label ?? id} ${row?.on ? "checked" : "cleared"}.`);
     return { ...j, preCheck: { ...j.preCheck, items } };
   }, { nudge: false });
 }
 export function togglePost(jobId: string, id: string) {
   patch(jobId, (j) => {
-    const items = j.postCheck.items.map((i) => (i.id === id ? { ...i, on: !i.on } : i));
+    if (!isAccepted(j)) return j;
+    const items = j.postCheck.items.map((i) => (i.id === id ? { ...i, on: !i.on, by: !i.on ? actingName() : undefined } : i));
     const row = items.find((i) => i.id === id);
-    addHistory(j.personId, j.pm, `Post-install ${row?.label ?? id} ${row?.on ? "checked" : "cleared"}.`);
+    addHistory(j.personId, actingName(), `Post-install ${row?.label ?? id} ${row?.on ? "checked" : "cleared"}.`);
     return { ...j, postCheck: { ...j.postCheck, items } };
   }, { nudge: false });
 }
 export function setCheckCallout(jobId: string, which: "pre" | "post", id: string, callout: string) {
   patch(jobId, (j) => {
+    if (!isAccepted(j)) return j;
     const key = which === "pre" ? "preCheck" : "postCheck";
     const pack = j[key];
     const items = pack.items.map((i) => (i.id === id ? { ...i, callout } : i));
     const row = items.find((i) => i.id === id);
-    addHistory(j.personId, j.pm, `${which === "pre" ? "Pre" : "Post"}-install call-out · ${row?.label ?? id}: ${callout.trim() || "cleared"}.`);
+    addHistory(j.personId, actingName(), `${which === "pre" ? "Pre" : "Post"}-install call-out · ${row?.label ?? id}: ${callout.trim() || "cleared"}.`);
     return { ...j, [key]: { ...pack, items } };
   }, { nudge: false });
 }
@@ -840,16 +1092,18 @@ export function signPre(jobId: string, input: { name: string; signature: string;
   const name = input.name.trim();
   if (name.length < 3 || !input.signature.startsWith("data:image")) return;
   patch(jobId, (j) => {
-    addHistory(j.personId, j.pm, `Pre-install signed in person by ${name}${input.relation ? ` (${input.relation})` : ""}.`);
-    return { ...j, preCheck: { ...j.preCheck, signedBy: name, signedAt: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric" }), signature: input.signature, relation: input.relation } };
+    if (!isAccepted(j)) return j;
+    addHistory(j.personId, actingName(), `Pre-install signed in person by ${name}${input.relation ? ` (${input.relation})` : ""}. Collected by ${actingName()}.`);
+    return { ...j, preCheck: { ...j.preCheck, signedBy: name, collectedBy: actingName(), signedAt: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric" }), signature: input.signature, relation: input.relation } };
   }, { nudge: false });
 }
 export function signPost(jobId: string, input: { name: string; signature: string; relation?: string }) {
   const name = input.name.trim();
   if (name.length < 3 || !input.signature.startsWith("data:image")) return;
   patch(jobId, (j) => {
-    addHistory(j.personId, j.pm, `Post-install signed in person by ${name}${input.relation ? ` (${input.relation})` : ""}.`);
-    return { ...j, postCheck: { ...j.postCheck, signedBy: name, signedAt: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric" }), signature: input.signature, relation: input.relation } };
+    if (!isAccepted(j)) return j;
+    addHistory(j.personId, actingName(), `Post-install signed in person by ${name}${input.relation ? ` (${input.relation})` : ""}. Collected by ${actingName()}.`);
+    return { ...j, postCheck: { ...j.postCheck, signedBy: name, collectedBy: actingName(), signedAt: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric" }), signature: input.signature, relation: input.relation } };
   }, { nudge: false });
 }
 export function addCheckMedia(jobId: string, kind: "pre" | "post", file: File, meta: { name: string; caption: string; tag: string }) {
@@ -864,20 +1118,41 @@ export function addCheckMedia(jobId: string, kind: "pre" | "post", file: File, m
     purpose: meta.tag,
   };
   patch(jobId, (j) => {
+    if (!isAccepted(j)) return j;
     const key = kind === "pre" ? "preCheck" : "postCheck";
     const pack = j[key];
-    addHistory(j.personId, j.pm, `${kind === "pre" ? "Pre" : "Post"}-install acknowledgement photo ${row.name}.`);
+    addHistory(j.personId, actingName(), `${kind === "pre" ? "Pre" : "Post"}-install acknowledgement photo ${row.name}.`);
     return { ...j, [key]: { ...pack, photos: [row, ...(pack.photos ?? [])] } };
   }, { nudge: false });
 }
 export function togglePacket(jobId: string, id: string) {
-  patch(jobId, (j) => ({ ...j, packet: { ...j.packet, parts: j.packet.parts.map((p) => (p.id === id ? { ...p, on: !p.on } : p)) } }), { nudge: false });
+  patch(jobId, (j) => {
+    const line = packetLines(j).find((p) => p.id === id);
+    if (!line) return j;
+    const exists = j.packet.parts.some((p) => p.id === id);
+    const on = exists ? !j.packet.parts.find((p) => p.id === id)?.on : false;
+    addHistory(j.personId, actingName(), `${line.label} ${on ? "in" : "out of"} the packet.`);
+    const parts = exists ? j.packet.parts.map((p) => (p.id === id ? { ...p, on } : p)) : [...j.packet.parts, { id, label: line.label, on }];
+    return { ...j, packet: { ...j.packet, parts } };
+  }, { nudge: false });
+}
+export function signCloseout(jobId: string) {
+  patch(jobId, (j) => {
+    if (closeBlockers(j).length || j.packet.signedBy) return j;
+    addHistory(j.personId, actingName(), "Closeout signed off.");
+    return { ...j, packet: { ...j.packet, signedBy: actingName(), signedAt: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric" }) } };
+  }, { nudge: false });
 }
 export function sendPacket(jobId: string) {
   patch(jobId, (j) => {
-    addHistory(j.personId, j.pm, "Closing packet sent.");
-    return { ...j, packet: { ...j.packet, sent: true, sentAt: "Now" } };
-  }, { nudge: false });
+    if (j.packet.sent || closeBlockers(j).length || !j.packet.signedBy) return j;
+    const included = packetLines(j).filter((line) => packetOn(j, line.id));
+    sendMessage(j.personId, [`Completion packet for ${j.name}.`, "", "Included", ...included.map((line) => `· ${line.label}. ${line.detail}`), "", "Work orders and purchase orders stay in the office. They are not in this packet.", "", "A short survey and a review request are on the way."].join("\n"), "email", { subject: `Your ${j.product} completion packet` });
+    sendMessage(j.personId, `${j.name.split(" ")[0]}, the install is done. If you have a minute, a Google review helps the crew.`, "sms");
+    const survey = j.packet.surveyId ? undefined : createAction({ kind: "task", personId: j.personId, title: `After-install survey · ${j.name}`, owner: j.pm, description: `Call or send the survey for ${j.jobId}. Review request already went out.`, category: "Follow up" });
+    addHistory(j.personId, actingName(), "Closing packet sent. Survey and review request sent.");
+    return { ...j, packet: { ...j.packet, sent: true, sentAt: "Now", surveyId: j.packet.surveyId || survey?.id } };
+  });
 }
 export function sendFinalInvoice(jobId: string) {
   patch(jobId, (j) => {
@@ -914,7 +1189,9 @@ export function togglePromise(jobId: string, scopeId: string) {
   }, { nudge: false });
 }
 export function patchBom(jobId: string, scopeId: string, bomId: string, row: Partial<import("./types").BomLine>) {
-  patch(jobId, (j) => ({
+  patch(jobId, (j) => {
+    if (row.usedQty != null && !isAccepted(j)) return j;
+    return {
     ...j,
     scope: j.scope.map((s) =>
       s.id === scopeId
@@ -941,7 +1218,8 @@ export function patchBom(jobId: string, scopeId: string, bomId: string, row: Par
           }
         : s,
     ),
-  }));
+  };
+  });
 }
 export function addBom(jobId: string, scopeId: string, name: string, qty: number, unitCost: number, supplier = "", track?: "bulk" | "unit") {
   if (!name.trim() || qty <= 0) return;
@@ -1064,13 +1342,18 @@ export function patchQcResult(jobId: string, key: string, result: "pass" | "fail
   const j = jobs[jobId];
   if (!j) return;
   const cur = j.testOut.results?.[key];
-  const next = cur === result ? undefined : result;
-  if (next === "fail") failQc(jobId, key);
+  if (cur === "fail" || cur === result) return;
+  if (result === "fail") failQc(jobId, key);
   patch(jobId, (job) => {
-    const results = { ...job.testOut.results };
-    if (next) results[key] = next;
-    else delete results[key];
-    return { ...job, testOut: { ...job.testOut, results } };
+    addHistory(job.personId, actingName(), `${qcLabel(job, key)} ${result}.`);
+    return {
+      ...job,
+      testOut: {
+        ...job.testOut,
+        results: { ...job.testOut.results, [key]: result },
+        by: { ...job.testOut.by, [key]: actingName() },
+      },
+    };
   }, { nudge: false });
 }
 function qcLabel(j: JobFile, key: string) {
@@ -1104,16 +1387,19 @@ function failQc(jobId: string, key: string) {
 }
 export function setQcCorrected(jobId: string, key: string, on: boolean) {
   patch(jobId, (j) => {
+    if (j.testOut.results?.[key] !== "fail") return j;
     const fix = j.testOut.fixes?.[key] ?? {};
-    if (on && fix.ticketId) setWorkStatus("ticket", fix.ticketId, "Complete");
-    if (on && fix.eventId) {
-      return {
-        ...j,
-        events: j.events.map((e) => (e.id === fix.eventId ? { ...e, status: "Done" as const, why: `${e.why ?? "QC fail"} · corrected by QC` } : e)),
-        testOut: { ...j.testOut, fixes: { ...j.testOut.fixes, [key]: { ...fix, correctedByQc: true } } },
-      };
-    }
-    return { ...j, testOut: { ...j.testOut, fixes: { ...j.testOut.fixes, [key]: { ...fix, correctedByQc: on } } } };
+    addHistory(j.personId, actingName(), on ? `${qcLabel(j, key)} failed and corrected on site.` : `${qcLabel(j, key)} still needs a fix.`);
+    if (fix.ticketId) setWorkStatus("ticket", fix.ticketId, on ? "Complete" : "Open");
+    return {
+      ...j,
+      events: j.events.map((e) => {
+        if (e.id !== fix.eventId) return e;
+        if (on) return { ...e, status: "Done" as const, why: `${(e.why ?? "QC fail").replace(/ · corrected by QC$/, "")} · corrected by QC` };
+        return { ...e, status: "Set" as const, why: (e.why ?? "QC fail").replace(/ · corrected by QC$/, "") };
+      }),
+      testOut: { ...j.testOut, fixes: { ...j.testOut.fixes, [key]: { ...fix, correctedByQc: on } } },
+    };
   }, { nudge: false });
 }
 export function patchQcFact(jobId: string, key: string, value: string) {
@@ -1124,11 +1410,12 @@ export function patchQcCheck(jobId: string, key: string, on: boolean) {
 }
 export function orderBom(jobId: string, scopeId: string) {
   patch(jobId, (j) => {
+    if (!isAccepted(j)) return j;
     const sc = j.scope.find((s) => s.id === scopeId);
     if (!sc) return j;
     const amount = sc.bom.reduce((n, b) => n + b.estQty * b.unitCost, 0);
     const supplier = sc.bom[0]?.supplier || "Supplier";
-    addHistory(j.personId, j.pm, `PO ${supplier} ${amount}.`);
+    addHistory(j.personId, actingName(), `PO ${supplier} ${amount}.`);
     const po: PurchaseOrder = { id: `PO-${60 + j.pos.length}`, vendor: supplier, amount, status: "Sent", what: sc.label, scopeId, file: { name: `${supplier}.pdf`, url: "#" } };
     return {
       ...j,
@@ -1140,14 +1427,14 @@ export function orderBom(jobId: string, scopeId: string) {
 export function cancelJob(jobId: string, why = "") {
   patch(jobId, (j) => {
     if (j.cancelled) return j;
-    addHistory(j.personId, j.pm, why.trim() ? `Job cancelled. ${why.trim()}` : "Job cancelled.");
+    addHistory(j.personId, actingName(), why.trim() ? `Job cancelled. ${why.trim()}` : "Job cancelled.");
     return { ...j, cancelled: true, cancelWhy: why.trim(), cancelledAt: "Now" };
   }, { nudge: false });
 }
 export function completeJob(jobId: string) {
   const j = jobs[jobId];
   if (!j) return;
-  if (closeBlocks(j).length) return;
+  if (closeBlockers(j).length) return;
   patch(jobId, (cur) => {
     addHistory(cur.personId, cur.pm, cur.warranty ? "Job closed. Warranty opened." : "Job closed.");
     return { ...cur, stage: "Closed" };

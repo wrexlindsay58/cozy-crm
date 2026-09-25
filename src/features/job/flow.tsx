@@ -7,12 +7,18 @@ import { CrewChapter } from "./crew-chapter";
 import { RunChapter } from "./run-chapter";
 import { MoneyBlock } from "./money";
 import { CloseBlock } from "./close";
+import { PrepChapter } from "./prep-chapter";
+import { InventoryChapter } from "./inventory-chapter";
+import { QualityChapter } from "./quality-chapter";
 
 const LABEL: Record<Chapter, string> = {
-  sold: "Sold",
+  sold: "Acceptance",
   ready: "Materials",
   crew: "Crews",
-  run: "Production",
+  prep: "Prep",
+  inventory: "Inventory",
+  run: "Installation",
+  quality: "Quality",
   money: "Money",
   close: "Closeout",
 };
@@ -23,7 +29,10 @@ export function JobChapter({ job, chap }: { job: JobFile; chap: Chapter }) {
       {chap === "sold" ? <SoldChapter job={job} /> : null}
       {chap === "ready" ? <ReadyChapter job={job} /> : null}
       {chap === "crew" ? <CrewChapter job={job} /> : null}
+      {chap === "prep" ? <PrepChapter job={job} /> : null}
+      {chap === "inventory" ? <InventoryChapter job={job} /> : null}
       {chap === "run" ? <RunChapter job={job} /> : null}
+      {chap === "quality" ? <QualityChapter job={job} /> : null}
       {chap === "money" ? <MoneyBlock job={job} /> : null}
       {chap === "close" ? <CloseBlock job={job} /> : null}
     </div>

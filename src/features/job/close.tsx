@@ -1,64 +1,72 @@
 import { useState } from "react";
-import { cancelJob, closeBlocks, completeJob, sendPacket, setCheckCallout, togglePacket, togglePost, togglePre, type JobFile } from "./store";
+import { Check } from "lucide-react";
+import { cancelJob, completeJob, sendPacket, signCloseout, togglePacket, type JobFile } from "./store";
+import { actingName } from "@/features/staff/store";
+import { closeReview, packetLines, packetOn } from "./closeout";
 import { cn } from "@/lib/cn";
 import { JobCard } from "./job-card";
-import { CheckLine } from "./callouts";
-import { CheckSign } from "./check-sign";
 import { JobPacket } from "@/features/paper/paper-page";
-import { signedProposals } from "@/features/opportunity/agreement-panel";
-import { useProposals } from "@/features/opportunity/store";
-import { sendMessage } from "@/features/thread/store";
 
 export function CloseBlock({ job }: { job: JobFile }) {
   const [why, setWhy] = useState("");
-  const blocks = closeBlocks(job);
-  const proposal = signedProposals(job.leadId, useProposals())[0];
+  const review = closeReview(job);
+  const blocked = review.filter((row) => row.block && !row.ok);
+  const lines = packetLines(job);
+  const signed = Boolean(job.packet.signedBy);
 
   return (
     <div className="space-y-2">
       {job.cancelled ? (
         <JobCard kicker="Cancelled" title={job.cancelWhy || job.cancelledAt || "This job is cancelled."} done>
-          <p className="text-sm text-alert">No more production on this file.</p>
+          <p className="text-sm text-alert">No more work on this file.</p>
         </JobCard>
       ) : null}
-      <div className="grid gap-3 lg:grid-cols-2">
-        <CheckCard title="Pre-install acknowledgement" job={job} kind="pre" />
-        <CheckCard title="Post-install acknowledgement" job={job} kind="post" />
-      </div>
-      <JobCard kicker="Closeout" title="Closing packet" done={job.packet.sent}>
-        <ul className="space-y-1">
-          {job.packet.parts.map((p) => (
-            <li key={p.id}>
-              <button type="button" onClick={() => togglePacket(job.jobId, p.id)} className="flex h-10 w-full items-center gap-2 text-left text-sm">
-                <span className={cn("grid size-5 place-items-center rounded-sm border", p.on ? "border-navy bg-navy text-card" : "border-line")}>{p.on ? "✓" : ""}</span>
-                {p.label}
-              </button>
+      <JobCard kicker="Review" title={blocked.length ? "Not ready" : "Ready for the office"} done={blocked.length === 0}>
+        <ul className="divide-y divide-line">
+          {review.map((row) => (
+            <li key={row.id} className="flex items-baseline justify-between gap-3 py-2">
+              <span className="text-sm font-semibold">{row.label}</span>
+              <span className="flex items-center justify-end gap-1.5 text-right text-sm text-navy">
+                {row.ok ? <Check className="size-3.5 shrink-0 text-up" strokeWidth={2.5} /> : <span className="size-1.5 shrink-0 rounded-full bg-alert" />}
+                {row.detail}
+              </span>
             </li>
           ))}
         </ul>
+      </JobCard>
+      <JobCard kicker="Packet" title="What the customer gets" done={job.packet.sent} aside={signed ? `Signed off by ${job.packet.signedBy}` : "Needs a sign-off"}>
+        <ul className="divide-y divide-line">
+          {lines.map((line) => {
+            const on = packetOn(job, line.id);
+            return (
+              <li key={line.id}>
+                <button type="button" onClick={() => togglePacket(job.jobId, line.id)} className="flex w-full items-center gap-3 py-2 text-left">
+                  <span className={cn("grid size-5 shrink-0 place-items-center rounded-sm border", on ? "border-navy bg-navy text-card" : "border-line")}>{on ? <Check className="size-3.5" strokeWidth={2.5} /> : null}</span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-sm font-semibold">{line.label}</span>
+                    <span className="type-meta">{line.detail}</span>
+                  </span>
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+        <p className="mt-3 text-sm text-muted">Work orders and purchase orders stay in the office. They are not in this packet.</p>
         <div className="mt-4 border-t border-line pt-4">
           <JobPacket jobId={job.jobId} />
         </div>
-        <button
-          type="button"
-          onClick={() => {
-            sendPacket(job.jobId);
-            const file = proposal?.agreements?.find((a) => a.status === "Signed" && a.fileUrl) ?? proposal?.agreement;
-            if (file?.fileUrl) {
-              sendMessage(job.personId, `Closing packet for ${job.product}. The signed agreement is attached. Print it or save it as a PDF.`, "email", {
-                subject: "Closing packet",
-                files: [{ name: file.fileName ?? "agreement.html", kind: "file", src: file.fileUrl }],
-              });
-            }
-          }}
-          className="mt-3 h-10 rounded-md bg-navy px-3 text-sm font-semibold text-card"
-        >
-          {job.packet.sent ? `Sent ${job.packet.sentAt}` : "Send closing packet"}
-        </button>
+        <div className="mt-3 flex flex-wrap gap-2">
+          <button type="button" disabled={blocked.length > 0 || signed} onClick={() => signCloseout(job.jobId)} className="h-10 rounded-md border border-line px-3 text-sm font-semibold disabled:opacity-40">
+            {signed ? `Signed off by ${job.packet.signedBy}` : `Sign off · ${actingName()}`}
+          </button>
+          <button type="button" disabled={!signed || blocked.length > 0 || Boolean(job.packet.sent)} onClick={() => sendPacket(job.jobId)} className={cn("h-10 rounded-md px-3 text-sm font-semibold disabled:opacity-40", job.packet.sent ? "border border-line text-muted" : "bg-navy text-card")}>
+            {job.packet.sent ? `Sent ${job.packet.sentAt}` : "Send packet"}
+          </button>
+        </div>
       </JobCard>
       {job.stage !== "Closed" && !job.cancelled ? (
-        <JobCard kicker="Complete" title={blocks.length ? blocks.join(" · ") : "Ready to close"}>
-          <button type="button" disabled={blocks.length > 0} onClick={() => completeJob(job.jobId)} className="h-10 rounded-md bg-navy px-3 text-sm font-semibold text-card disabled:opacity-40">
+        <JobCard kicker="Complete" title={blocked.length ? blocked.map((row) => row.label).join(" · ") : "Ready to close"}>
+          <button type="button" disabled={blocked.length > 0 || !job.packet.sent} onClick={() => completeJob(job.jobId)} className="h-10 rounded-md bg-navy px-3 text-sm font-semibold text-card disabled:opacity-40">
             Complete job{job.warranty ? " · open warranty" : ""}
           </button>
         </JobCard>
@@ -82,26 +90,5 @@ export function CloseBlock({ job }: { job: JobFile }) {
         </JobCard>
       ) : null}
     </div>
-  );
-}
-
-function CheckCard({ title, job, kind }: { title: string; job: JobFile; kind: "pre" | "post" }) {
-  const check = kind === "pre" ? job.preCheck : job.postCheck;
-  return (
-    <JobCard kicker="Checklist" title={title} aside={check.signedAt ? `Signed ${check.signedBy}` : "Open"} done={Boolean(check.signedAt)}>
-      <ul>
-        {check.items.map((i) => (
-          <CheckLine
-            key={i.id}
-            label={i.label}
-            on={i.on}
-            callout={i.callout}
-            onToggle={() => (kind === "pre" ? togglePre(job.jobId, i.id) : togglePost(job.jobId, i.id))}
-            onCallout={(v) => setCheckCallout(job.jobId, kind, i.id, v)}
-          />
-        ))}
-      </ul>
-      <CheckSign job={job} kind={kind} />
-    </JobCard>
   );
 }

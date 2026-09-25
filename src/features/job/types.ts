@@ -79,6 +79,26 @@ export type ScopeLine = {
   bom: BomLine[];
 };
 
+export type AcceptNote = { id: string; text: string; state: "open" | "clear" | "asked"; question?: string; answer?: string };
+export type Discrepancy = { id: string; lineId: string; what: string; how: "open" | "clarified" | "as-is" | "co"; note: string; coId?: string };
+export type Acceptance = {
+  reviewed: string[];
+  rows?: string[];
+  notes: AcceptNote[];
+  discrepancies: Discrepancy[];
+  surveyAsked?: boolean;
+  by?: string;
+  at?: string;
+};
+
+export function splitSoldNotes(text: string): AcceptNote[] {
+  return text
+    .split(/\n+|(?<=\.)\s+/)
+    .map((part) => part.replace(/\.$/, "").trim())
+    .filter(Boolean)
+    .map((note, i) => ({ id: `N-${i + 1}`, text: note, state: "open" as const }));
+}
+
 export type CrewAssign = {
   id: string;
   crew: string;
@@ -93,6 +113,7 @@ export type CrewAssign = {
   kind: "internal" | "sub";
   company: string;
   woId?: string;
+  inventory?: { checked: string[]; checkedBy?: Record<string, string>; signedBy?: string; signedAt?: string; signature?: string };
 };
 
 export type WoStatus = "Draft" | "Sent" | "Acked" | "Signed" | "On truck" | "Done";
@@ -123,6 +144,15 @@ export type JobEvent = {
   why?: string;
   status: "Set" | "Dispatched" | "Done" | "No-show";
 };
+
+export type FieldIssue = {
+  id: string;
+  type: "Shortage" | "Mismeasure" | "Injury" | "Customer" | "Install mistake" | "Extra work";
+  note: string;
+  by: string;
+  at: string;
+};
+export const ISSUE_TYPES = ["Shortage", "Mismeasure", "Injury", "Customer", "Install mistake", "Extra work"] as const;
 
 export type TimePunch = {
   id: string;
@@ -187,8 +217,8 @@ export type EquipRow = {
   scopeId?: string;
 };
 export type PunchItem = { id: string; item: string; owner: string; status: "Open" | "Done" };
-export type CheckItem = { id: string; label: string; on: boolean; callout?: string };
-export type SignedCheck = { items: CheckItem[]; signedBy: string; signedAt: string; signature?: string; relation?: string; photos?: ScopeMedia[] };
+export type CheckItem = { id: string; label: string; on: boolean; callout?: string; by?: string };
+export type SignedCheck = { items: CheckItem[]; signedBy: string; signedAt: string; signature?: string; relation?: string; photos?: ScopeMedia[]; collectedBy?: string };
 export type PermitFile = { number: string; city: string; inspection: string; result: "None" | "Scheduled" | "Pass" | "Fail"; file?: FileLink };
 export type RebateFile = { utility: string; program: string; amount: number; status: "None" | "Reserved" | "Submitted" | "Approved" | "Paid"; reservation: string; file?: FileLink };
 export type TestOut = {
@@ -200,6 +230,7 @@ export type TestOut = {
   facts?: Record<string, string>;
   checks?: Record<string, boolean>;
   results?: Record<string, "pass" | "fail">;
+  by?: Record<string, string>;
   fixes?: Record<string, { ticketId?: string; eventId?: string; correctedByQc?: boolean }>;
 };
 export type SurveyKind = "hvac" | "ducts" | "attic" | "windows" | "other";
@@ -226,7 +257,7 @@ export type LoanFile = {
   payReceivedAt?: string;
 };
 export type PacketPart = { id: string; label: string; on: boolean; file?: FileLink };
-export type ClosingPacket = { sent: boolean; sentAt: string; parts: PacketPart[] };
+export type ClosingPacket = { sent: boolean; sentAt: string; signedBy?: string; signedAt?: string; parts: PacketPart[]; surveyId?: string };
 
 export type CommRole = "Closer" | "Split" | "Setter";
 export type CommShare = {
@@ -287,6 +318,7 @@ export type JobFile = {
   window: string;
   assignments: CrewAssign[];
   soldNotes: string;
+  acceptance?: Acceptance;
   scope: ScopeLine[];
   surveys?: JobSurvey[];
   cancelled?: boolean;
@@ -310,19 +342,38 @@ export type JobFile = {
   preCheck: SignedCheck;
   postCheck: SignedCheck;
   packet: ClosingPacket;
+  prep?: Record<string, Record<string, { scheduled?: boolean; confirmed?: boolean; by?: string }>>;
+  issues?: FieldIssue[];
   installRev: number;
   financeRev: number;
 };
 
-export const CHAPTERS = ["sold", "ready", "crew", "run", "money", "close"] as const;
+export const CHAPTERS = ["sold", "ready", "crew", "prep", "inventory", "run", "quality", "money", "close"] as const;
 export type Chapter = (typeof CHAPTERS)[number];
 export function chapterFor(stage: Stage): Chapter {
   if (stage === "Sold") return "sold";
   if (stage === "Permit" || stage === "Materials") return "ready";
   if (stage === "Scheduled") return "crew";
-  if (stage === "In progress" || stage === "Test-out" || stage === "Punch") return "run";
+  if (stage === "In progress" || stage === "Punch") return "run";
+  if (stage === "Test-out") return "quality";
   if (stage === "Invoiced") return "money";
   return "close";
+}
+
+export function isAccepted(job: JobFile) {
+  return Boolean(job.acceptance?.by);
+}
+
+export function acceptReady(job: JobFile) {
+  const file = job.acceptance;
+  if (!file || file.by) return false;
+  const ids = file.rows?.length ? file.rows : job.scope.map((s) => s.id);
+  if (!ids.length) return false;
+  const linesOk = ids.every((id) => file.reviewed.includes(id) || file.discrepancies.some((d) => d.lineId === id && d.how !== "open"));
+  const notesOk = file.notes.every((n) => n.state === "clear" || (n.state === "asked" && Boolean(n.answer?.trim())));
+  const open = file.discrepancies.some((d) => d.how === "open");
+  const unsigned = file.discrepancies.some((d) => d.how === "co" && !job.changeOrders.some((c) => c.id === d.coId && c.signed));
+  return linesOk && notesOk && !open && !unsigned;
 }
 
 export function materialCost(j: JobFile) {

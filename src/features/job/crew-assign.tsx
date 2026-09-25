@@ -86,12 +86,12 @@ export function AssignCrew({ job }: { job: JobFile }) {
                   </a>
                 ) : null}
                 {wo && wo.status === "Sent" ? (
-                  <button type="button" className="h-10 rounded-md border border-line px-3 text-sm font-semibold" onClick={() => ackWo(job.jobId, wo.id, who)}>
+                  <button type="button" className="h-10 rounded-md border border-line px-3 text-sm font-semibold" onClick={() => ackWo(job.jobId, wo.id)}>
                     Acknowledge
                   </button>
                 ) : null}
                 {wo && (wo.status === "Sent" || wo.status === "Acked") ? (
-                  <button type="button" className="h-10 rounded-md border border-line px-3 text-sm font-semibold" onClick={() => signWo(job.jobId, wo.id, who)}>
+                  <button type="button" className="h-10 rounded-md border border-line px-3 text-sm font-semibold" onClick={() => signWo(job.jobId, wo.id)}>
                     E-sign
                   </button>
                 ) : null}

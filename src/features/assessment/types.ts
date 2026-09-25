@@ -17,6 +17,8 @@ export type Property = {
   coldRooms: string;
   indoorTemp: string;
   outdoorTemp: string;
+  occupants: string;
+  peakBill: string;
 };
 export type Assessment = {
   id: string;
@@ -29,6 +31,11 @@ export type Assessment = {
   property: Property;
   qualify: Record<string, string>;
   oppId?: string;
+  intent: "" | "Yes" | "No";
+  reportPaid: boolean;
+  reportWaivedBy: string;
+  reportWaiveReason: string;
+  reportCharge?: { method: "Card" | "Cash" | "Check"; last4: string; brand: string; receipt: string };
 };
 
 export const emptyProperty = (): Property => ({
@@ -46,4 +53,6 @@ export const emptyProperty = (): Property => ({
   coldRooms: "",
   indoorTemp: "",
   outdoorTemp: "",
+  occupants: "",
+  peakBill: "",
 });

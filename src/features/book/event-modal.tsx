@@ -2,7 +2,6 @@ import { useMemo, useState, type FormEvent } from "react";
 import { X } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { useOps, addHistory } from "@/features/ops/store";
-import { SHOP_ACTOR } from "@/lib/chrome";
 import { useStaff } from "@/features/staff/store";
 import { sendMessage } from "@/features/thread/store";
 import { useJobs } from "@/features/job/store";
@@ -52,8 +51,7 @@ export function EventModal({
 }) {
   const { leads } = useOps();
   const jobs = useJobs();
-  const { viewAs } = useStaff();
-  const setBy = viewAs === "Owner" ? SHOP_ACTOR : viewAs;
+  const { actorName: setBy } = useStaff();
   const editing = Boolean(event);
   const clicked = resources.find((r) => r.id === (event?.resourceId || preset?.resourceId));
   const [blank, setBlank] = useState(event?.blank ?? false);

@@ -5,7 +5,7 @@ import { buildOption, defaultPicks, itemBySku, pickFits, resolvePicks, unitFor, 
 import { assessmentForLead } from "@/features/assessment/store";
 import { PACKAGES, type PackageId } from "./packages";
 import { activePayMethods, getDealerFeePct, payMethod, type FinancePlan } from "@/features/money-settings/store";
-import { canOverrideFee, feeApprover } from "@/features/staff/store";
+import { actingName, canOverrideFee, feeApprover } from "@/features/staff/store";
 import { createAction, deleteAction, patchAction } from "@/features/ops/store";
 import { money, opportunities, leads } from "@/lib/crm-data";
 import { sendMessage } from "@/features/thread/store";
@@ -31,7 +31,7 @@ export type OptLine = {
 export type OptCard = { id: string; name: string; lines: OptLine[] };
 export type DocStub = {
   id: string;
-  kind: "proposal" | "agreement";
+  kind: "proposal" | "agreement" | "report" | "packet";
   status: string;
   at: string;
   totals?: { id: string; name: string; amount: number }[];
@@ -688,7 +688,7 @@ export function acceptOption(oppId: string, optId: string) {
   const opt = p.options.find((o) => o.id === optId);
   if (!opt) return;
   proposals = { ...proposals, [oppId]: { ...p, accepted: optId } };
-  addHistory(p.personId, p.closer, `Accepted ${opt.name} at ${money(optionTotal(opt))}.`);
+  addHistory(p.personId, actingName(), `Accepted ${opt.name} at ${money(optionTotal(opt))}.`);
   emit();
 }
 export function unacceptOption(oppId: string) {
@@ -696,7 +696,7 @@ export function unacceptOption(oppId: string) {
   if (!p || !p.accepted) return;
   const agreement = p.agreement && p.agreement.status !== "Void" ? voided(p.agreement, p.closer, "The accepted option was taken back.") : p.agreement;
   proposals = { ...proposals, [oppId]: agreement ? withAgreement(p, agreement, { accepted: undefined, signStatus: agreement.status === "Void" ? "Void" : "—" }) : { ...p, accepted: undefined, signStatus: "—" } };
-  addHistory(p.personId, p.closer, "Undid the accepted option.");
+  addHistory(p.personId, actingName(), "Undid the accepted option.");
   emit();
 }
 export function setPay(oppId: string, pay: Proposal["pay"]) {
@@ -715,7 +715,7 @@ export function applyGoodLeap(oppId: string) {
   const p = proposals[oppId];
   if (!p) return;
   proposals = { ...proposals, [oppId]: { ...p, goodleapStatus: "Sent", pay: "goodleap" } };
-  addHistory(p.personId, p.closer, "GoodLeap apply — status Sent.");
+  addHistory(p.personId, actingName(), "GoodLeap apply — status Sent.");
   emit();
 }
 export function addPayOffer(oppId: string, methodId: string) {
@@ -855,20 +855,44 @@ export function generateProposal(oppId: string) {
     ...proposals,
     [oppId]: { ...p, proposalStatus: "Generated", documents: [doc, ...p.documents] },
   };
-  addHistory(p.personId, p.closer, `Proposal generated. ${p.options.map((o) => `${o.name} ${money(optionTotal(o))}`).join(" · ")}.`);
+  addHistory(p.personId, actingName(), `Proposal generated. ${p.options.map((o) => `${o.name} ${money(optionTotal(o))}`).join(" · ")}.`);
   emit();
   return true;
 }
 export function sendProposal(oppId: string) {
+  sendCustomerFile(oppId, "proposal");
+}
+export function sendCustomerFile(oppId: string, kind: "report" | "proposal" | "packet", origin = "") {
   const p = proposals[oppId];
-  if (!p) return;
-  const latest = p.documents.find((d) => d.kind === "proposal");
-  const docs = latest
-    ? p.documents.map((d) => (d.id === latest.id ? { ...d, status: "Sent" } : d))
-    : [{ id: `D-${p.documents.length + 1}`, kind: "proposal" as const, status: "Sent", at: new Date().toISOString(), totals: p.options.map((o) => ({ id: o.id, name: o.name, amount: optionTotal(o) })) }, ...p.documents];
-  proposals = { ...proposals, [oppId]: { ...p, proposalStatus: "Sent", documents: docs } };
-  addHistory(p.personId, p.closer, "Proposal sent.");
+  if (!p) return false;
+  if ((kind === "proposal" || kind === "packet") && !p.payOffers.length) return false;
+  const lead = leads.find((l) => l.id === p.personId);
+  const name = kind === "report" ? "Assessment report" : kind === "packet" ? "Report and proposal" : "Proposal";
+  const doc: DocStub = {
+    id: `D-${p.documents.length + 1}`,
+    kind,
+    status: "Sent",
+    at: new Date().toISOString(),
+    fileName: name,
+    totals: kind === "report" ? undefined : p.options.map((o) => ({ id: o.id, name: o.name, amount: optionTotal(o) })),
+  };
+  const path = kind === "report" ? "?doc=report" : kind === "packet" ? "?doc=packet" : "";
+  const url = origin ? `${origin}/proposal/${oppId}${path}` : "";
+  const where = lead?.address || lead?.name || "this house";
+  const body =
+    kind === "report"
+      ? `Assessment report for ${where}. This file has the measurements. It does not have prices.${url ? `\n\n${url}` : ""}`
+      : kind === "packet"
+        ? `Two documents for ${where}, sent as one file. The assessment report is first. The proposal, with prices, starts after it.${url ? `\n\n${url}` : ""}`
+        : `Proposal for ${where}.${url ? `\n\n${url}` : ""}`;
+  sendMessage(p.personId, body, "email", { subject: `${name} · ${where}` });
+  proposals = {
+    ...proposals,
+    [oppId]: { ...p, proposalStatus: kind === "report" ? p.proposalStatus : "Sent", documents: [doc, ...p.documents] },
+  };
+  addHistory(p.personId, actingName(), `${name} sent.`);
   emit();
+  return true;
 }
 export function sendToSign(oppId: string) {
   const p = proposals[oppId];
@@ -881,7 +905,7 @@ export function sendToSign(oppId: string) {
       documents: [{ id: `D-${p.documents.length + 1}`, kind: "agreement", status: "Sent", at: new Date().toISOString() }, ...p.documents],
     },
   };
-  addHistory(p.personId, p.closer, "Agreement sent to sign.");
+  addHistory(p.personId, actingName(), "Agreement sent to sign.");
   emit();
 }
 
@@ -1006,7 +1030,7 @@ export function sendAgreementEmail(oppId: string, origin: string) {
     ...proposals,
     [oppId]: withAgreement(p, { ...agreement, status: "Sent", sentAt: new Date().toISOString(), events: [...agreement.events, stamp("sent", p.closer, `Emailed to ${agreement.email}.`)] }, { signStatus: "Sent" }),
   };
-  addHistory(p.personId, p.closer, `Agreement emailed to ${agreement.email}.`);
+  addHistory(p.personId, actingName(), `Agreement emailed to ${agreement.email}.`);
   emit();
 }
 
@@ -1025,7 +1049,7 @@ export function emailCoSigner(oppId: string, origin: string) {
     ...proposals,
     [oppId]: withAgreement(p, { ...agreement, events: [...agreement.events, stamp("sent", p.closer, `Emailed to co-signer ${agreement.coSigner.email}.`)] }),
   };
-  addHistory(p.personId, p.closer, `Co-signer email sent to ${agreement.coSigner.email}.`);
+  addHistory(p.personId, actingName(), `Co-signer email sent to ${agreement.coSigner.email}.`);
   emit();
 }
 
@@ -1086,10 +1110,11 @@ export function signAgreement(
       files: [{ name: file.fileName, kind: "file", src: file.fileUrl }],
     });
     addHistory(p.personId, name, `Co-signer signed. ${agreement.hash}.`);
+    if (input.method === "in-home") addHistory(p.personId, actingName(), `Collected the co-signer signature from ${name}.`);
     emit();
     return "done" as const;
   }
-  const who = input.method === "in-home" ? `${name}, witnessed by ${input.witness || p.closer}` : name;
+  const who = input.method === "in-home" ? `${name}, witnessed by ${actingName()}` : name;
   if (agreement.coSigner) {
     const next: Agreement = {
       ...agreement,
@@ -1097,13 +1122,14 @@ export function signAgreement(
       method: input.method,
       signerName: name,
       signature: input.signature,
-      witness: input.method === "in-home" ? input.witness || p.closer : undefined,
+      witness: input.method === "in-home" ? actingName() : undefined,
       signedAt,
       events: [...agreement.events, stamp("signed", who, "Primary signed. Waiting on the co-signer.")],
     };
     proposals = { ...proposals, [oppId]: withAgreement(p, next, { accepted: agreement.optionId, signStatus: "Waiting on co-signer" }) };
     if (input.method === "email" && input.origin) emailCoSigner(oppId, input.origin);
     addHistory(p.personId, name, "Primary signed. Co-signer is next.");
+    if (input.method === "in-home") addHistory(p.personId, actingName(), `Collected the signature from ${name}.`);
     emit();
     return "partial" as const;
   }
@@ -1137,6 +1163,7 @@ export function signAgreement(
     files: [{ name: file.fileName, kind: "file", src: file.fileUrl }],
   });
   addHistory(p.personId, name, `Signed the agreement in ${input.method === "in-home" ? "the home" : "email"}. ${agreement.hash}.`);
+  if (input.method === "in-home") addHistory(p.personId, actingName(), `Collected the signature from ${name}.`);
   emit();
   return "done" as const;
 }
@@ -1144,7 +1171,7 @@ export function signAgreement(
 export function requestDeposit(oppId: string) {
   const p = proposals[oppId];
   if (!p) return;
-  addHistory(p.personId, p.closer, "Deposit requested on the card.");
+  addHistory(p.personId, actingName(), "Deposit requested on the card.");
   emit();
 }
 

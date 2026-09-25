@@ -23,7 +23,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { accounts, byId } from "@/lib/crm-data";
-import { SHOP_ACTOR } from "@/lib/chrome";
+import { actingName } from "@/features/staff/store";
 import { pipelineOf } from "@/lib/pipeline-of";
 import { stageWash, toneForStatus, LEAD_STATUSES } from "@/lib/lead-status";
 import { ClickToCall } from "@/features/lead/click-to-call";
@@ -104,9 +104,8 @@ function unreadCount(msgs: { from: string; channel: string }[], personId: string
 export function Conversations() {
   const messages = useMessages();
   const { leads, followers, history, appointments, tickets } = useOps();
-  const { viewAs } = useStaff();
+  const { viewAs, actorName: me } = useStaff();
   useAssessments();
-  const me = viewAs === "Owner" ? SHOP_ACTOR : viewAs;
   const [who, setWho] = useState<Who>("all");
   const [channel, setChannel] = useState<Channel>("all");
   const [talkType, setTalkType] = useState<TalkType>("all");
@@ -508,7 +507,7 @@ function BlockMenu({ name, ids }: { name: string; ids: string[] }) {
               className="block w-full min-w-52 px-3 py-2 text-left text-sm hover:bg-page"
               onClick={() => {
                 unblockContacts(clean);
-                addHistory(clean[0] ?? "", SHOP_ACTOR, `Unblocked ${name}.`);
+                addHistory(clean[0] ?? "", actingName(), `Unblocked ${name}.`);
                 close();
               }}
             >
@@ -520,7 +519,7 @@ function BlockMenu({ name, ids }: { name: string; ids: string[] }) {
               className="block w-full min-w-52 px-3 py-2 text-left text-sm hover:bg-page"
               onClick={() => {
                 blockContacts(clean);
-                addHistory(clean[0] ?? "", SHOP_ACTOR, `Blocked ${name}.`);
+                addHistory(clean[0] ?? "", actingName(), `Blocked ${name}.`);
                 close();
               }}
             >
@@ -532,7 +531,7 @@ function BlockMenu({ name, ids }: { name: string; ids: string[] }) {
             className="block w-full min-w-52 px-3 py-2 text-left text-sm text-stop hover:bg-page"
             onClick={() => {
               blockAndDelete(clean);
-              addHistory(clean[0] ?? "", SHOP_ACTOR, `Blocked ${name} and deleted the conversation.`);
+              addHistory(clean[0] ?? "", actingName(), `Blocked ${name} and deleted the conversation.`);
               close();
             }}
           >

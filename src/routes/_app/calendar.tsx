@@ -12,6 +12,8 @@ import { addHrs, durationHrs, hourOf, TODAY, toIso } from "@/features/book/time"
 import { BookPick } from "@/features/book/pick";
 import { familyOf } from "@/features/book/types";
 import { moveBook, useBook } from "@/features/book/store";
+import { rollsOn } from "@/features/job/prep";
+import { useJobs } from "@/features/job/store";
 import { setBookDay, useBookDay } from "@/features/book/day";
 
 export const Route = createFileRoute("/_app/calendar")({
@@ -23,7 +25,8 @@ type View = (typeof VIEWS)[number];
 const VIEW_LABEL: Record<View, string> = { resource: "Resource", three: "3-day", week: "Week", month: "Month" };
 
 function CalendarPage() {
-  const events = useBook();
+  const jobs = useJobs();
+  const events = useBook().filter((e) => rollsOn(e.jobId ? jobs[e.jobId] : undefined, e.start.slice(0, 10)));
   const roster = useRoster();
   const { viewAs } = useStaff();
   const [view, setView] = useState<View>("resource");

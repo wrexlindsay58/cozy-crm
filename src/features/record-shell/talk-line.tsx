@@ -2,7 +2,7 @@ import { useRef, useState } from "react";
 import { MessageSquare } from "lucide-react";
 import { addHistory, useOps } from "@/features/ops/store";
 import { sendMessage, toggleReaction } from "@/features/thread/store";
-import { SHOP_ACTOR } from "@/lib/chrome";
+import { actingName } from "@/features/staff/store";
 import { accounts } from "@/lib/crm-data";
 import { cn } from "@/lib/cn";
 import type { ThreadMessage, ThreadNest } from "@/lib/file-data";
@@ -41,7 +41,7 @@ export function TalkLine({
   function post() {
     if (!draft.trim()) return;
     sendMessage(personId, draft, "internal", { nest: nest ?? msg.nest, replyTo: msg.id });
-    addHistory(personId, SHOP_ACTOR, "Reply posted.");
+    addHistory(personId, actingName(), "Reply posted.");
     setDraft("");
     setReply(false);
   }
@@ -130,7 +130,7 @@ function MsgBody({
 function EmojiPicker({ msg, light }: { msg: ThreadMessage; light: boolean }) {
   const grouped = QUICK_EMOJI.map((emoji) => {
     const people = (msg.reactions ?? []).filter((r) => r.emoji === emoji);
-    return { emoji, people, mine: people.some((p) => p.by === SHOP_ACTOR) };
+    return { emoji, people, mine: people.some((p) => p.by === actingName()) };
   });
   return (
     <div className="mt-1.5 flex flex-wrap items-center gap-1">

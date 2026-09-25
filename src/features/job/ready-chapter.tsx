@@ -1,7 +1,6 @@
 import { useState } from "react";
-import { Plus, Trash2 } from "lucide-react";
-import { addBom, addJobSurvey, addScopeMedia, addSurveyMedia, addSurveyRoom, attachPlanFile, orderBom, patchBom, patchJobSurvey, patchPermit, patchSurveyFact, patchSurveyRoom, removeJobSurvey, setSurveyDone, skipSurvey, togglePre, type JobFile } from "./store";
-import { CheckSign } from "./check-sign";
+import { Check as CheckIcon, Plus, Trash2 } from "lucide-react";
+import { addBom, addJobSurvey, addScopeMedia, addSurveyMedia, addSurveyRoom, attachPlanFile, orderBom, patchBom, patchJobSurvey, patchPermit, patchSurveyFact, patchSurveyRoom, removeJobSurvey, setSurveyDone, skipSurvey, type JobFile } from "./store";
 import { profileById, useProdProfiles } from "./profiles";
 import { money } from "@/lib/crm-data";
 import type { Lead } from "@/lib/crm-data";
@@ -9,7 +8,7 @@ import { cn } from "@/lib/cn";
 import { JobCard } from "./job-card";
 import { FillField, FillRow, FILL_IN, SEC_HEAD } from "./fill-row";
 import { MediaStrip } from "./media-strip";
-import { bomAssumed, bomOrderedCost, catFromTag, leftoverQty, type BomLine, type JobSurvey, type ScopeLine, type SurveyKind } from "./types";
+import { bomAssumed, bomOrderedCost, catFromTag, isAccepted, type BomLine, type JobSurvey, type ScopeLine, type SurveyKind } from "./types";
 import { BookWidget } from "@/features/lead/book-widget";
 
 const HVAC_FIELDS = [
@@ -28,28 +27,10 @@ const KINDS: { id: SurveyKind; label: string }[] = [
 
 export function ReadyChapter({ job }: { job: JobFile }) {
   const lines = job.scope.filter((s) => s.kind === "product" || s.kind === "adder");
+  const open = !isAccepted(job);
   return (
     <div className="space-y-3">
-      <JobCard kicker="Ready" title="Pre-install" done={Boolean(job.preCheck.signedAt)} aside={job.preCheck.signedAt ? `Signed ${job.preCheck.signedBy}` : "Open"}>
-        <ul>
-          {job.preCheck.items.map((i) => (
-            <li key={i.id}>
-              <button type="button" onClick={() => togglePre(job.jobId, i.id)} className="flex h-10 w-full items-center gap-2 text-left text-sm">
-                <span className={cn("grid size-5 place-items-center rounded-sm border", i.on ? "border-navy bg-navy text-card" : "border-line")}>{i.on ? "✓" : ""}</span>
-                {i.label}
-              </button>
-            </li>
-          ))}
-        </ul>
-        <CheckSign job={job} kind="pre" />
-        {lines[0] ? (
-          <MediaStrip
-            files={lines[0].media.filter((m) => m.cat === "Before" || m.purpose === "Pre-install")}
-            onAdd={(f, meta) => addScopeMedia(job.jobId, lines[0].id, f, catFromTag(meta.tag), { caption: meta.caption, purpose: meta.tag, name: meta.name })}
-            label="Pre-install photos"
-          />
-        ) : null}
-      </JobCard>
+      {open ? <p className="rounded-md border border-line bg-card px-4 py-3 text-sm">Acceptance is still open. Nothing gets ordered until the office accepts the job.</p> : null}
 
       {lines.map((s) => (
         <MaterialsCard key={s.id} job={job} line={s} />
@@ -66,6 +47,25 @@ export function SurveyChapter({ job, lead }: { job: JobFile; lead?: Lead }) {
   return (
     <div className="space-y-3">
       {lead ? <BookWidget leadId={lead.id} defaultCloser={job.pm} defaultKind="Site survey" /> : null}
+      {job.permit.number || products.some((s) => profileById(s.categoryId)?.needsPermit) ? (
+        <JobCard kicker="Permit" title={job.permit.number || "Not pulled"} done={job.permit.result === "Pass"}>
+          <FillRow>
+            <FillField label="Permit #">
+              <input value={job.permit.number} onChange={(e) => patchPermit(job.jobId, { number: e.target.value })} className={FILL_IN} />
+            </FillField>
+            <FillField label="City">
+              <input value={job.permit.city} onChange={(e) => patchPermit(job.jobId, { city: e.target.value })} className={FILL_IN} />
+            </FillField>
+            <FillField label="Inspection">
+              <select value={job.permit.result} onChange={(e) => patchPermit(job.jobId, { result: e.target.value as typeof job.permit.result })} className={FILL_IN}>
+                {["None", "Scheduled", "Pass", "Fail"].map((r) => (
+                  <option key={r}>{r}</option>
+                ))}
+              </select>
+            </FillField>
+          </FillRow>
+        </JobCard>
+      ) : null}
       <div className="flex items-center justify-end">
         <button type="button" aria-label="Add survey" className="grid size-8 place-items-center rounded-md bg-navy text-card hover:opacity-90" onClick={() => addJobSurvey(job.jobId)}>
           <Plus className="size-4" />
@@ -289,7 +289,6 @@ function MaterialsCard({ job, line }: { job: JobFile; line: ScopeLine }) {
   const [cost, setCost] = useState("");
   const [track, setTrack] = useState<"bulk" | "unit">("bulk");
   const p = profileById(line.categoryId);
-  const needsPermit = p?.needsPermit ?? false;
   const ordered = line.bom.length > 0 && line.bom.every((b) => b.ordered);
 
   return (
@@ -299,30 +298,12 @@ function MaterialsCard({ job, line }: { job: JobFile; line: ScopeLine }) {
       done={ordered && line.bom.length > 0}
       actions={
         line.bom.length ? (
-          <button type="button" className={cn("h-8 rounded-md px-3 text-[12px] font-semibold", ordered ? "border border-line text-muted" : "bg-navy text-card")} onClick={() => orderBom(job.jobId, line.id)}>
+          <button type="button" disabled={!isAccepted(job) || ordered} className={cn("h-8 rounded-md px-3 text-[12px] font-semibold disabled:opacity-40", ordered ? "border border-line text-muted" : "bg-navy text-card")} onClick={() => orderBom(job.jobId, line.id)}>
             {ordered ? "Ordered" : "Order"}
           </button>
         ) : null
       }
     >
-      {needsPermit ? (
-        <FillRow>
-          <FillField label="Permit #">
-            <input value={job.permit.number} onChange={(e) => patchPermit(job.jobId, { number: e.target.value })} className={FILL_IN} />
-          </FillField>
-          <FillField label="City">
-            <input value={job.permit.city} onChange={(e) => patchPermit(job.jobId, { city: e.target.value })} className={FILL_IN} />
-          </FillField>
-          <FillField label="Inspection">
-            <select value={job.permit.result} onChange={(e) => patchPermit(job.jobId, { result: e.target.value as typeof job.permit.result })} className={FILL_IN}>
-              {["None", "Scheduled", "Pass", "Fail"].map((r) => (
-                <option key={r}>{r}</option>
-              ))}
-            </select>
-          </FillField>
-        </FillRow>
-      ) : null}
-
       {line.bom.length ? (
         <ul className="divide-y divide-line">
           {line.bom.map((b) => (
@@ -375,20 +356,14 @@ function MaterialsCard({ job, line }: { job: JobFile; line: ScopeLine }) {
 function BomRow({ job, line, bom }: { job: JobFile; line: ScopeLine; bom: BomLine }) {
   const assumed = bomAssumed(bom);
   const orderedCost = bomOrderedCost(bom);
-  const ordered = bom.orderQty ?? bom.estQty;
-  const used = bom.usedQty || 0;
-  const left = leftoverQty(bom);
-  const ret = bom.returnQty || 0;
-  const warehoused = bom.warehouseQty || 0;
   const delta = bom.ordered ? orderedCost - assumed : 0;
   const variance = !bom.ordered ? null : delta > 0 ? "Over" : delta < 0 ? "Under" : "Match";
   const track = bom.track ?? (bom.unitCost >= 200 ? "unit" : "bulk");
   const bits = [
     track === "unit" ? "Unit" : "Bulk",
     bom.ordered ? "Ordered" : "Open",
-    used ? `${left} left` : "",
-    ret ? `${ret} return` : "",
-    warehoused ? `${warehoused} warehouse` : "",
+    bom.received ? "In" : "",
+    bom.ready ? "Ready" : "",
   ].filter(Boolean);
 
   return (
@@ -415,49 +390,25 @@ function BomRow({ job, line, bom }: { job: JobFile; line: ScopeLine; bom: BomLin
           <FillField label="Paid $">
             <input value={(bom.actualUnitCost ?? (bom.ordered ? bom.unitCost : 0)) || ""} inputMode="decimal" onChange={(e) => patchBom(job.jobId, line.id, bom.id, { actualUnitCost: Number(e.target.value) || 0 })} className={FILL_IN} />
           </FillField>
-          <FillField label="Used">
-            <input value={used || ""} inputMode="decimal" onChange={(e) => patchBom(job.jobId, line.id, bom.id, { usedQty: Number(e.target.value) || 0 })} className={FILL_IN} />
-          </FillField>
           <div className="flex items-end gap-3 pb-1">
             <Check label="In" on={Boolean(bom.received)} onClick={() => patchBom(job.jobId, line.id, bom.id, { received: !bom.received })} />
             <Check label="Ready" on={Boolean(bom.ready)} onClick={() => patchBom(job.jobId, line.id, bom.id, { ready: !bom.ready })} />
           </div>
         </FillRow>
       </div>
-      {left > 0 && used > 0 ? (
+      {bom.ordered || bom.usedQty > 0 ? (
         <div className="mt-2">
-          <p className="text-[11px] font-bold tracking-wide text-muted uppercase">Left {left} · return or warehouse</p>
-          <div className="mt-1">
-            <FillRow min="6.5rem">
-              <FillField label="Return qty">
-                <input
-                  value={ret || ""}
-                  inputMode="decimal"
-                  onChange={(e) => patchBom(job.jobId, line.id, bom.id, { returnQty: Number(e.target.value) || 0 })}
-                  className={FILL_IN}
-                />
-              </FillField>
-              <FillField label="$ back">
-                <input
-                  value={bom.returnCredit || ""}
-                  inputMode="decimal"
-                  onChange={(e) => patchBom(job.jobId, line.id, bom.id, { returnCredit: Number(e.target.value) || 0 })}
-                  className={FILL_IN}
-                />
-              </FillField>
-              <FillField label="Warehouse">
-                <input
-                  value={warehoused || ""}
-                  inputMode="decimal"
-                  onChange={(e) => patchBom(job.jobId, line.id, bom.id, { warehouseQty: Number(e.target.value) || 0 })}
-                  className={FILL_IN}
-                />
-              </FillField>
-            </FillRow>
-          </div>
-          {ret ? <p className="mt-1 text-[12px] font-semibold text-navy">{money(bom.returnCredit || 0)} back from {bom.supplier || "supplier"}.</p> : null}
-          {warehoused ? <p className="mt-1 text-[12px] text-muted">{warehoused} stays in shop stock. Off this job.</p> : null}
-          {ret + warehoused < left ? <p className="mt-1 text-[12px] text-alert">{left - ret - warehoused} left unassigned.</p> : null}
+          <FillRow min="6.5rem">
+            <FillField label="Return">
+              <input value={bom.returnQty || ""} inputMode="decimal" onChange={(e) => patchBom(job.jobId, line.id, bom.id, { returnQty: Number(e.target.value) || 0 })} className={FILL_IN} />
+            </FillField>
+            <FillField label="Keep">
+              <input value={bom.warehouseQty || ""} inputMode="decimal" onChange={(e) => patchBom(job.jobId, line.id, bom.id, { warehouseQty: Number(e.target.value) || 0 })} className={FILL_IN} />
+            </FillField>
+            <FillField label="Back to us">
+              <p className="flex h-10 items-center text-sm font-semibold tabular-nums">{money(bom.returnCredit || 0)}</p>
+            </FillField>
+          </FillRow>
         </div>
       ) : null}
     </li>
@@ -467,7 +418,7 @@ function BomRow({ job, line, bom }: { job: JobFile; line: ScopeLine; bom: BomLin
 function Check({ label, on, onClick }: { label: string; on: boolean; onClick: () => void }) {
   return (
     <button type="button" onClick={onClick} className="flex h-10 items-center gap-1.5 text-[12px] font-semibold">
-      <span className={cn("grid size-5 place-items-center rounded-sm border", on ? "border-navy bg-navy text-card" : "border-line")}>{on ? "✓" : ""}</span>
+      <span className={cn("grid size-5 place-items-center rounded-sm border", on ? "border-navy bg-navy text-card" : "border-line")}>{on ? <CheckIcon className="size-3.5" strokeWidth={2.5} /> : null}</span>
       {label}
     </button>
   );

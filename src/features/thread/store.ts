@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from "react";
 import { seedThread, type ThreadMessage } from "@/lib/file-data";
-import { SHOP_ACTOR } from "@/lib/chrome";
+import { actingName } from "@/features/staff/store";
 
 let messages: ThreadMessage[] = [...seedThread];
 const listeners = new Set<() => void>();
@@ -44,7 +44,7 @@ export function sendMessage(
     personId,
     channel: extra?.nest ? "internal" : channel,
     from: "shop",
-    by: SHOP_ACTOR,
+    by: actingName(),
     at,
     text: trimmed || (extra?.files?.length ? `Sent ${extra.files.map((f) => f.name).join(", ")}.` : ""),
     subject: extra?.subject?.trim() || undefined,
@@ -59,7 +59,7 @@ export function sendMessage(
   return row;
 }
 
-export function toggleReaction(id: string, emoji: string, by = SHOP_ACTOR) {
+export function toggleReaction(id: string, emoji: string, by = actingName()) {
   messages = messages.map((m) => {
     if (m.id !== id) return m;
     const cur = m.reactions ?? [];
@@ -107,7 +107,7 @@ export function logCallMessage(
       personId,
       channel: "call",
       from: "shop",
-      by: SHOP_ACTOR,
+      by: actingName(),
       at,
       text,
       durationSec: extra?.durationSec,

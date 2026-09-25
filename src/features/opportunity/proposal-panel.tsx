@@ -4,33 +4,61 @@ import { money } from "@/lib/crm-data";
 import { cn } from "@/lib/cn";
 import { FileBlock } from "@/features/record-shell/file-sheet";
 import { picksOn } from "./proposal-copy";
-import { acceptOption, chargedFee, feeCeiling, financeMonthly, generateProposal, isProductLine, offerPlans, optionRollup, payAmount, payLabel, priceWithFee, sendAgreementEmail, sendProposal, startAgreement, unacceptOption, type Proposal } from "./store";
+import { acceptOption, chargedFee, feeCeiling, financeMonthly, generateProposal, isProductLine, offerPlans, optionRollup, payAmount, payLabel, priceWithFee, sendAgreementEmail, sendCustomerFile, startAgreement, unacceptOption, type Proposal } from "./store";
 import { useBrand } from "@/features/brand/store";
 import { useOps } from "@/features/ops/store";
+import { assessmentForLead, useAssessments } from "@/features/assessment/store";
+import { reportAccess } from "@/features/assessment/figures";
 import { placeLine } from "@/lib/place";
 import { SignDialog } from "./sign-ceremony";
 
 export function ProposalPanel({ proposal }: { proposal: Proposal }) {
   const navigate = useNavigate();
-  const docs = proposal.documents.filter((d) => d.kind === "proposal" || d.kind === "agreement");
+  const docs = proposal.documents.filter((d) => d.kind === "proposal" || d.kind === "agreement" || d.kind === "report" || d.kind === "packet");
   const [needPay, setNeedPay] = useState(false);
+  const [feeHold, setFeeHold] = useState(false);
   const [inPerson, setInPerson] = useState(false);
+  useAssessments();
   const brand = useBrand();
   const { leads } = useOps();
   const lead = leads.find((l) => l.id === proposal.personId);
+  const assess = assessmentForLead(proposal.personId);
+  const reportOpen =
+    !assess ||
+    reportAccess({
+      occupancy: assess.property.occupancy,
+      bothHome: assess.property.bothHome,
+      intent: assess.intent,
+      homeownerAnswer: lead?.qualify?.["Q-3"],
+      ownersAnswer: lead?.qualify?.["Q-2"],
+      paid: assess.reportPaid,
+      waivedBy: assess.reportWaivedBy,
+    }).unlocked;
   const signed = proposal.agreement?.status === "Signed" || proposal.agreements?.some((a) => a.status === "Signed");
   const sold = proposal.options.find((o) => o.id === proposal.accepted);
   const priced = proposal.options.filter((o) => o.lines.length > 0);
   const ready = priced.length > 0 && proposal.payOffers.length > 0;
 
-  function present() {
-    const ok = generateProposal(proposal.oppId);
-    if (!ok) {
-      setNeedPay(true);
-      return;
+  function openDoc(doc?: "report" | "packet" | "proposal") {
+    if (doc !== "report") {
+      const ok = generateProposal(proposal.oppId);
+      if (!ok) {
+        setNeedPay(true);
+        return;
+      }
     }
     setNeedPay(false);
-    navigate({ to: "/proposal/$oppId", params: { oppId: proposal.oppId }, search: { mode: "present" } });
+    navigate({ to: "/proposal/$oppId", params: { oppId: proposal.oppId }, search: { mode: "present", doc } });
+  }
+
+  function send(kind: "report" | "proposal" | "packet") {
+    if ((kind === "report" || kind === "packet") && !reportOpen) {
+      setFeeHold(true);
+      return;
+    }
+    setFeeHold(false);
+    const ok = sendCustomerFile(proposal.oppId, kind, window.location.origin);
+    if (!ok) setNeedPay(true);
   }
 
   return (
@@ -182,13 +210,27 @@ export function ProposalPanel({ proposal }: { proposal: Proposal }) {
       )}
 
       <div className="mt-4 flex flex-wrap gap-2">
-        <button type="button" className="h-10 rounded-md bg-navy px-3 text-sm font-semibold text-card" onClick={present}>
-          Present
+        <button type="button" className="h-10 rounded-md border border-line px-3 text-sm font-semibold" onClick={() => openDoc("report")}>
+          Report
         </button>
-        <button type="button" className="h-10 rounded-md border border-line px-3 text-sm font-semibold" onClick={() => sendProposal(proposal.oppId)}>
-          Send
+        <button type="button" className="h-10 rounded-md border border-line px-3 text-sm font-semibold" onClick={() => openDoc("proposal")}>
+          Proposal
+        </button>
+        <button type="button" className="h-10 rounded-md bg-navy px-3 text-sm font-semibold text-card" onClick={() => openDoc()}>
+          Present both
+        </button>
+        <button type="button" className="h-10 rounded-md border border-line px-3 text-sm font-semibold" onClick={() => send("report")}>
+          Send report
+        </button>
+        <button type="button" className="h-10 rounded-md border border-line px-3 text-sm font-semibold" onClick={() => send("proposal")}>
+          Send proposal
+        </button>
+        <button type="button" className="h-10 rounded-md border border-navy px-3 text-sm font-semibold text-navy" onClick={() => send("packet")}>
+          Send both
         </button>
       </div>
+      <p className="type-meta mt-2">The report and the proposal are separate files. Send both attaches them as one.</p>
+      {feeHold ? <p className="mt-2 text-sm text-alert">The report is $149 until they qualify, it is paid, or a fee is waived.</p> : null}
 
       {docs.length ? (
         <ul className="mt-4 divide-y divide-line">
@@ -202,9 +244,9 @@ export function ProposalPanel({ proposal }: { proposal: Proposal }) {
                   </span>
                 </a>
               ) : (
-                <button type="button" className="flex w-full items-center justify-between gap-3 py-3 text-left" onClick={present}>
+                <button type="button" className="flex w-full items-center justify-between gap-3 py-3 text-left" onClick={() => openDoc(d.kind === "report" ? "report" : d.kind === "packet" ? "packet" : "proposal")}>
                   <span>
-                    <span className="type-value">{d.kind === "agreement" ? "Agreement" : "Proposal"} {d.id}</span>
+                    <span className="type-value">{d.kind === "agreement" ? "Agreement" : d.kind === "report" ? "Assessment report" : d.kind === "packet" ? "Report and proposal" : "Proposal"} {d.id}</span>
                     <span className="type-meta mt-0.5 block">{d.status}</span>
                   </span>
                   <span className="type-meta">{d.totals?.map((t) => money(t.amount)).join("  ") || ""}</span>

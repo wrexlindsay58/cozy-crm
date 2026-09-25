@@ -9,6 +9,10 @@ function picks(name: string) {
   return ["Yes", "No"];
 }
 
+export function qualifyFilled(questions: { id: string }[], answers: Record<string, string>) {
+  return questions.length === 0 || questions.every((q) => Boolean(answers[q.id]));
+}
+
 function verdict(questions: { id: string; name: string }[], answers: Record<string, string>) {
   if (questions.length === 0) return { label: "No questions", tone: "muted" as const };
   const area = questions.find((q) => /in area/i.test(q.name));

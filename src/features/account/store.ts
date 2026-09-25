@@ -2,6 +2,7 @@ import { useSyncExternalStore } from "react";
 import { addHistory, createLead, createTicket } from "@/features/ops/store";
 import { putFromAppointment } from "@/features/book/store";
 import { photosByPerson, type Photo } from "@/lib/file-data";
+import { actingName } from "@/features/staff/store";
 import { accounts, leads, type Activity } from "@/lib/crm-data";
 
 export const VISIT_KINDS = ["Service", "QC", "Warranty", "Go-back"] as const;
@@ -210,7 +211,7 @@ export function scheduleVisit(input: { accountId: string; kind: VisitKind; close
     setBy: input.closer,
     city: file.city,
   });
-  addHistory(file.leadId, file.owner, `Booked ${input.kind.toLowerCase()} ${row.day}. ${row.why}`);
+  addHistory(file.leadId, actingName(), `Booked ${input.kind.toLowerCase()} ${row.day}. ${row.why}`);
 }
 export function addIssue(accountId: string, title: string, detail: string) {
   const file = files[accountId];
@@ -219,13 +220,13 @@ export function addIssue(accountId: string, title: string, detail: string) {
   const ticket = createTicket({ personId: file.leadId, title: name, owner: file.owner, description: detail.trim() });
   const row: AccountIssue = { id: `IS-${file.issues.length + 2}`, title: name, detail: detail.trim(), status: "Open", at: "Today", ticketId: ticket?.id };
   patch(accountId, { ...file, issues: [row, ...file.issues] });
-  addHistory(file.leadId, file.owner, `Issue opened: ${name}.`);
+  addHistory(file.leadId, actingName(), `Issue opened: ${name}.`);
 }
 export function setIssueStatus(accountId: string, id: string, status: IssueStatus) {
   const file = files[accountId];
   if (!file) return;
   patch(accountId, { ...file, issues: file.issues.map((i) => (i.id === id ? { ...i, status } : i)) });
-  addHistory(file.leadId, file.owner, `Issue ${status.toLowerCase()}.`);
+  addHistory(file.leadId, actingName(), `Issue ${status.toLowerCase()}.`);
 }
 export function sendReview(accountId: string, platform = "Google") {
   const file = files[accountId];
@@ -236,7 +237,7 @@ export function sendReview(accountId: string, platform = "Google") {
     ? file.reviews.map((r) => (r.platform === platform ? { ...r, status: "Sent" as const, at: "Today", source: "api" as const } : r))
     : [{ id: `RV-${file.reviews.length + 3}`, platform, status: "Sent" as const, source: "api" as const, at: "Today" }, ...file.reviews];
   patch(accountId, { ...file, reviews: next });
-  addHistory(file.leadId, file.owner, `${platform} review request sent.`);
+  addHistory(file.leadId, actingName(), `${platform} review request sent.`);
 }
 export function addManualReview(accountId: string, input: { platform: string; rating: number; text: string; author: string }) {
   const file = files[accountId];
@@ -254,20 +255,20 @@ export function addManualReview(accountId: string, input: { platform: string; ra
     at: "Today",
   };
   patch(accountId, { ...file, reviews: [row, ...file.reviews] });
-  addHistory(file.leadId, file.owner, `${platform} review added by hand · ${input.rating} star.`);
+  addHistory(file.leadId, actingName(), `${platform} review added by hand · ${input.rating} star.`);
   return true;
 }
 export function setWarranty(accountId: string, warrantyStart: string, warrantyUntil: string) {
   const file = files[accountId];
   if (!file) return;
   patch(accountId, { ...file, warrantyStart: warrantyStart.trim(), warrantyUntil: warrantyUntil.trim() });
-  addHistory(file.leadId, file.owner, `Warranty expires ${warrantyUntil.trim() || "cleared"}.`);
+  addHistory(file.leadId, actingName(), `Warranty expires ${warrantyUntil.trim() || "cleared"}.`);
 }
 export function setMembership(accountId: string, next: Membership | null) {
   const file = files[accountId];
   if (!file) return;
   patch(accountId, { ...file, membership: next });
-  addHistory(file.leadId, file.owner, next ? `Membership ${next.plan} · ${next.method}.` : "Membership removed.");
+  addHistory(file.leadId, actingName(), next ? `Membership ${next.plan} · ${next.method}.` : "Membership removed.");
 }
 export function addReferral(accountId: string, name: string, phone: string) {
   const file = files[accountId];
@@ -275,7 +276,7 @@ export function addReferral(accountId: string, name: string, phone: string) {
   if (!file || !who) return;
   const row: AccountReferral = { id: `RF-${file.referrals.length + 2}`, name: who, phone: phone.trim(), status: "Asked" };
   patch(accountId, { ...file, referrals: [row, ...file.referrals] });
-  addHistory(file.leadId, file.owner, `Referral added: ${who}.`);
+  addHistory(file.leadId, actingName(), `Referral added: ${who}.`);
 }
 export function addPhoto(accountId: string, caption: string) {
   const trimmed = caption.trim();
@@ -284,7 +285,7 @@ export function addPhoto(accountId: string, caption: string) {
   photoRows = [row, ...photoRows];
   const file = files[accountId];
   if (file) patch(accountId, { ...file, photos: [row, ...file.photos] });
-  addHistory(accountId, "File", `Photo: ${trimmed}.`);
+  addHistory(accountId, actingName(), `Photo: ${trimmed}.`);
   return true;
 }
 export function spawnLead(accountId: string, product: string) {
@@ -292,6 +293,6 @@ export function spawnLead(accountId: string, product: string) {
   if (!file) return null;
   const lead = createLead({ name: file.name, phone: "(480) 555-0121", city: file.city, source: "Account", product, closer: file.owner });
   if (lead) patch(accountId, { ...file, childLeads: [{ id: lead.id, name: product }, ...file.childLeads] });
-  addHistory(file.leadId, file.owner, `New job started from this account · ${product}.`);
+  addHistory(file.leadId, actingName(), `New job started from this account · ${product}.`);
   return lead;
 }

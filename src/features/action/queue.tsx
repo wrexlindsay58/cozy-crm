@@ -22,7 +22,7 @@ import { FormAnswers } from "@/features/record-shell/form-answers";
 import { ClickToCall } from "@/features/lead/click-to-call";
 import { BookWidget } from "@/features/lead/book-widget";
 import { MarksPanel } from "@/features/lead/marks-bar";
-import { liveStatus, SHOP_ACTOR, WORK_STATUSES, canDeleteWork } from "@/lib/chrome";
+import { liveStatus, WORK_STATUSES, canDeleteWork } from "@/lib/chrome";
 import { accounts, projects } from "@/lib/crm-data";
 import { ActBar } from "@/components/act-bar";
 import { StatusPill } from "@/components/ui-bits";
@@ -243,8 +243,7 @@ function compareActions(a: ShopAction, b: ShopAction, sort: SortKey, leads: Retu
 
 export function ActionQueue({ selectedId }: { selectedId?: string }) {
   const { actions, leads, history } = useOps();
-  const { people, viewAs } = useStaff();
-  const me = viewAs === "Owner" ? SHOP_ACTOR : viewAs;
+  const { people, viewAs, actorName: me } = useStaff();
   const navigate = useNavigate();
   const [query, setQuery] = useState(remembered.query);
   const [kind, setKind] = useState<KindFilter>(remembered.kind);

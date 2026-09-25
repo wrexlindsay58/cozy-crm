@@ -3,20 +3,19 @@ import { useNavigate } from "@tanstack/react-router";
 import { ChevronLeft, Link2, Printer, X } from "lucide-react";
 import { CozyWordmark } from "@/components/cozy-mark";
 import { useCatalog, itemBySku } from "@/features/catalog/store";
-import { assessmentForLead, useAssessments } from "@/features/assessment/store";
-import { useAssessCategories } from "@/features/assessment/categories";
 import { useOps } from "@/features/ops/store";
 import { usePhotos } from "@/features/photos/store";
 import { brandVars, useBrand } from "@/features/brand/store";
 import { money } from "@/lib/crm-data";
-import { cityState, placeLine } from "@/lib/place";
+import { placeLine } from "@/lib/place";
 import { addPayOffer, applyGoodLeap, financeMonthly, lineAmount, offerPlans, optionTotal, payAmount, payLabel, requestDeposit, sendProposal, setPayPick, type Proposal } from "./store";
 import { SignCeremony } from "./sign-ceremony";
 import { useMoneySettings } from "@/features/money-settings/store";
 import { PresentOption } from "./present-option";
 import { picksOn, scopeLines } from "./proposal-copy";
 import { storyFor } from "./product-story";
-import { BarRow, MoneyBars, StepRail } from "./present-viz";
+import { AssessmentReport } from "./report";
+import { MoneyBars, StepRail } from "./present-viz";
 import { cn } from "@/lib/cn";
 
 const STEPS = ["cover", "why", "find", "work", "options", "pay", "sign", "done"] as const;
@@ -29,15 +28,12 @@ const SHOT = {
   inside: "/brand/slides/interior.jpg",
 };
 
-export function Present({ proposal, mode = "customer" }: { proposal: Proposal; mode?: "present" | "customer" }) {
+export function Present({ proposal, mode = "customer", scope = "both" }: { proposal: Proposal; mode?: "present" | "customer"; scope?: "both" | "proposal" }) {
   useCatalog();
-  useAssessments();
   const brand = useBrand();
   const navigate = useNavigate();
   const { leads } = useOps();
   const lead = leads.find((l) => l.id === proposal.personId);
-  const assess = assessmentForLead(proposal.personId);
-  const cats = useAssessCategories();
   const photos = usePhotos(proposal.personId);
   const { financers } = useMoneySettings();
   const [step, setStep] = useState<Step>("cover");
@@ -49,7 +45,8 @@ export function Present({ proposal, mode = "customer" }: { proposal: Proposal; m
   const staff = mode === "present";
   const opt = proposal.options.find((o) => o.id === picked) ?? proposal.options[0];
   const total = opt ? optionTotal(opt) : 0;
-  const i = STEPS.indexOf(step);
+  const steps = (scope === "proposal" ? STEPS.filter((s) => s !== "find") : [...STEPS]) as Step[];
+  const i = steps.indexOf(step);
   const fileTo = { to: "/opportunities/$oppId" as const, params: { oppId: proposal.oppId } };
   const today = new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
   const payOffer = proposal.payOffers.find((o) => o.id === proposal.payPick?.offerId) ?? proposal.payOffers[0];
@@ -92,13 +89,13 @@ export function Present({ proposal, mode = "customer" }: { proposal: Proposal; m
           <X className="size-5" />
         </button>
         {step !== "cover" ? (
-          <button type="button" className="grid size-11 place-items-center text-[var(--p-gray)]" aria-label="Back" onClick={() => go(STEPS[Math.max(0, i - 1)])}>
+          <button type="button" className="grid size-11 place-items-center text-[var(--p-gray)]" aria-label="Back" onClick={() => go(steps[Math.max(0, i - 1)])}>
             <ChevronLeft className="size-5" />
           </button>
         ) : null}
         <CozyWordmark className="ml-1 h-7 w-36" house={brand.red} word={brand.navy} />
         <div className="ml-4 hidden flex-1 md:block">
-          <StepRail i={i} n={STEPS.length} />
+          <StepRail i={i} n={steps.length} />
         </div>
         <span className="ml-auto md:hidden" />
         {staff ? (
@@ -144,7 +141,7 @@ export function Present({ proposal, mode = "customer" }: { proposal: Proposal; m
               <h2 className="p-head text-5xl text-[var(--p-navy)] md:text-6xl">{brand.why}</h2>
               <p className="p-sub mt-8 text-[11px] text-[var(--p-gray)]">{brand.tagline}</p>
             </div>
-            <button type="button" className="mt-10 h-12 w-fit bg-[var(--p-navy)] px-8 text-sm font-semibold text-white" onClick={() => go("find")}>
+            <button type="button" className="mt-10 h-12 w-fit bg-[var(--p-navy)] px-8 text-sm font-semibold text-white" onClick={() => go(scope === "proposal" ? "work" : "find")}>
               Your house
             </button>
           </div>
@@ -162,78 +159,7 @@ export function Present({ proposal, mode = "customer" }: { proposal: Proposal; m
       ) : null}
 
       {step === "find" ? (
-        <section className="min-h-[calc(100dvh-56px)]">
-          <div className="grid grid-cols-3 gap-px bg-[var(--p-trim)]">
-            {(photos.filter((p) => p.src).slice(0, 3).length
-              ? photos.filter((p) => p.src).slice(0, 3)
-              : [{ id: "1", src: SHOT.house, caption: "The house" }, { id: "2", src: SHOT.house2, caption: "Street" }, { id: "3", src: SHOT.house3, caption: "Envelope" }]
-            ).map((ph) => (
-              <figure key={ph.id} className="relative aspect-[4/3] overflow-hidden bg-[var(--p-navy)]">
-                <img src={ph.src} alt={ph.caption} className="size-full object-cover" />
-                <figcaption className="absolute inset-x-0 bottom-0 bg-[var(--p-navy)]/70 px-3 py-2 text-[12px] text-white">{ph.caption}</figcaption>
-              </figure>
-            ))}
-          </div>
-          <div className="mx-auto max-w-5xl px-5 py-10 md:px-8">
-            <p className="p-sub text-[11px] text-[var(--p-gray)]">Assessment</p>
-            <h2 className="p-head mt-2 text-5xl text-[var(--p-navy)]">What we found on the walk.</h2>
-            <p className="mt-3 text-sm text-[var(--p-gray)]">
-              {lead ? placeLine(lead.address, lead.city, lead.office) : ""} · {proposal.closer}
-            </p>
-            <div className="mt-8 grid grid-cols-2 gap-px bg-[var(--p-trim)] md:grid-cols-3">
-              {assess?.property.yearBuilt ? <Stat n={assess.property.yearBuilt} l="Built" /> : null}
-              {assess?.property.sqft ? <Stat n={assess.property.sqft} l="Sq ft" /> : null}
-              {assess?.property.stories ? <Stat n={assess.property.stories} l="Stories" /> : null}
-              {assess?.property.hoa ? <Stat n={assess.property.hoa} l="HOA" /> : null}
-              {assess?.property.occupancy ? <Stat n={assess.property.occupancy} l="Occupancy" /> : null}
-              {assess?.property.electrical ? <Stat n={assess.property.electrical} l="Electrical" /> : null}
-            </div>
-            <div className="mt-8 grid gap-8 lg:grid-cols-2">
-              <div className="space-y-4 bg-white p-6">
-                <p className="p-sub text-[11px] text-[var(--p-gray)]">Where it sits</p>
-                <BarRow label="Equipment age (yr)" value={ageFrom(assess)} max={20} tone="navy" />
-                <BarRow label="Typical life (yr)" value={15} max={20} tone="gray" />
-                <BarRow label="Attic now (in)" value={atticFrom(assess)} max={16} tone="gray" />
-                <BarRow label="Attic target (in)" value={14} max={16} tone="navy" />
-              </div>
-              {assess?.property.notes ? (
-                <div className="bg-white p-6">
-                  <p className="p-sub text-[11px] text-[var(--p-gray)]">Walk notes</p>
-                  <p className="mt-3 text-lg text-[var(--p-navy)]">{assess.property.notes}</p>
-                </div>
-              ) : null}
-            </div>
-            <ul className="mt-8 grid gap-px bg-[var(--p-trim)] md:grid-cols-2">
-              {(assess?.packets ?? [])
-                .filter((p) => Object.keys(p.fields).length || p.notes)
-                .map((p) => (
-                  <li key={p.id} className="bg-white p-6">
-                    <p className="p-sub text-[11px] text-[var(--p-gray)]">{cats.find((c) => c.id === p.id)?.label ?? p.id}</p>
-                    <p className="p-head mt-2 text-3xl text-[var(--p-navy)]">
-                      {Object.entries(p.fields)
-                        .filter(([, v]) => v)
-                        .map(([, v]) => v)
-                        .join(" · ") || "Noted"}
-                    </p>
-                    {p.notes ? <p className="mt-3 text-sm text-[var(--p-gray)]">{p.notes}</p> : null}
-                  </li>
-                ))}
-            </ul>
-            {photos.length > 3 ? (
-              <ul className="mt-8 grid grid-cols-2 gap-px bg-[var(--p-trim)] md:grid-cols-4">
-                {photos.slice(3).map((ph) => (
-                  <li key={ph.id} className="bg-white">
-                    {ph.src ? <img src={ph.src} alt={ph.caption} className="aspect-[4/3] w-full object-cover" /> : <div className="aspect-[4/3] bg-[var(--p-trim)]" />}
-                    <p className="px-3 py-2 text-[12px] text-[var(--p-navy)]">{ph.caption}</p>
-                  </li>
-                ))}
-              </ul>
-            ) : null}
-            <button type="button" className="mt-10 h-12 bg-[var(--p-navy)] px-8 text-sm font-semibold text-white" onClick={() => go("work")}>
-              The work
-            </button>
-          </div>
-        </section>
+        <AssessmentReport personId={proposal.personId} closer={proposal.closer} oppId={proposal.oppId} embedded audience={staff ? "staff" : "customer"} onContinue={() => go("work")} />
       ) : null}
 
       {step === "work" ? (
@@ -416,25 +342,4 @@ function uniqueProducts(proposal: Proposal) {
     }
   }
   return out;
-}
-
-function Stat({ n, l }: { n: string; l: string }) {
-  return (
-    <div className="bg-white px-4 py-5">
-      <p className="p-head text-4xl text-[var(--p-navy)]">{n}</p>
-      <p className="p-sub mt-1 text-[10px] text-[var(--p-gray)]">{l}</p>
-    </div>
-  );
-}
-
-function ageFrom(assess: ReturnType<typeof assessmentForLead>) {
-  const raw = assess?.packets.map((p) => Object.values(p.fields).join(" ")).join(" ") ?? "";
-  const m = raw.match(/(\d+)\s*yr/i);
-  return m ? Number(m[1]) : 16;
-}
-
-function atticFrom(assess: ReturnType<typeof assessmentForLead>) {
-  const raw = assess?.packets.map((p) => Object.values(p.fields).join(" ")).join(" ") ?? "";
-  const m = raw.match(/(\d+)\s*in/i);
-  return m ? Number(m[1]) : 4;
 }

@@ -2,9 +2,10 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { assessmentForLead, startAssessment } from "@/features/assessment/store";
 import { BookWidget } from "@/features/lead/book-widget";
 import { LeadCard } from "@/features/lead/lead-card";
-import { QualifyCard } from "@/features/lead/qualify-card";
+import { QualifyCard, qualifyFilled } from "@/features/lead/qualify-card";
 import { RecordShell } from "@/features/record-shell/record-shell";
 import { FileSections, scrollFileSection } from "@/features/record-shell/file-sections";
+import { useAdminSettings } from "@/features/admin-settings/store";
 import { useOps } from "@/features/ops/store";
 import { placeLine } from "@/lib/place";
 import { opportunities } from "@/lib/crm-data";
@@ -17,6 +18,7 @@ function LeadFile() {
   const { leads, tickets, history } = useOps();
   const lead = leads.find((l) => l.id === leadId);
   const navigate = useNavigate();
+  const { qualify } = useAdminSettings();
   const assessment = assessmentForLead(leadId);
   if (!lead) return <main className="p-6 text-sm text-muted">Lead not found.</main>;
   const opp = opportunities.find((o) => o.leadId === lead.id);
@@ -49,9 +51,32 @@ function LeadFile() {
     >
       <FileSections
         start="contact"
+        advance={{
+          pipeline: "Assessment",
+          onContinue: () => {
+            const next =
+              assessment ??
+              startAssessment({
+                leadId: lead.id,
+                name: lead.name,
+                address: lead.address,
+                closer: lead.closer,
+                property: {
+                  yearBuilt: lead.yearBuilt ?? "",
+                  sqft: lead.sqft ?? "",
+                  stories: lead.stories ?? "",
+                  hoa: lead.hoa === "Yes" ? "Yes" : lead.hoa ?? "",
+                  access: lead.access ?? "",
+                  utility: lead.utility ?? "",
+                  bothHome: lead.bothHome ? "Yes" : "",
+                },
+              });
+            void navigate({ to: "/assessments/$assessmentId", params: { assessmentId: next.id } });
+          },
+        }}
         sections={[
-          { id: "contact", label: "Contact", node: <LeadCard lead={lead} /> },
-          { id: "qualify", label: "Qualified", node: <QualifyCard leadId={lead.id} /> },
+          { id: "contact", label: "Contact", done: Boolean(lead.name && lead.phone && lead.address), node: <LeadCard lead={lead} /> },
+          { id: "qualify", label: "Qualified", done: qualifyFilled(qualify, lead.qualify ?? {}), node: <QualifyCard leadId={lead.id} /> },
           {
             id: "book",
             label: "Book",

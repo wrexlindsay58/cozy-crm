@@ -5,6 +5,8 @@ import { Tip } from "@/components/tip";
 import { BookPick } from "@/features/book/pick";
 import { TODAY, addDays, toIso } from "@/features/book/time";
 import { useBook } from "@/features/book/store";
+import { rollsOn } from "@/features/job/prep";
+import { useJobs } from "@/features/job/store";
 import { useRoster } from "@/features/book/roster";
 import { useOps } from "@/features/ops/store";
 import { buildToday, type Mark, type Split, type Trend, type SparkPt } from "@/features/today/live";
@@ -441,7 +443,8 @@ function RankList({ rows }: { rows: { id: string; name: string; role: string; am
 }
 
 export function TodayBoard() {
-  const events = useBook();
+  const jobs = useJobs();
+  const events = useBook().filter((e) => rollsOn(e.jobId ? jobs[e.jobId] : undefined, e.start.slice(0, 10)));
   const roster = useRoster();
   const { leads } = useOps();
   const [office, setOffice] = useState<"all" | "PHX" | "DFW">("all");

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, Trash2 } from "lucide-react";
+import { Check, Plus, Trash2 } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { Tip } from "@/components/tip";
 
@@ -9,21 +9,26 @@ export function CheckLine({
   callout,
   onToggle,
   onCallout,
+  who,
 }: {
   label: string;
   on: boolean;
   callout?: string;
   onToggle: () => void;
   onCallout: (v: string) => void;
+  who?: string;
 }) {
   const [open, setOpen] = useState(Boolean(callout?.trim()));
   const show = open || Boolean(callout?.trim());
   return (
     <li className="min-w-0">
       <div className="flex min-w-0 items-center gap-1">
-        <button type="button" onClick={onToggle} className="flex h-9 min-w-0 flex-1 items-center gap-2 text-left text-sm">
-          <span className={cn("grid size-5 shrink-0 place-items-center rounded-sm border", on ? "border-navy bg-navy text-card" : "border-line")}>{on ? "✓" : ""}</span>
-          <span className="min-w-0 truncate">{label}</span>
+        <button type="button" onClick={onToggle} className="flex h-10 min-w-0 flex-1 items-center gap-2 text-left text-sm">
+          <span className={cn("grid size-5 shrink-0 place-items-center rounded-sm border", on ? "border-navy bg-navy text-card" : "border-line")}>{on ? <Check className="size-3.5" strokeWidth={2.5} /> : null}</span>
+          <span className="min-w-0">
+            <span className="block truncate">{label}</span>
+            {on && who ? <span className="type-meta">Checked by {who}</span> : null}
+          </span>
         </button>
         {show ? null : (
           <Tip label="Add call-out" on>

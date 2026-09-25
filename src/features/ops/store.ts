@@ -5,6 +5,7 @@ import { followersByPerson, type PersonRef } from "@/lib/file-data";
 import { logCallMessage, sendMessage } from "@/features/thread/store";
 import { putFromAppointment } from "@/features/book/store";
 import { type WorkStatus } from "@/lib/chrome";
+import { actingName, logEmployeeAct } from "@/features/staff/store";
 import { toneForStatus } from "@/lib/lead-status";
 import type { ActionKind, ShopAction } from "@/features/action/types";
 
@@ -56,8 +57,6 @@ export type Task = {
   followers?: string[];
 };
 export type CallInput = { direction: "Out" | "In"; result: "Answered" | "VM" | "No answer"; duration: string; note: string };
-
-const ACTOR = "Wrex Lindsay";
 
 const TICKET_CAT: Record<string, string> = {
   "T-91": "HOA",
@@ -151,12 +150,13 @@ export function useOps() {
 export function addHistory(personId: string, who: string, what: string) {
   const row = { at: new Date().toLocaleString(), who, what };
   history = { ...history, [personId]: [row, ...(history[personId] ?? [])] };
+  logEmployeeAct(personId, who, what);
   emit();
 }
 export function setDisposition(id: string, status: Disposition) {
   const appt = appointments.find((a) => a.id === id);
   appointments = appointments.map((a) => (a.id === id ? { ...a, status } : a));
-  if (appt) addHistory(appt.leadId, ACTOR, `Disposition ${status}.`);
+  if (appt) addHistory(appt.leadId, actingName(), `Disposition ${status}.`);
   else emit();
 }
 export function bookAppointment(input: {
@@ -287,7 +287,7 @@ export function patchTicket(id: string, patch: Partial<Ticket>) {
 export function patchAction(id: string, patch: Partial<ShopAction>) {
   const t = actions.find((x) => x.id === id);
   actions = actions.map((x) => (x.id === id ? { ...x, ...patch } : x));
-  if (t) addHistory(t.personId, ACTOR, `${t.kind[0].toUpperCase()}${t.kind.slice(1)} ${id} updated.`);
+  if (t) addHistory(t.personId, actingName(), `${t.kind[0].toUpperCase()}${t.kind.slice(1)} ${id} updated.`);
 }
 export function setWorkStatus(kind: "ticket" | "task" | "request" | ActionKind, id: string, status: WorkStatus) {
   const t = actions.find((x) => x.id === id);
@@ -298,7 +298,7 @@ export function setWorkStatus(kind: "ticket" | "task" | "request" | ActionKind, 
       actionId: t.id,
       actionKind: t.kind,
     });
-    addHistory(t.personId, ACTOR, `${t.kind[0].toUpperCase()}${t.kind.slice(1)} ${status}: ${t.title}.`);
+    addHistory(t.personId, actingName(), `${t.kind[0].toUpperCase()}${t.kind.slice(1)} ${status}: ${t.title}.`);
   }
   void kind;
 }
@@ -311,7 +311,7 @@ export function deleteTask(id: string) {
 export function deleteAction(id: string) {
   const t = actions.find((x) => x.id === id);
   actions = actions.map((x) => (x.parentId === id ? { ...x, parentId: undefined } : x)).filter((x) => x.id !== id);
-  if (t) addHistory(t.personId, ACTOR, `${t.kind[0].toUpperCase()}${t.kind.slice(1)} deleted: ${t.title}. Children kept on the file.`);
+  if (t) addHistory(t.personId, actingName(), `${t.kind[0].toUpperCase()}${t.kind.slice(1)} deleted: ${t.title}. Children kept on the file.`);
   else emit();
 }
 export function addTicketFollower(id: string, name: string) {
@@ -324,7 +324,7 @@ export function addActionFollower(id: string, name: string) {
     return { ...t, followers: [...(t.followers ?? []), name] };
   });
   const t = actions.find((x) => x.id === id);
-  if (t) addHistory(t.personId, ACTOR, `Follow ${t.kind} ${id}: ${name}.`);
+  if (t) addHistory(t.personId, actingName(), `Follow ${t.kind} ${id}: ${name}.`);
 }
 export function removeTicketFollower(id: string, name: string) {
   actions = actions.map((t) => (t.id === id ? { ...t, followers: (t.followers ?? []).filter((n) => n !== name) } : t));
@@ -350,7 +350,7 @@ export function toggleLeadTag(id: string, tag: string) {
     const tags = l.tags ?? [];
     return { ...l, tags: tags.includes(tag) ? tags.filter((t) => t !== tag) : [...tags, tag] };
   });
-  addHistory(id, ACTOR, `Tag ${tag}.`);
+  addHistory(id, actingName(), `Tag ${tag}.`);
 }
 export function dndOn(lead: { dnd?: DndChannel[] } | undefined, channel: DndChannel) {
   const d = lead?.dnd ?? [];
@@ -359,7 +359,7 @@ export function dndOn(lead: { dnd?: DndChannel[] } | undefined, channel: DndChan
 export function setLeadDnd(id: string, next: DndChannel[]) {
   leads = leads.map((l) => (l.id === id ? { ...l, dnd: next } : l));
   const label = next.length === 3 ? "all" : next.length === 0 ? "off" : next.join(", ");
-  addHistory(id, ACTOR, `DND ${label}.`);
+  addHistory(id, actingName(), `DND ${label}.`);
 }
 export function toggleLeadDnd(id: string, which: DndChannel | "all") {
   const lead = leads.find((l) => l.id === id);
@@ -379,11 +379,11 @@ export function addWorkflow(id: string, name: string) {
     if (w.includes(name)) return l;
     return { ...l, workflows: [...w, name] };
   });
-  addHistory(id, ACTOR, `Workflow on: ${name}.`);
+  addHistory(id, actingName(), `Workflow on: ${name}.`);
 }
 export function stopWorkflow(id: string, name: string) {
   leads = leads.map((l) => (l.id === id ? { ...l, workflows: (l.workflows ?? []).filter((n) => n !== name) } : l));
-  addHistory(id, ACTOR, `Workflow off: ${name}.`);
+  addHistory(id, actingName(), `Workflow off: ${name}.`);
 }
 export function createTag(id: string, name: string) {
   const tag = name.trim();
@@ -454,13 +454,13 @@ export function updateLead(id: string, patch: Partial<Lead> & LeadDraft) {
       ? interestsLabel(patch.interests, patch.otherInterest)
       : patch.product;
   leads = leads.map((l) => (l.id === id ? { ...l, ...patch, ...(product !== undefined ? { product } : {}) } : l));
-  addHistory(id, ACTOR, "Details saved.");
+  addHistory(id, actingName(), "Details saved.");
 }
 export function dropLead(id: string, reason: string) {
   const why = reason.trim();
   if (!why) return;
   leads = leads.map((l) => (l.id === id ? { ...l, status: "Dropped", tone: "muted", next: "Dropped", dropReason: why } : l));
-  addHistory(id, ACTOR, `Dropped. ${why}.`);
+  addHistory(id, actingName(), `Dropped. ${why}.`);
 }
 export function setLeadQualify(id: string, questionId: string, value: string) {
   leads = leads.map((l) => (l.id === id ? { ...l, qualify: { ...(l.qualify ?? {}), [questionId]: value } } : l));
@@ -473,7 +473,7 @@ export function setLeadRebate(id: string, rebate: boolean) {
 export function setLeadStatus(id: string, status: string) {
   const tone = toneForStatus(status);
   leads = leads.map((l) => (l.id === id ? { ...l, status, tone } : l));
-  addHistory(id, ACTOR, `Disposition ${status}.`);
+  addHistory(id, actingName(), `Disposition ${status}.`);
 }
 export function mergeLead(fromId: string, intoId: string) {
   if (fromId === intoId) return;
@@ -481,8 +481,8 @@ export function mergeLead(fromId: string, intoId: string) {
   const into = leads.find((l) => l.id === intoId);
   if (!from || !into) return;
   leads = leads.map((l) => (l.id === fromId ? { ...l, status: "Merged", tone: "muted", next: `Merged into ${into.id}` } : l));
-  addHistory(intoId, ACTOR, `Merged ${from.name} (${fromId}) into this file.`);
-  addHistory(fromId, ACTOR, `Merged into ${into.name} (${intoId}).`);
+  addHistory(intoId, actingName(), `Merged ${from.name} (${fromId}) into this file.`);
+  addHistory(fromId, actingName(), `Merged into ${into.name} (${intoId}).`);
 }
 export function logCall(personId: string, input: CallInput, extra?: { actionId?: string; actionKind?: ActionKind }) {
   const mins = input.duration.trim() ? ` · ${input.duration} min` : "";
@@ -496,20 +496,20 @@ export function logCall(personId: string, input: CallInput, extra?: { actionId?:
     actionId: extra?.actionId,
     actionKind: extra?.actionKind,
   });
-  addHistory(personId, ACTOR, line);
+  addHistory(personId, actingName(), line);
 }
 export function addFollower(personId: string, person: PersonRef) {
   const cur = followers[personId] ?? [];
   if (cur.some((f) => f.name === person.name)) return;
   followers = { ...followers, [personId]: [...cur, person] };
-  addHistory(personId, ACTOR, `Follow ${person.name}.`);
+  addHistory(personId, actingName(), `Follow ${person.name}.`);
 }
 export function removeFollower(personId: string, name: string) {
   followers = { ...followers, [personId]: (followers[personId] ?? []).filter((f) => f.name !== name) };
-  addHistory(personId, ACTOR, `Unfollow ${name}.`);
+  addHistory(personId, actingName(), `Unfollow ${name}.`);
 }
 export function transferOwner(personId: string, toName: string, reason: string) {
   const why = reason.trim() || "No reason given";
   leads = leads.map((l) => (l.id === personId ? { ...l, closer: toName } : l));
-  addHistory(personId, ACTOR, `Transfer to ${toName}. ${why}.`);
+  addHistory(personId, actingName(), `Transfer to ${toName}. ${why}.`);
 }

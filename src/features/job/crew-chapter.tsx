@@ -1,14 +1,14 @@
 import { useState } from "react";
 import { ChevronDown, Plus, Trash2 } from "lucide-react";
 import { addAssign, addEvent, patchAssign, patchEvent, removeAssign, removeEvent, sendAssignWo, setEventStatus, toggleAssignScope, type JobFile } from "./store";
-import { processFor } from "./types";
+import { processFor, isAccepted, type CrewAssign } from "./types";
 import { cn } from "@/lib/cn";
 import { JobCard } from "./job-card";
 import { CLOCKS, clock12, clock24 } from "./clock";
 import { Tip } from "@/components/tip";
 import { Float } from "@/components/float";
-
 import { SHOP_CREWS, VEHICLE_KINDS, needsTrailerNo, vehicleLabel, vehicleMissing } from "@/features/staff/store";
+import { prepClear } from "./prep";
 import { FillField, FillRow, FILL_IN, FILL_IN_ERR } from "./fill-row";
 const SUBS = ["Valley Electric", "AeroSeal Co"];
 const STATUSES = ["Set", "Dispatched", "Done", "No-show"] as const;
@@ -23,15 +23,17 @@ export function CrewChapter({ job }: { job: JobFile }) {
   const [end, setEnd] = useState("3:00p");
   const [why, setWhy] = useState(DAY_WHY[0]);
   const products = job.scope.filter((s) => s.kind !== "promise");
+  const openGate = !isAccepted(job);
 
   return (
     <div className="min-w-0 space-y-2">
+      {openGate ? <p className="rounded-md border border-line bg-card px-4 py-3 text-sm">Acceptance is still open. No crew goes on this job until the office accepts it.</p> : null}
       <JobCard
         kicker="Crews"
         title={`${job.assignments.length} assigned · ${job.events.length} days on the book`}
-        done={job.assignments.length > 0 && job.assignments.every((a) => a.woId)}
+        done={job.assignments.length > 0 && job.assignments.every((a) => Boolean(a.woId))}
         actions={
-          <button type="button" className="h-8 rounded-md border border-line px-3 text-xs font-semibold" onClick={() => addAssign(job.jobId)}>
+          <button type="button" disabled={openGate} className="h-8 rounded-md border border-line px-3 text-xs font-semibold disabled:opacity-40" onClick={() => addAssign(job.jobId)}>
             Add crew
           </button>
         }
@@ -121,6 +123,7 @@ export function CrewChapter({ job }: { job: JobFile }) {
                       {e.crew}
                       {scope?.label ? ` · ${scope.label}` : ""}
                       {e.why ? ` · ${e.why}` : ""}
+                      {prepClear(job, e.day) ? "" : " · Not rolling"}
                     </p>
                   </div>
                   <Tip label="Remove day" on>
@@ -150,7 +153,9 @@ export function CrewChapter({ job }: { job: JobFile }) {
                     Status
                     <select value={e.status} onChange={(ev) => setEventStatus(job.jobId, e.id, ev.target.value as (typeof STATUSES)[number])} className="mt-1 h-10 w-full min-w-0 rounded-md border border-line px-2 text-sm font-semibold normal-case tracking-normal">
                       {STATUSES.map((s) => (
-                        <option key={s}>{s}</option>
+                        <option key={s} value={s} disabled={s === "Dispatched" && !prepClear(job, e.day)}>
+                          {s}
+                        </option>
                       ))}
                     </select>
                   </label>
@@ -163,7 +168,7 @@ export function CrewChapter({ job }: { job: JobFile }) {
           className="mt-3 min-w-0 space-y-2 border-t border-line pt-3"
           onSubmit={(e) => {
             e.preventDefault();
-            if (!day) return;
+            if (!day || openGate) return;
             const a = job.assignments.find((x) => (x.kind === "sub" ? x.company || x.crew : x.crew) === who);
             const sid = a?.scopes[0] || products[0]?.id || "";
             const label = job.scope.find((s) => s.id === sid)?.label ?? "";
@@ -173,7 +178,7 @@ export function CrewChapter({ job }: { job: JobFile }) {
         >
           <div className="flex items-center justify-between gap-2">
             <p className="text-[11px] font-bold tracking-wide text-muted uppercase">Add a day</p>
-            <button type="submit" aria-label="Add day" className="grid size-8 shrink-0 place-items-center rounded-md bg-navy text-card">
+            <button type="submit" aria-label="Add day" disabled={openGate} className="grid size-8 shrink-0 place-items-center rounded-md bg-navy text-card disabled:opacity-40">
               <Plus className="size-4" />
             </button>
           </div>
@@ -339,3 +344,4 @@ function VehicleFields({
     </div>
   );
 }
+

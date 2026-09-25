@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { useNavigate } from "@tanstack/react-router";
 import { JobChapter } from "./flow";
 import { SurveyChapter } from "./ready-chapter";
 import { JobSticky } from "./stage-bar";
@@ -14,13 +15,16 @@ import { PayTiles } from "@/features/opportunity/pay-tiles";
 import { ProposalPanel } from "@/features/opportunity/proposal-panel";
 import { useProposal, useProposals } from "@/features/opportunity/store";
 import { FileSections } from "@/features/record-shell/file-sections";
-import { opportunities, type Lead } from "@/lib/crm-data";
+import { opportunities, accounts, type Lead } from "@/lib/crm-data";
 
 const CHAP_LABEL: Record<Chapter, string> = {
-  sold: "Sold",
+  sold: "Acceptance",
   ready: "Materials",
   crew: "Crews",
-  run: "Production",
+  prep: "Prep",
+  inventory: "Inventory",
+  run: "Installation",
+  quality: "Quality",
   money: "Money",
   close: "Closeout",
 };
@@ -29,24 +33,32 @@ export function JobWorkspace({ job, lead }: { job: JobFile; lead?: Lead; focus?:
   const opp = opportunities.find((o) => o.leadId === lead?.id) ?? opportunities.find((o) => o.leadId === job.leadId) ?? opportunities.find((o) => o.product === job.product);
   const proposal = useProposal(opp?.id ?? "");
   const signed = signedProposals(lead?.id ?? job.leadId, useProposals());
-  function sec(id: string, label: string, node: ReactNode) {
-    return { id, label, done: sectionDone(job, id), started: sectionStarted(job, id), doneAt: sectionDoneAt(job, id), node };
+  const navigate = useNavigate();
+  const account = accounts.find((a) => a.id === job.accountId) ?? accounts.find((a) => a.name === (lead?.name ?? job.name));
+  function sec(id: string, label: string, node: ReactNode, done = sectionDone(job, id)) {
+    return { id, label, done, started: sectionStarted(job, id), doneAt: sectionDoneAt(job, id), node };
   }
   return (
     <FileSections
       start="sold"
       banner={<JobSticky job={job} />}
+      advance={{
+        pipeline: "Account",
+        onContinue: () => {
+          if (account) void navigate({ to: "/accounts/$accountId", params: { accountId: account.id } });
+        },
+      }}
       sections={[
-        sec("contact", "Contact", lead ? <LeadCard lead={lead} locked /> : null),
-        sec("assess", "Assessment", lead ? <AssessSnap leadId={lead.id} /> : null),
+        sec("contact", "Contact", lead ? <LeadCard lead={lead} locked /> : null, true),
+        sec("assess", "Assessment", lead ? <AssessSnap leadId={lead.id} /> : null, true),
         ...(proposal
           ? [
-              sec("options", "Scope", <OppSnap oppId={proposal.oppId} />),
-              sec("pay", "Payment", <PayTiles proposal={proposal} />),
-              sec("proposal", "Proposal", <ProposalPanel proposal={proposal} />),
+              sec("options", "Scope", <OppSnap oppId={proposal.oppId} />, true),
+              sec("pay", "Payment", <PayTiles proposal={proposal} />, true),
+              sec("proposal", "Proposal", <ProposalPanel proposal={proposal} />, true),
             ]
           : []),
-        ...signed.map((row) => sec(`agreement-${row.oppId}`, "Agreement", <AgreementPanel proposal={row} fileOnly />)),
+        ...signed.map((row) => sec(`agreement-${row.oppId}`, "Agreement", <AgreementPanel proposal={row} fileOnly />, true)),
         ...CHAPTERS.flatMap((c) => {
           const chap = sec(c, CHAP_LABEL[c], <JobChapter job={job} chap={c} />);
           if (c === "ready") return [sec("survey", "Site survey", <SurveyChapter job={job} lead={lead} />), chap];

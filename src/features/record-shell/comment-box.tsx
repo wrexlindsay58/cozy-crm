@@ -2,7 +2,7 @@ import { useState } from "react";
 import { addHistory } from "@/features/ops/store";
 import { sendMessage, useComments } from "@/features/thread/store";
 import type { ThreadNest } from "@/lib/file-data";
-import { SHOP_ACTOR } from "@/lib/chrome";
+import { actingName } from "@/features/staff/store";
 import { TalkLine } from "./talk-line";
 
 export function CommentBox({
@@ -20,7 +20,7 @@ export function CommentBox({
   function post() {
     if (!draft.trim()) return;
     sendMessage(personId, draft, "internal", { nest, actionId: nest.id, actionKind: nest.kind });
-    addHistory(personId, SHOP_ACTOR, `Comment on ${nest.kind}.`);
+    addHistory(personId, actingName(), `Comment on ${nest.kind}.`);
     setDraft("");
   }
 

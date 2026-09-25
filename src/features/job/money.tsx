@@ -31,7 +31,7 @@ import {
   type JobFile,
 } from "./store";
 import type { CommShare, LaborKind, LoanFile, SalesFault } from "./types";
-import { PROCESSES, SALES_FAULTS, trueDiscount } from "./types";
+import { PROCESSES, SALES_FAULTS, isAccepted, trueDiscount } from "./types";
 import { JobCard } from "./job-card";
 import { FillField, FILL_IN } from "./fill-row";
 import { Tip } from "@/components/tip";
@@ -185,6 +185,7 @@ export function MoneyBlock({ job }: { job: JobFile }) {
         empty="No install change orders."
         rows={installCos}
         onAdd={() => addChangeOrder(job.jobId, "Extra duct run", 850, 220, "install")}
+        locked={!isAccepted(job)}
         onSign={(id) => signCo(job.jobId, id)}
         signLabel="Sign install"
         signedLabel="Install signed"
@@ -195,6 +196,7 @@ export function MoneyBlock({ job }: { job: JobFile }) {
         empty="No GoodLeap change orders."
         rows={financeCos}
         onAdd={() => addChangeOrder(job.jobId, "Finance revision", 850, 0, "finance")}
+        locked={!isAccepted(job)}
         onSign={(id) => signCo(job.jobId, id)}
         signLabel="Sign GoodLeap"
         signedLabel="GoodLeap signed"
@@ -588,6 +590,7 @@ function PnLSheet({ job, readOnly = false }: { job: JobFile; readOnly?: boolean 
           <p className="mt-0.5 text-[11px] text-muted">
             Paid {money(t.paid)}
             {t.funded ? ` · Funded ${money(t.funded)}` : ""}
+            {t.refunds ? ` · Refunded ${money(t.refunds)}` : ""}
           </p>
         </div>
         <div className="rounded-md border border-line p-3">
@@ -801,6 +804,7 @@ function CoCard({
   empty,
   rows,
   onAdd,
+  locked,
   onSign,
   signLabel,
   signedLabel,
@@ -810,6 +814,7 @@ function CoCard({
   empty: string;
   rows: JobFile["changeOrders"];
   onAdd: () => void;
+  locked?: boolean;
   onSign: (id: string) => void;
   signLabel: string;
   signedLabel: string;
@@ -819,7 +824,7 @@ function CoCard({
       kicker={kicker}
       title={title}
       actions={
-        <button type="button" className="h-8 rounded-md border border-line px-3 text-xs font-semibold" onClick={onAdd}>
+        <button type="button" disabled={locked} className="h-8 rounded-md border border-line px-3 text-xs font-semibold disabled:opacity-40" onClick={onAdd}>
           Add
         </button>
       }

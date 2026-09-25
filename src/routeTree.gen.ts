@@ -31,6 +31,7 @@ import { Route as AppSettingsRouteImport } from './routes/_app/settings'
 import { Route as AppTeamRouteImport } from './routes/_app/team'
 import { Route as AppTicketsRouteImport } from './routes/_app/tickets'
 import { Route as ProposalOppIdRouteImport } from './routes/proposal.$oppId'
+import { Route as ReportAssessmentIdRouteImport } from './routes/report.$assessmentId'
 import { Route as AppAccountsAccountIdRouteImport } from './routes/_app/accounts_.$accountId'
 import { Route as AppAssessmentsAssessmentIdRouteImport } from './routes/_app/assessments_.$assessmentId'
 import { Route as AppLeadsLeadIdRouteImport } from './routes/_app/leads_.$leadId'
@@ -190,6 +191,11 @@ const AppTicketsRoute = AppTicketsRouteImport.update({
 const ProposalOppIdRoute = ProposalOppIdRouteImport.update({
   id: '/proposal/$oppId',
   path: '/proposal/$oppId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReportAssessmentIdRoute = ReportAssessmentIdRouteImport.update({
+  id: '/report/$assessmentId',
+  path: '/report/$assessmentId',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AppAccountsAccountIdRoute = AppAccountsAccountIdRouteImport.update({
@@ -479,6 +485,7 @@ export interface FileRoutesByFullPath {
   '/team': typeof AppTeamRoute
   '/tickets': typeof AppTicketsRoute
   '/proposal/$oppId': typeof ProposalOppIdRoute
+  '/report/$assessmentId': typeof ReportAssessmentIdRoute
   '/accounts/$accountId': typeof AppAccountsAccountIdRoute
   '/assessments/$assessmentId': typeof AppAssessmentsAssessmentIdRoute
   '/leads/$leadId': typeof AppLeadsLeadIdRoute
@@ -552,6 +559,7 @@ export interface FileRoutesByTo {
   '/team': typeof AppTeamRoute
   '/tickets': typeof AppTicketsRoute
   '/proposal/$oppId': typeof ProposalOppIdRoute
+  '/report/$assessmentId': typeof ReportAssessmentIdRoute
   '/': typeof AppIndexRoute
   '/accounts/$accountId': typeof AppAccountsAccountIdRoute
   '/assessments/$assessmentId': typeof AppAssessmentsAssessmentIdRoute
@@ -628,6 +636,7 @@ export interface FileRoutesById {
   '/_app/team': typeof AppTeamRoute
   '/_app/tickets': typeof AppTicketsRoute
   '/proposal/$oppId': typeof ProposalOppIdRoute
+  '/report/$assessmentId': typeof ReportAssessmentIdRoute
   '/_app/': typeof AppIndexRoute
   '/_app/accounts_/$accountId': typeof AppAccountsAccountIdRoute
   '/_app/assessments_/$assessmentId': typeof AppAssessmentsAssessmentIdRoute
@@ -705,6 +714,7 @@ export interface FileRouteTypes {
     | '/team'
     | '/tickets'
     | '/proposal/$oppId'
+    | '/report/$assessmentId'
     | '/accounts/$accountId'
     | '/assessments/$assessmentId'
     | '/leads/$leadId'
@@ -778,6 +788,7 @@ export interface FileRouteTypes {
     | '/team'
     | '/tickets'
     | '/proposal/$oppId'
+    | '/report/$assessmentId'
     | '/'
     | '/accounts/$accountId'
     | '/assessments/$assessmentId'
@@ -853,6 +864,7 @@ export interface FileRouteTypes {
     | '/_app/team'
     | '/_app/tickets'
     | '/proposal/$oppId'
+    | '/report/$assessmentId'
     | '/_app/'
     | '/_app/accounts_/$accountId'
     | '/_app/assessments_/$assessmentId'
@@ -910,6 +922,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   AppRoute: typeof AppRouteWithChildren
   ProposalOppIdRoute: typeof ProposalOppIdRoute
+  ReportAssessmentIdRoute: typeof ReportAssessmentIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -1066,6 +1079,13 @@ declare module '@tanstack/react-router' {
       path: '/proposal/$oppId'
       fullPath: '/proposal/$oppId'
       preLoaderRoute: typeof ProposalOppIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/report/$assessmentId': {
+      id: '/report/$assessmentId'
+      path: '/report/$assessmentId'
+      fullPath: '/report/$assessmentId'
+      preLoaderRoute: typeof ReportAssessmentIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_app/accounts_/$accountId': {
@@ -1581,6 +1601,7 @@ const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
 const rootRouteChildren: RootRouteChildren = {
   AppRoute: AppRouteWithChildren,
   ProposalOppIdRoute: ProposalOppIdRoute,
+  ReportAssessmentIdRoute: ReportAssessmentIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

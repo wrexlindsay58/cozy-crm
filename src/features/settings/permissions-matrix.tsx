@@ -1,4 +1,4 @@
-import { ROLES, setPerm, setViewAs, useStaff, type PermKey } from "@/features/staff/store";
+import { setActor, setPerm, useStaff, type PermKey } from "@/features/staff/store";
 
 const KEYS: { key: PermKey; label: string }[] = [
   { key: "seeCost", label: "See cost" },
@@ -8,24 +8,26 @@ const KEYS: { key: PermKey; label: string }[] = [
 ];
 
 export function PermissionsMatrix() {
-  const { perms, viewAs } = useStaff();
+  const { perms, people, actorName } = useStaff();
+  const roles = Object.keys(perms);
   return (
     <div className="space-y-3">
       <section className="rounded-md border border-line bg-card p-4">
-        <h2 className="mb-3 text-[11px] font-bold tracking-[0.14em] text-muted uppercase">View job as</h2>
+        <h2 className="mb-3 text-[11px] font-bold tracking-[0.14em] text-muted uppercase">Working as</h2>
         <div className="flex flex-wrap gap-2">
-          {ROLES.map((r) => (
+          {people.filter((p) => p.active).map((p) => (
             <button
-              key={r}
+              key={p.name}
               type="button"
-              onClick={() => setViewAs(r)}
-              className={viewAs === r ? "h-10 rounded-md bg-navy px-3 text-sm font-semibold text-card" : "h-10 rounded-md border border-line px-3 text-sm font-semibold"}
+              onClick={() => setActor(p.name)}
+              className={actorName === p.name ? "h-10 rounded-md bg-navy px-3 text-sm font-semibold text-card" : "h-10 rounded-md border border-line px-3 text-sm font-semibold"}
             >
-              {r}
+              {p.name}
+              <span className={actorName === p.name ? "ml-2 text-[11px] font-semibold text-card/80" : "ml-2 text-[11px] font-semibold text-muted"}>{p.role}</span>
             </button>
           ))}
         </div>
-        <p className="mt-2 text-sm text-muted">Crew / Setter hide costing on the job file.</p>
+        <p className="mt-2 text-sm text-muted">Actions record this person. The role only decides what they can see.</p>
       </section>
       <div className="overflow-x-auto rounded-md border border-line bg-card">
         <table className="w-full min-w-[28rem] text-left text-sm">
@@ -38,7 +40,7 @@ export function PermissionsMatrix() {
             </tr>
           </thead>
           <tbody>
-            {ROLES.map((role) => (
+            {roles.map((role) => (
               <tr key={role} className="border-t border-line">
                 <td className="px-3 py-2 font-semibold">{role}</td>
                 {KEYS.map((k) => (

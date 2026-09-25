@@ -1,100 +1,58 @@
 import { useState } from "react";
-import { addCostHit, addPunch, addScopeMedia, addTimePunch, handsOnJob, patchPunchClock, patchQcCheck, patchQcFact, patchQcResult, patchTest, removeCostHit, setEquip, setQcCorrected, togglePunch, type JobFile } from "./store";
-import { FIELD_EXTRAS, catFromTag, punchHours, type FieldExtra } from "./types";
+import { addChangeOrder, addCostHit, addFieldIssue, addPunch, addScopeMedia, addTimePunch, crewsOnJob, patchBom, patchPunchClock, removeCostHit, setCheckCallout, setEquip, togglePost, togglePre, togglePunch, type JobFile } from "./store";
+import { FIELD_EXTRAS, ISSUE_TYPES, catFromTag, isAccepted, punchHours, type FieldExtra, type FieldIssue } from "./types";
 import { money } from "@/lib/crm-data";
 import { Trash2 } from "lucide-react";
-import { crewOf } from "@/features/staff/store";
+import { CheckSign } from "./check-sign";
+import { CheckLine } from "./callouts";
+import { inventoryLines } from "./inventory-chapter";
 import { profileById } from "./profiles";
 import { cn } from "@/lib/cn";
 import { JobCard } from "./job-card";
 import { FillField, FillRow, FILL_IN } from "./fill-row";
 import { MediaStrip } from "./media-strip";
-import { BookWidget } from "@/features/lead/book-widget";
-import type { ScopeLine } from "./types";
-
-const QC: Record<string, { title: string; fields: { key: string; label: string }[]; checks: string[] }> = {
-  attic: {
-    title: "Attic QC",
-    fields: [
-      { key: "depth", label: "Depth (in)" },
-      { key: "rValue", label: "R-value" },
-      { key: "baffles", label: "Baffle count" },
-    ],
-    checks: ["Baffles in", "Hatch dam", "IC cans covered", "Platform built", "Bath fans ducted", "Can lights sealed"],
-  },
-  hvac: {
-    title: "HVAC commissioning",
-    fields: [
-      { key: "staticSupply", label: "Supply static" },
-      { key: "staticReturn", label: "Return static" },
-      { key: "deltaT", label: "Delta T" },
-      { key: "superheat", label: "Superheat" },
-      { key: "subcool", label: "Subcool" },
-      { key: "amps", label: "Amp draw" },
-      { key: "suction", label: "Suction PSI" },
-      { key: "head", label: "Head PSI" },
-    ],
-    checks: ["Pad level", "Disconnect on", "Lineset insulated", "Condensate trapped", "Tstat programmed", "Filter in", "Breaker labeled"],
-  },
-  ducts: {
-    title: "Duct QC",
-    fields: [
-      { key: "pressurePan", label: "Pressure pan" },
-      { key: "supplyCount", label: "Supplies" },
-      { key: "returnCount", label: "Returns" },
-      { key: "regTemp", label: "Register temp" },
-    ],
-    checks: ["Boots sealed", "Returns sealed", "Trunk supported", "Registers open", "Filter rack tight"],
-  },
-  windows: {
-    title: "Window QC",
-    fields: [
-      { key: "uFactor", label: "U-factor" },
-      { key: "shgc", label: "SHGC" },
-      { key: "count", label: "Units set" },
-    ],
-    checks: ["Sticker on", "Operates", "Weeps clear", "Trim sealed"],
-  },
-};
 
 export function RunChapter({ job }: { job: JobFile }) {
   const est = job.scope.reduce((s, r) => s + r.estHours, 0);
   const actual = job.punches.reduce((s, p) => s + punchHours(p).total, 0);
-  const hands = handsOnJob(job);
-  const [who, setWho] = useState(hands[0] || job.crew);
+  const crews = crewsOnJob(job);
+  const [crew, setCrew] = useState(crews[0] || "");
+  const day = job.assignments.find((a) => a.crew === crew)?.day || job.events[0]?.day || "";
   const [item, setItem] = useState("");
   const products = job.scope.filter((s) => s.kind === "product");
+  const photoProducts = products;
+  const closed = job.punches.length > 0 && job.punches.every((p) => p.back);
   const needsSerial = products.some((s) => profileById(s.categoryId)?.needsSerial);
-  const envelope = products.some((s) => {
-    const id = profileById(s.categoryId)?.id ?? s.categoryId;
-    return id === "attic" || id === "air-seal";
-  });
-  const ducts = products.some((s) => (profileById(s.categoryId)?.id ?? s.categoryId) === "ducts");
+  const accepted = isAccepted(job);
 
   return (
     <div className="space-y-2">
-      <JobCard kicker="Time" title="Time clocks" done={job.punches.length > 0} aside={`Est ${est}h · actual ${actual.toFixed(1)}h`}>
+      {!accepted ? <p className="rounded-md border border-line bg-card px-4 py-3 text-sm">Acceptance is still open. The crew does not roll until the office accepts the job.</p> : null}
+      <Walk job={job} kind="pre" title="Pre-install walk" locked={!accepted} />
+      <JobCard kicker="Time" title="Shop to shop" done={closed} aside={`Est ${est}h · actual ${actual.toFixed(1)}h`}>
         <ul className="space-y-3">
           {job.punches.map((p) => {
             const h = punchHours(p);
             return (
               <li key={p.id}>
                 <p className="text-sm font-semibold">
-                  {p.who} · {p.day}
-                  <span className="ml-2 text-[12px] font-normal text-muted">{h.total ? `${h.site.toFixed(1)}h site · ${h.travel.toFixed(1)}h travel` : "Open"}</span>
+                  {p.who} · {labelDay(p.day)}
+                  <span className="ml-2 text-[12px] font-normal text-muted">
+                    {h.total ? `${h.site.toFixed(1)}h on site · ${h.travel.toFixed(1)}h travel · ${h.total.toFixed(1)}h total` : "Open"}
+                  </span>
                 </p>
                 <div className="mt-2">
                   <FillRow min="7rem">
                     {(
                       [
-                        ["leftYard", "Yard"],
+                        ["leftYard", "Leave shop"],
                         ["onSite", "On site"],
-                        ["complete", "Done"],
-                        ["back", "Back"],
+                        ["complete", "Leave site"],
+                        ["back", "Back at shop"],
                       ] as const
                     ).map(([k, lab]) => (
                       <FillField key={k} label={lab}>
-                        <input type="time" value={p[k]} onChange={(e) => patchPunchClock(job.jobId, p.id, { [k]: e.target.value })} className={FILL_IN} />
+                        <input type="time" disabled={!accepted} value={p[k]} onChange={(e) => patchPunchClock(job.jobId, p.id, { [k]: e.target.value })} className={FILL_IN} />
                       </FillField>
                     ))}
                   </FillRow>
@@ -104,36 +62,35 @@ export function RunChapter({ job }: { job: JobFile }) {
           })}
         </ul>
         <form
-          className="mt-3 flex gap-2"
+          className="mt-3 flex flex-wrap items-center gap-2"
           onSubmit={(e) => {
             e.preventDefault();
-            addTimePunch(job.jobId, who, "Today");
+            if (!accepted || !day) return;
+            addTimePunch(job.jobId, crew, day);
           }}
         >
-          <select value={who} onChange={(e) => setWho(e.target.value)} className={cn(FILL_IN, "flex-1")}>
-            {hands.length ? (
-              Object.entries(
-                hands.reduce<Record<string, string[]>>((acc, name) => {
-                  const crew = crewOf(name) || "Crew";
-                  acc[crew] = [...(acc[crew] ?? []), name];
-                  return acc;
-                }, {}),
-              ).map(([crew, names]) => (
-                <optgroup key={crew} label={crew}>
-                  {names.map((n) => (
-                    <option key={n}>{n}</option>
-                  ))}
-                </optgroup>
-              ))
-            ) : (
-              <option value="">Assign a crew first</option>
-            )}
+          <select value={crew} disabled={!accepted} onChange={(e) => setCrew(e.target.value)} className={cn(FILL_IN, "min-w-0 flex-1")}>
+            {crews.length ? crews.map((name) => <option key={name}>{name}</option>) : <option value="">Assign a crew first</option>}
           </select>
-          <button type="submit" disabled={!who} className="h-10 shrink-0 rounded-md border border-line px-3 text-sm font-semibold disabled:opacity-40">
+          <p className="type-meta shrink-0">{day ? labelDay(day) : "No day on this crew"}</p>
+          <button type="submit" disabled={!crew || !day || !accepted} className="h-10 shrink-0 rounded-md border border-line px-3 text-sm font-semibold disabled:opacity-40">
             Clock
           </button>
         </form>
       </JobCard>
+      <Brought job={job} locked={!accepted} />
+      {photoProducts.map((line) => (
+        <JobCard key={line.id} kicker="Photos" title={line.label}>
+          <MediaStrip
+            files={line.media.filter((m) => m.cat === "Before" || m.cat === "During" || m.cat === "After" || m.purpose === "Pre-install")}
+            onAdd={(f, meta) => {
+              if (!accepted) return;
+              addScopeMedia(job.jobId, line.id, f, catFromTag(meta.tag), { caption: meta.caption, purpose: meta.tag, name: meta.name });
+            }}
+            label="Install photos"
+          />
+        </JobCard>
+      ))}
 
       {needsSerial ? (
         <JobCard kicker="Equipment" title="Serials">
@@ -145,10 +102,10 @@ export function RunChapter({ job }: { job: JobFile }) {
                     <p className="flex h-10 items-center text-sm font-semibold normal-case tracking-normal">{e.name}</p>
                   </FillField>
                   <FillField label="Serial">
-                    <input value={e.serial} onChange={(ev) => setEquip(job.jobId, e.id, { serial: ev.target.value })} className={FILL_IN} />
+                    <input disabled={!accepted} value={e.serial} onChange={(ev) => setEquip(job.jobId, e.id, { serial: ev.target.value })} className={FILL_IN} />
                   </FillField>
                   <FillField label="AHRI">
-                    <input value={e.ahri} onChange={(ev) => setEquip(job.jobId, e.id, { ahri: ev.target.value })} className={FILL_IN} />
+                    <input disabled={!accepted} value={e.ahri} onChange={(ev) => setEquip(job.jobId, e.id, { ahri: ev.target.value })} className={FILL_IN} />
                   </FillField>
                 </FillRow>
               </li>
@@ -157,56 +114,13 @@ export function RunChapter({ job }: { job: JobFile }) {
         </JobCard>
       ) : null}
 
-      {envelope ? (
-        <JobCard kicker="QC" title="Blower door" aside={<QcMark job={job} id="blower" />} actions={<QcToggle job={job} id="blower" />}>
-          <FillRow>
-            <FillField label="Before (CFM50)">
-              <input value={job.testOut.blowerBefore} onChange={(e) => patchTest(job.jobId, { blowerBefore: e.target.value })} className={FILL_IN} />
-            </FillField>
-            <FillField label="After (CFM50)">
-              <input value={job.testOut.blowerAfter} onChange={(e) => patchTest(job.jobId, { blowerAfter: e.target.value })} className={FILL_IN} />
-            </FillField>
-          </FillRow>
-          {products.find((s) => (profileById(s.categoryId)?.id ?? s.categoryId) === "attic") ? (
-            <MediaStrip
-              files={products.find((s) => (profileById(s.categoryId)?.id ?? s.categoryId) === "attic")!.media.filter((m) => m.cat === "After" || m.purpose === "After")}
-              onAdd={(f, meta) =>
-                addScopeMedia(job.jobId, products.find((s) => (profileById(s.categoryId)?.id ?? s.categoryId) === "attic")!.id, f, catFromTag(meta.tag), {
-                  caption: meta.caption,
-                  purpose: meta.tag,
-                  name: meta.name,
-                })
-              }
-              label="Blower door photos"
-            />
-          ) : null}
-          <QcFollowUp job={job} id="blower" />
-        </JobCard>
-      ) : null}
-
-      {ducts ? (
-        <JobCard kicker="QC" title="Duct tester" aside={<QcMark job={job} id="duct" />} actions={<QcToggle job={job} id="duct" />}>
-          <FillRow>
-            <FillField label="Before (CFM25)">
-              <input value={job.testOut.ductBefore} onChange={(e) => patchTest(job.jobId, { ductBefore: e.target.value })} className={FILL_IN} />
-            </FillField>
-            <FillField label="After (CFM25)">
-              <input value={job.testOut.ductAfter} onChange={(e) => patchTest(job.jobId, { ductAfter: e.target.value })} className={FILL_IN} />
-            </FillField>
-          </FillRow>
-          <QcFollowUp job={job} id="duct" />
-        </JobCard>
-      ) : null}
-
-      {products.map((s) => (
-        <QcCard key={s.id} job={job} line={s} />
-      ))}
+      <Walk job={job} kind="post" title="Post-install walk" locked={!accepted} />
 
       <JobCard kicker="Punch" title="Open items" done={job.punch.length > 0 && job.punch.every((p) => p.status === "Done")}>
         <ul>
           {job.punch.map((p) => (
             <li key={p.id}>
-              <button type="button" onClick={() => togglePunch(job.jobId, p.id)} className={cn("flex w-full items-center justify-between py-2 text-left text-sm", p.status === "Done" && "text-muted line-through")}>
+              <button type="button" disabled={!accepted} onClick={() => togglePunch(job.jobId, p.id)} className={cn("flex h-10 w-full items-center justify-between text-left text-sm disabled:opacity-40", p.status === "Done" && "text-muted line-through")}>
                 {p.item}
                 <span className="text-[11px] font-bold uppercase">{p.status}</span>
               </button>
@@ -217,23 +131,182 @@ export function RunChapter({ job }: { job: JobFile }) {
           className="mt-2 flex gap-2"
           onSubmit={(e) => {
             e.preventDefault();
+            if (!accepted || !item.trim()) return;
             addPunch(job.jobId, item);
             setItem("");
           }}
         >
-          <input value={item} onChange={(e) => setItem(e.target.value)} placeholder="What’s left" className={cn(FILL_IN, "flex-1")} />
-          <button type="submit" className="h-10 shrink-0 rounded-md border border-line px-3 text-sm font-semibold">
+          <input disabled={!accepted} value={item} onChange={(e) => setItem(e.target.value)} placeholder="What’s left" className={cn(FILL_IN, "flex-1")} />
+          <button type="submit" disabled={!accepted || !item.trim()} className="h-10 shrink-0 rounded-md border border-line px-3 text-sm font-semibold disabled:opacity-40">
             Add
           </button>
         </form>
       </JobCard>
 
-      <FieldExtras job={job} />
+      <FieldExtras job={job} locked={!accepted} />
+      <Issues job={job} locked={!accepted} />
+      <FieldChange job={job} locked={!accepted} />
     </div>
   );
 }
 
-function FieldExtras({ job }: { job: JobFile }) {
+function labelDay(iso: string) {
+  if (!/^\d{4}-\d{2}-\d{2}/.test(iso)) return iso || "No date";
+  const [y, m, d] = iso.slice(0, 10).split("-").map(Number);
+  return new Date(y, m - 1, d).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
+}
+
+function Walk({ job, kind, title, locked }: { job: JobFile; kind: "pre" | "post"; title: string; locked?: boolean }) {
+  const check = kind === "pre" ? job.preCheck : job.postCheck;
+  return (
+    <JobCard kicker={kind === "pre" ? "Start" : "End"} title={title} aside={check.signedAt ? `Signed ${check.signedBy}` : "Open"} done={Boolean(check.signedAt)}>
+      <ul>
+        {check.items.map((i) => (
+          <CheckLine
+            key={i.id}
+            label={i.label}
+            on={i.on}
+            who={i.by}
+            callout={i.callout}
+            onToggle={() => {
+              if (locked) return;
+              if (kind === "pre") togglePre(job.jobId, i.id);
+              else togglePost(job.jobId, i.id);
+            }}
+            onCallout={(v) => {
+              if (locked) return;
+              setCheckCallout(job.jobId, kind, i.id, v);
+            }}
+          />
+        ))}
+      </ul>
+      <CheckSign job={job} kind={kind} locked={locked} />
+    </JobCard>
+  );
+}
+
+function Brought({ job, locked }: { job: JobFile; locked?: boolean }) {
+  const loads = job.assignments.filter((a) => a.kind === "internal" && a.inventory?.signedAt);
+  return (
+    <JobCard kicker="Used" title="Brought is the signed load" done={loads.length > 0}>
+      {loads.length === 0 ? <p className="text-sm text-muted">No signed load yet. Inventory has to be signed before used quantity is entered.</p> : null}
+      {loads.map((assign) => (
+        <div key={assign.id} className="mt-3 first:mt-0">
+          <p className="text-sm font-semibold">{assign.crew}</p>
+          <ul className="mt-1 divide-y divide-line">
+            {inventoryLines(job, assign).map((line) => {
+              const scope = job.scope.find((s) => s.bom.some((b) => b.id === line.id));
+              const bom = scope?.bom.find((b) => b.id === line.id);
+              if (!scope || !bom) return <li key={line.id} className="py-2 text-sm">{line.name}</li>;
+              const brought = bom.orderQty ?? bom.estQty;
+              const used = bom.usedQty || 0;
+              return (
+                <li key={line.id} className="py-2">
+                  <FillRow min="6.5rem">
+                    <FillField label={bom.name}>
+                      <p className="flex h-10 items-center text-sm">Brought {brought} {bom.unit}</p>
+                    </FillField>
+                    <FillField label="Used">
+                      <input disabled={locked} value={used || ""} inputMode="decimal" onChange={(e) => patchBom(job.jobId, scope.id, bom.id, { usedQty: Number(e.target.value) || 0 })} className={FILL_IN} />
+                    </FillField>
+                    <FillField label="Left">
+                      <p className="flex h-10 items-center text-sm tabular-nums">{Math.max(0, brought - used)} {bom.unit}</p>
+                    </FillField>
+                  </FillRow>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      ))}
+    </JobCard>
+  );
+}
+
+function Issues({ job, locked }: { job: JobFile; locked?: boolean }) {
+  const [type, setType] = useState<FieldIssue["type"]>(ISSUE_TYPES[0]);
+  const [note, setNote] = useState("");
+  const [miss, setMiss] = useState(false);
+  return (
+    <JobCard kicker="Issues" title="What happened on site">
+      {(job.issues ?? []).length ? (
+        <ul className="mb-3 divide-y divide-line">
+          {(job.issues ?? []).map((row) => (
+            <li key={row.id} className="py-2 text-sm">
+              <span className="font-semibold">{row.type}</span> · {row.note}
+              <span className="type-meta"> · {row.by}{row.at ? ` · ${row.at}` : ""}</span>
+            </li>
+          ))}
+        </ul>
+      ) : <p className="mb-3 text-sm text-muted">None logged.</p>}
+      <form
+        className="flex flex-wrap gap-2"
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (locked || !note.trim()) {
+            setMiss(true);
+            return;
+          }
+          addFieldIssue(job.jobId, type, note);
+          setNote("");
+          setMiss(false);
+        }}
+      >
+        <select disabled={locked} value={type} onChange={(e) => setType(e.target.value as FieldIssue["type"])} className={cn(FILL_IN, "w-40")}>
+          {ISSUE_TYPES.map((t) => <option key={t}>{t}</option>)}
+        </select>
+        <input value={note} disabled={locked} onChange={(e) => setNote(e.target.value)} placeholder="What happened" className={cn(FILL_IN, "min-w-0 flex-1", miss && !note.trim() && "border-alert")} />
+        <button type="submit" disabled={locked} className="h-10 rounded-md bg-navy px-3 text-sm font-semibold text-card disabled:opacity-40">Add</button>
+      </form>
+      {miss && !note.trim() ? <p className="mt-2 text-[12px] font-semibold text-alert">Say what happened.</p> : null}
+    </JobCard>
+  );
+}
+
+function FieldChange({ job, locked }: { job: JobFile; locked?: boolean }) {
+  const [why, setWhy] = useState("");
+  const [amount, setAmount] = useState("");
+  const [miss, setMiss] = useState(false);
+  const open = job.changeOrders.filter((c) => c.lane === "install");
+  const badWhy = miss && !why.trim();
+  const badAmt = miss && !(Number(amount) > 0);
+  return (
+    <JobCard kicker="Change order" title="More work the customer agreed to">
+      <p className="text-sm text-muted">This starts the change order. It is not signed on this tab.</p>
+      {open.length ? (
+        <ul className="mt-2 divide-y divide-line">
+          {open.map((c) => (
+            <li key={c.id} className="flex items-center justify-between gap-2 py-2 text-sm">
+              <span>{c.why}</span>
+              <span className="text-[12px] font-semibold">{c.signed ? "Signed" : "Waiting on signature"}</span>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+      <form
+        className="mt-3 flex flex-wrap gap-2"
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (locked || !why.trim() || !(Number(amount) > 0)) {
+            setMiss(true);
+            return;
+          }
+          addChangeOrder(job.jobId, why, Number(amount), 0);
+          setWhy("");
+          setAmount("");
+          setMiss(false);
+        }}
+      >
+        <input disabled={locked} value={why} onChange={(e) => setWhy(e.target.value)} placeholder="What was added" className={cn(FILL_IN, "min-w-0 flex-1", badWhy && "border-alert")} />
+        <input disabled={locked} value={amount} onChange={(e) => setAmount(e.target.value)} inputMode="decimal" placeholder="$" className={cn(FILL_IN, "w-28", badAmt && "border-alert")} />
+        <button type="submit" disabled={locked} className="h-10 rounded-md bg-navy px-3 text-sm font-semibold text-card disabled:opacity-40">Start</button>
+      </form>
+      {badWhy || badAmt ? <p className="mt-2 text-[12px] font-semibold text-alert">Need what was added, and an amount.</p> : null}
+    </JobCard>
+  );
+}
+
+function FieldExtras({ job, locked }: { job: JobFile; locked?: boolean }) {
   const rows = (job.costHits ?? []).filter((h) => h.kind === "field");
   const [reason, setReason] = useState<FieldExtra>(FIELD_EXTRAS[0]);
   const [amount, setAmount] = useState("");
@@ -269,14 +342,14 @@ function FieldExtras({ job }: { job: JobFile }) {
           setNote("");
         }}
       >
-        <select value={reason} onChange={(e) => setReason(e.target.value as FieldExtra)} className={FILL_IN}>
+        <select disabled={locked} value={reason} onChange={(e) => setReason(e.target.value as FieldExtra)} className={FILL_IN}>
           {FIELD_EXTRAS.map((r) => (
             <option key={r}>{r}</option>
           ))}
         </select>
         <input value={amount} onChange={(e) => setAmount(e.target.value)} inputMode="decimal" placeholder="$" className={FILL_IN} />
         <input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Note" className={FILL_IN} />
-        <button type="submit" className="h-10 rounded-md bg-navy px-3 text-[12px] font-semibold text-card">
+        <button type="submit" disabled={locked} className="h-10 rounded-md bg-navy px-3 text-[12px] font-semibold text-card disabled:opacity-40">
           Add
         </button>
       </form>
@@ -284,87 +357,3 @@ function FieldExtras({ job }: { job: JobFile }) {
   );
 }
 
-function QcToggle({ job, id }: { job: JobFile; id: string }) {
-  const on = job.testOut.results?.[id];
-  const fix = job.testOut.fixes?.[id];
-  return (
-    <span className="flex flex-wrap justify-end gap-1">
-      <button type="button" onClick={() => patchQcResult(job.jobId, id, "pass")} className={cn("h-8 rounded-md px-2.5 text-[12px] font-semibold", on === "pass" ? "bg-up text-card" : "border border-line")}>
-        Pass
-      </button>
-      <button type="button" onClick={() => patchQcResult(job.jobId, id, "fail")} className={cn("h-8 rounded-md px-2.5 text-[12px] font-semibold", on === "fail" ? "bg-alert text-card" : "border border-line")}>
-        Fail
-      </button>
-      {on === "fail" ? (
-        <button
-          type="button"
-          onClick={() => setQcCorrected(job.jobId, id, !fix?.correctedByQc)}
-          className={cn("h-8 rounded-md px-2.5 text-[12px] font-semibold", fix?.correctedByQc ? "bg-navy text-card" : "border border-line")}
-        >
-          Corrected by QC
-        </button>
-      ) : null}
-    </span>
-  );
-}
-function QcMark({ job, id }: { job: JobFile; id: string }) {
-  const on = job.testOut.results?.[id];
-  const fix = job.testOut.fixes?.[id];
-  if (!on) return <span className="text-[11px] font-semibold text-muted">Open</span>;
-  if (on === "fail" && fix?.correctedByQc) return <span className="text-[11px] font-bold tracking-wide text-navy uppercase">Fail · QC fixed</span>;
-  return <span className={cn("text-[11px] font-bold tracking-wide uppercase", on === "pass" ? "text-up" : "text-alert")}>{on === "pass" ? "Pass" : "Fail"}</span>;
-}
-
-function QcFollowUp({ job, id }: { job: JobFile; id: string }) {
-  const on = job.testOut.results?.[id];
-  const fix = job.testOut.fixes?.[id];
-  if (on !== "fail") return null;
-  if (fix?.correctedByQc) {
-    return <p className="mt-3 text-[12px] text-muted">Failed and corrected on site by QC. Ticket closed. No go-back on the book.</p>;
-  }
-  return (
-    <div className="mt-3 space-y-2 border-t border-line pt-3">
-      <p className="text-[12px] font-semibold text-alert">Failed. Ticket opened{fix?.ticketId ? ` · ${fix.ticketId}` : ""}. Book the fix.</p>
-      {job.leadId ? <BookWidget leadId={job.leadId} defaultCloser={job.pm} defaultKind="Go-back" /> : <p className="text-[12px] text-muted">Go-back is on Crew schedule. Needs a day.</p>}
-    </div>
-  );
-}
-
-function QcCard({ job, line }: { job: JobFile; line: ScopeLine }) {
-  const id = profileById(line.categoryId)?.id ?? line.categoryId;
-  const pack = QC[id];
-  if (!pack) return null;
-  const facts = job.testOut.facts ?? {};
-  const checks = job.testOut.checks ?? {};
-  const result = job.testOut.results?.[line.id];
-  return (
-    <JobCard kicker="QC" title={`${pack.title} · ${line.label}`} aside={<QcMark job={job} id={line.id} />} actions={<QcToggle job={job} id={line.id} />} done={result === "pass"}>
-      <FillRow min="7rem">
-        {pack.fields.map((f) => (
-          <FillField key={f.key} label={f.label}>
-            <input value={facts[`${line.id}:${f.key}`] ?? ""} onChange={(e) => patchQcFact(job.jobId, `${line.id}:${f.key}`, e.target.value)} className={FILL_IN} />
-          </FillField>
-        ))}
-      </FillRow>
-      <ul className="mt-3 grid grid-cols-1 gap-1 sm:grid-cols-2">
-        {pack.checks.map((c) => {
-          const key = `${line.id}:${c}`;
-          return (
-            <li key={c}>
-              <button type="button" onClick={() => patchQcCheck(job.jobId, key, !checks[key])} className="flex h-9 w-full items-center gap-2 text-left text-sm">
-                <span className={cn("grid size-5 place-items-center rounded-sm border", checks[key] ? "border-navy bg-navy text-card" : "border-line")}>{checks[key] ? "✓" : ""}</span>
-                {c}
-              </button>
-            </li>
-          );
-        })}
-      </ul>
-      <MediaStrip
-        files={line.media}
-        onAdd={(f, meta) => addScopeMedia(job.jobId, line.id, f, catFromTag(meta.tag), { caption: meta.caption, purpose: meta.tag, name: meta.name })}
-        label="QC photos and video"
-      />
-      <QcFollowUp job={job} id={line.id} />
-    </JobCard>
-  );
-}

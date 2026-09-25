@@ -1,10 +1,13 @@
 import { profileById } from "./profiles";
-import { contractTotal, type Chapter, type JobFile } from "./types";
+import { prepDone } from "./prep";
+import { qualityDone, qualityKeys } from "./quality";
+import { inventoryLines } from "./inventory-chapter";
+import { contractTotal, isAccepted, type Chapter, type JobFile } from "./types";
 
 export function sectionDone(job: JobFile, id: string): boolean {
   if (job.cancelled && id !== "close") return false;
   if (id === "contact" || id === "assess" || id === "opp") return true;
-  if (id === "sold") return job.scope.some((s) => s.kind === "product");
+  if (id === "sold") return isAccepted(job);
   if (id === "survey") {
     const need = job.scope.filter((s) => s.surveyOn || profileById(s.categoryId)?.needsSurvey);
     const extras = job.surveys ?? [];
@@ -13,13 +16,22 @@ export function sectionDone(job: JobFile, id: string): boolean {
   }
   if (id === "ready") {
     const bom = job.scope.filter((s) => s.bom.length);
-    return Boolean(job.preCheck.signedAt) && bom.every((s) => s.bom.every((b) => b.ordered));
+    return bom.length > 0 && bom.every((s) => s.bom.every((b) => b.ordered));
   }
   if (id === "crew") return job.assignments.length > 0 && job.assignments.every((a) => a.woId) && job.events.length > 0;
-  if (id === "run") {
-    const punchOk = !job.punch.length || job.punch.every((p) => p.status === "Done");
-    return job.punches.length > 0 && punchOk;
+  if (id === "prep") return prepDone(job);
+  if (id === "inventory") {
+    const house = job.assignments.filter((a) => a.kind === "internal" && a.day);
+    return house.length > 0 && house.every((a) => {
+      const lines = inventoryLines(job, a);
+      return Boolean(a.inventory?.signedAt) && lines.every((line) => a.inventory?.checked.includes(line.id));
+    });
   }
+  if (id === "run") {
+    const back = job.punches.length > 0 && job.punches.every((p) => p.back);
+    return back && Boolean(job.preCheck.signedAt) && Boolean(job.postCheck.signedAt);
+  }
+  if (id === "quality") return qualityKeys(job).length > 0 && qualityDone(job);
   if (id === "money") {
     const inHand = job.invoices.reduce((s, i) => s + i.paid, 0) + (job.loan.vendor === "GoodLeap" ? job.loan.fundedAmount : 0);
     return inHand >= contractTotal(job);
@@ -32,7 +44,7 @@ export function sectionDone(job: JobFile, id: string): boolean {
 
 export function sectionStarted(job: JobFile, id: string): boolean {
   if (sectionDone(job, id)) return true;
-  if (id === "sold") return job.scope.length > 0;
+  if (id === "sold") return job.scope.length > 0 || Boolean(job.acceptance?.notes.length) || Boolean(job.acceptance?.discrepancies.length);
   if (id === "survey") {
     const extras = job.surveys ?? [];
     return (
@@ -41,12 +53,13 @@ export function sectionStarted(job: JobFile, id: string): boolean {
     );
   }
   if (id === "ready") {
-    return job.scope.some((s) => s.bom.some((b) => b.ordered || b.received || b.usedQty > 0)) || Boolean(job.preCheck.signedAt) || Boolean(job.permit.number);
+    return job.scope.some((s) => s.bom.some((b) => b.ordered || b.received)) || Boolean(job.permit.number);
   }
   if (id === "crew") return job.assignments.length > 0;
-  if (id === "run") {
-    return job.punches.length > 0 || job.punch.length > 0 || Object.keys(job.testOut.results ?? {}).length > 0 || Object.keys(job.testOut.checks ?? {}).length > 0;
-  }
+  if (id === "prep") return Object.values(job.prep ?? {}).some((day) => Object.values(day).some((mark) => mark.scheduled || mark.confirmed));
+  if (id === "inventory") return job.assignments.some((a) => (a.inventory?.checked.length ?? 0) > 0 || Boolean(a.inventory?.signedAt));
+  if (id === "run") return job.punches.length > 0 || job.punch.length > 0 || (job.issues ?? []).length > 0;
+  if (id === "quality") return Object.keys(job.testOut.results ?? {}).length > 0 || Object.keys(job.testOut.checks ?? {}).length > 0;
   if (id === "money") {
     return job.invoices.length > 0 || job.pos.length > 0 || (job.loan.status !== "None" && Boolean(job.loan.status)) || (job.costHits ?? []).length > 0;
   }
@@ -77,7 +90,7 @@ function prettyDate(d?: string) {
 
 export function sectionDoneAt(job: JobFile, id: string): string | undefined {
   if (!sectionDone(job, id)) return undefined;
-  if (id === "sold") return prettyDate(job.soldAt);
+  if (id === "sold") return job.acceptance?.at || prettyDate(job.soldAt);
   if (id === "ready") return prettyDate(job.preCheck.signedAt);
   if (id === "crew") {
     const days = job.assignments.map((a) => a.day).filter(Boolean).sort();

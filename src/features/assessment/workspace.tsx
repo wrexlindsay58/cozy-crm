@@ -6,6 +6,8 @@ import { completeAssessment } from "./store";
 import { PacketCard } from "./packets";
 import { PropertyCard } from "./property";
 import { useAssessCategories } from "./categories";
+import { AssessmentReport } from "@/features/opportunity/report";
+import { ReportFeeCard } from "./fee-card";
 import type { Assessment as File } from "./types";
 import { useNavigate } from "@tanstack/react-router";
 
@@ -17,6 +19,13 @@ export function AssessmentWorkspace({ file }: { file: File }) {
   return (
     <FileSections
       start="house"
+      advance={{
+        pipeline: "Opportunity",
+        onContinue: () => {
+          const next = completeAssessment(file.id);
+          if (next?.oppId) void navigate({ to: "/opportunities/$oppId", params: { oppId: next.oppId } });
+        },
+      }}
       sections={[
         lead ? { id: "contact", label: "Contact", done: true, node: <LeadCard lead={lead} locked /> } : { id: "contact", label: "Contact", node: null },
         {
@@ -28,23 +37,24 @@ export function AssessmentWorkspace({ file }: { file: File }) {
         ...cats.map((def) => {
           const packet = file.packets.find((p) => p.id === def.id) ?? { id: def.id, fields: {}, photos: [], notes: "" };
           const filled = def.fields.filter((f) => packet.fields[f.label]).length;
-          const isWindows = def.id === "windows";
           return {
             id: def.id,
             label: def.label.replace(/ & .+$/, ""),
             done: filled > 0 || packet.photos.length > 0,
             node: <PacketCard assessmentId={file.id} def={def} packet={packet} />,
-            action: isWindows
-              ? {
-                  label: "Complete",
-                  onClick: () => {
-                    const next = completeAssessment(file.id);
-                    if (next?.oppId) void navigate({ to: "/opportunities/$oppId", params: { oppId: next.oppId } });
-                  },
-                }
-              : undefined,
           };
         }),
+        {
+          id: "report",
+          label: "Report",
+          done: file.packets.some((p) => Object.values(p.fields).some(Boolean) || p.notes || p.photos.length > 0),
+          node: (
+            <div className="space-y-2">
+              <ReportFeeCard file={file} />
+              <AssessmentReport personId={file.leadId} closer={file.closer} embedded mentionProposal={false} />
+            </div>
+          ),
+        },
         {
           id: "book",
           label: "Book",

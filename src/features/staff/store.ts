@@ -41,6 +41,7 @@ export const SHOP_CREWS: ShopCrew[] = [
   { name: "Crew 3 — Marco", members: ["Rico Marquez", "Sam Patel"], vehicle: { kind: "Pickup and Trailer", number: "7", trailer: "3" } },
 ];
 
+export type EmployeeAct = { at: string; employee: string; personId: string; what: string };
 export type PermKey = "seeCost" | "takeCard" | "editCatalog" | "overrideFee";
 export type RolePerms = Record<string, Record<PermKey, boolean>>;
 
@@ -86,6 +87,8 @@ const seedPerms: RolePerms = {
 let people = seedPeople.map((p) => ({ ...p }));
 let perms: RolePerms = Object.fromEntries(Object.entries(seedPerms).map(([k, v]) => [k, { ...v }]));
 let viewAs = "Owner";
+let actorName = "Wrex Lindsay";
+let employeeLog: EmployeeAct[] = [];
 let sources = ["Canvass", "Google", "Website", "Referral", "Partner"];
 let dispositions = ["Unmarked", "No sit", "One legger", "Sold", "Confirmed"];
 let ticketCats = ["Permit", "HOA", "Material", "Callback", "Warranty"];
@@ -99,7 +102,7 @@ let departments = ["Closers", "Setters", "Production", "Phoenix office", "Scotts
 const listeners = new Set<() => void>();
 let snap = pack();
 function pack() {
-  return { people, perms, viewAs, sources, dispositions, ticketCats, territories, departments };
+  return { people, perms, viewAs, actorName, employeeLog, sources, dispositions, ticketCats, territories, departments };
 }
 function emit() {
   snap = pack();
@@ -136,8 +139,22 @@ export function setPerm(role: string, key: PermKey, on: boolean) {
   perms = { ...perms, [role]: { ...perms[role], [key]: on } };
   emit();
 }
-export function setViewAs(role: string) {
-  viewAs = role;
+export function isEmployee(name: string) {
+  return people.some((p) => p.name === name);
+}
+export function actingName() {
+  return actorName;
+}
+export function setActor(name: string) {
+  const person = people.find((p) => p.name === name && p.active);
+  if (!person) return;
+  actorName = person.name;
+  viewAs = person.role;
+  emit();
+}
+export function logEmployeeAct(personId: string, employee: string, what: string) {
+  if (!personId || !employee || !isEmployee(employee)) return;
+  employeeLog = [{ at: new Date().toLocaleString(), employee, personId, what }, ...employeeLog].slice(0, 500);
   emit();
 }
 export function addSource(name: string) {

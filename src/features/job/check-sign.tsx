@@ -20,7 +20,7 @@ function knownSigner(name: string, names: string[]) {
   );
 }
 
-export function CheckSign({ job, kind }: { job: JobFile; kind: "pre" | "post" }) {
+export function CheckSign({ job, kind, locked }: { job: JobFile; kind: "pre" | "post"; locked?: boolean }) {
   const check = kind === "pre" ? job.preCheck : job.postCheck;
   const lead = useLead(job.leadId);
   const proposals = useProposals();
@@ -41,6 +41,7 @@ export function CheckSign({ job, kind }: { job: JobFile; kind: "pre" | "post" })
           Acknowledged by {check.signedBy}
           {check.relation ? ` · ${check.relation}` : ""} · {check.signedAt}
         </p>
+        {check.collectedBy ? <p className="type-meta">Collected by {check.collectedBy}</p> : null}
         {check.signature ? <img src={check.signature} alt="Signature" className="h-16 rounded-md border border-line bg-white" /> : null}
       </div>
     );
@@ -57,7 +58,7 @@ export function CheckSign({ job, kind }: { job: JobFile; kind: "pre" | "post" })
   return (
     <div className="mt-3 space-y-3">
       <AckPhotos job={job} kind={kind} />
-      <button type="button" className="h-10 rounded-md bg-navy px-3 text-sm font-semibold text-card" onClick={() => setOpen(true)}>
+      <button type="button" disabled={locked} className="h-10 rounded-md bg-navy px-3 text-sm font-semibold text-card disabled:opacity-40" onClick={() => setOpen(true)}>
         Acknowledge in person
       </button>
       {open

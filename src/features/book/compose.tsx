@@ -1,6 +1,5 @@
 import { useMemo, useState } from "react";
 import { useOps } from "@/features/ops/store";
-import { SHOP_ACTOR } from "@/lib/chrome";
 import { useStaff } from "@/features/staff/store";
 import { BOOK_TYPES, familyOf, type BookType } from "./types";
 import { addHrs, durationHrs } from "./time";
@@ -17,8 +16,7 @@ export function Compose({
   onClose: () => void;
 }) {
   const { leads } = useOps();
-  const { viewAs } = useStaff();
-  const setBy = viewAs === "Owner" ? SHOP_ACTOR : viewAs;
+  const { actorName: setBy } = useStaff();
   const [type, setType] = useState<BookType>(preset.type ?? (resources.find((r) => r.id === preset.resourceId)?.kind === "crew" ? "Install" : "Sales"));
   const [resourceId, setResourceId] = useState(preset.resourceId);
   const [leadId, setLeadId] = useState("");

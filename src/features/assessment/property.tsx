@@ -23,6 +23,8 @@ export function PropertyCard({ file, readOnly = false }: { file: Assessment; rea
       ["HOA", p.hoa],
       ["Utility", p.utility],
       ["Both home", p.bothHome],
+      ["People", p.occupants],
+      ["Peak summer bill", p.peakBill],
       ["Indoor °F", p.indoorTemp],
       ["Outdoor °F", p.outdoorTemp],
       ["Hot rooms", p.hotRooms],
@@ -110,6 +112,16 @@ export function PropertyCard({ file, readOnly = false }: { file: Assessment; rea
           <ChevronDown className="pointer-events-none absolute right-3 bottom-3.5 size-4 text-muted" />
         </label>
       </div>
+      <div className="mt-3 grid gap-3 sm:grid-cols-2">
+        <label className="block text-sm">
+          <span className="text-[13px] font-semibold text-ink">People in the house</span>
+          <input value={p.occupants} onChange={(e) => set("occupants", e.target.value)} inputMode="numeric" className={inputClass} />
+        </label>
+        <label className="block text-sm">
+          <span className="text-[13px] font-semibold text-ink">Peak summer bill</span>
+          <input value={p.peakBill} onChange={(e) => set("peakBill", e.target.value)} inputMode="decimal" placeholder="July or August" className={inputClass} />
+        </label>
+      </div>
       <label className="mt-3 block text-sm">
         <span className="text-[13px] font-semibold text-ink">Access</span>
         <input value={p.access} onChange={(e) => set("access", e.target.value)} placeholder="Gate, dogs, hatch location" className={inputClass} />
@@ -130,11 +142,11 @@ export function PropertyCard({ file, readOnly = false }: { file: Assessment; rea
       </div>
       <div className="mt-3 grid gap-3 sm:grid-cols-2">
         <label className="block text-sm">
-          <span className="text-[13px] font-semibold text-ink">Hot rooms (walked)</span>
+          <span className="text-[13px] font-semibold text-ink">Hot rooms</span>
           <input value={p.hotRooms} onChange={(e) => set("hotRooms", e.target.value)} placeholder="Room names" className={inputClass} />
         </label>
         <label className="block text-sm">
-          <span className="text-[13px] font-semibold text-ink">Cold rooms (walked)</span>
+          <span className="text-[13px] font-semibold text-ink">Cold rooms</span>
           <input value={p.coldRooms} onChange={(e) => set("coldRooms", e.target.value)} placeholder="Room names" className={inputClass} />
         </label>
       </div>

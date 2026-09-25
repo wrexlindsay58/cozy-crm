@@ -8,9 +8,11 @@ import {
   emptyPermit,
   emptyRebate,
   emptyTest,
+  splitSoldNotes,
   type JobFile,
   type Stage,
 } from "./types";
+import { prepDays, prepLines } from "./prep";
 
 const atticBefore = "/brand/slides/house.jpg";
 
@@ -274,7 +276,10 @@ export function seedJobs(): JobFile[] {
         financeRev: 1,
       };
     });
-  return [cho, ...rest].map((job) => {
+  return [cho, ...rest].map((job) => withPrep(withAccept(stampJob(job))));
+}
+
+function stampJob(job: JobFile): JobFile {
     if (job.jobId === "P-328") {
       return {
         ...job,
@@ -296,5 +301,31 @@ export function seedJobs(): JobFile[] {
       };
     }
     return job;
+}
+
+function withPrep(job: JobFile): JobFile {
+  const done = job.stage === "In progress" || job.stage === "Test-out" || job.stage === "Punch" || job.stage === "Invoiced" || job.stage === "Closed";
+  if (!done) return job;
+  const prep: NonNullable<JobFile["prep"]> = {};
+  prepDays(job).forEach((day) => {
+    prep[day] = {};
+    prepLines(job).forEach((line) => {
+      prep[day][line.id] = { scheduled: true, confirmed: true };
+    });
   });
+  return { ...job, prep };
+}
+
+function withAccept(job: JobFile): JobFile {
+  const notes = splitSoldNotes(job.soldNotes);
+  const accepted = job.stage !== "Sold";
+  return {
+    ...job,
+    acceptance: {
+      reviewed: accepted ? job.scope.map((s) => s.id) : [],
+      notes: notes.map((n) => (accepted ? { ...n, state: "clear" as const } : n)),
+      discrepancies: [],
+      ...(accepted ? { by: job.pm, at: job.soldAt || "On file" } : {}),
+    },
+  };
 }

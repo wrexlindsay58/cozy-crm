@@ -77,26 +77,26 @@ function FitRow({ signature, labeled }: { signature: string; labeled: (compact: 
   );
 }
 
-function runImmediate(row: PaperRow, who: string) {
+function runImmediate(row: PaperRow) {
   const act = row.run;
   if (!act) return;
-  if (act.type === "sign-wo") signWo(act.jobId, act.woId, who);
+  if (act.type === "sign-wo") signWo(act.jobId, act.woId);
   else if (act.type === "send-po") sendPo(act.jobId, act.poId);
   else if (act.type === "send-invoice") setInvoiceStatus(act.jobId, act.invoiceId, "Sent");
   else if (act.type === "sign-co") signCo(act.jobId, act.coId);
   else if (act.type === "issue-wo") issueWo(act.jobId);
   else if (act.type === "fund") receiveGoodLeapPay(act.jobId);
   else if (act.type === "pay") recordPayment(act.jobId, act.invoiceId, row.amount ?? 0, "Card", "Now");
-  else if (act.type === "receive-po") receivePoAmount(act.jobId, act.poId, row.amount ?? 0, who);
+  else if (act.type === "receive-po") receivePoAmount(act.jobId, act.poId, row.amount ?? 0, "");
 }
 
 export function PaperPage({ initialKind, initialJob }: { initialKind?: PaperKind; initialJob?: string }) {
   const jobs = useJobs();
   const proposals = useProposals();
   const { leads } = useOps();
-  const { viewAs, people } = useStaff();
+  const { viewAs, people, actorName } = useStaff();
   const seeCost = canSeeCost(viewAs);
-  const actor = people.find((p) => p.role === viewAs)?.name ?? "Wrex Lindsay";
+  const actor = actorName;
   const [query, setQuery] = useState("");
   const [kind, setKind] = useState<PaperKind | "all">(initialKind ?? "all");
   const [view, setView] = useState<"queue" | "all">(initialKind ? "all" : "queue");
@@ -147,13 +147,13 @@ export function PaperPage({ initialKind, initialJob }: { initialKind?: PaperKind
       setComposer(row.id);
       return;
     }
-    runImmediate(row, actor);
+    runImmediate(row);
     advance(row);
   }
 
   function sendBatch(group: PaperRow[]) {
     const next = visible.find((r) => r.stack && !group.some((g) => g.id === r.id));
-    group.forEach((row) => runImmediate(row, actor));
+    group.forEach((row) => runImmediate(row));
     setComposer(null);
     if (next) {
       setJobId(next.jobId);
@@ -492,8 +492,7 @@ export function JobPacket({ jobId }: { jobId: string }) {
   const jobs = useJobs();
   const proposals = useProposals();
   const { leads } = useOps();
-  const { viewAs, people } = useStaff();
-  const who = people.find((p) => p.role === viewAs)?.name ?? "Office";
+  const { viewAs } = useStaff();
   const rows = buildPaper(Object.values(jobs), Object.values(proposals), leads, canSeeCost(viewAs)).filter((r) => r.jobId === jobId && !r.internal && !r.lender && !r.mismatch);
   if (!rows.length) return <p className="type-meta">No paper on this job yet.</p>;
   return (
@@ -503,7 +502,7 @@ export function JobPacket({ jobId }: { jobId: string }) {
         return (
           <div key={section.kind}>
             <p className="type-label">{section.label}</p>
-            {list.length === 0 ? <p className="type-meta mt-1">{section.empty}</p> : <ul className="mt-1 divide-y divide-line">{list.map((row) => <PacketLine key={row.id} row={row} open={false} onOpen={() => undefined} onAct={() => runImmediate(row, who)} />)}</ul>}
+            {list.length === 0 ? <p className="type-meta mt-1">{section.empty}</p> : <ul className="mt-1 divide-y divide-line">{list.map((row) => <PacketLine key={row.id} row={row} open={false} onOpen={() => undefined} onAct={() => runImmediate(row)} />)}</ul>}
           </div>
         );
       })}

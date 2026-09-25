@@ -1,5 +1,6 @@
 import { useSyncExternalStore } from "react";
 import { addHistory } from "@/features/ops/store";
+import { actingName } from "@/features/staff/store";
 import { photosByPerson, type FileKind, type Photo } from "@/lib/file-data";
 
 let photos: Record<string, Photo[]> = Object.fromEntries(
@@ -66,7 +67,7 @@ export function addPhoto(
     actionId: extra?.actionId,
   };
   putPhoto(personId, row);
-  addHistory(personId, "Wrex Lindsay", `${kindWord(kind)} added. ${label}.`);
+  addHistory(personId, actingName(), `${kindWord(kind)} added. ${label}.`);
   return row;
 }
 

@@ -1,7 +1,9 @@
 import { useSyncExternalStore } from "react";
 import { addHistory } from "@/features/ops/store";
+import { sendMessage } from "@/features/thread/store";
 import { kindFromFile, putPhoto } from "@/features/photos/store";
 import { activeCategories } from "./categories";
+import { actingName } from "@/features/staff/store";
 import { emptyProperty, type Assessment, type Packet, type Property } from "./types";
 
 function emptyPacket(id: string): Packet {
@@ -36,8 +38,14 @@ const hale: Assessment = {
     coldRooms: "Kitchen",
     indoorTemp: "78",
     outdoorTemp: "104",
+    occupants: "4",
+    peakBill: "610",
   },
   qualify: {},
+  intent: "Yes",
+  reportPaid: false,
+  reportWaivedBy: "",
+  reportWaiveReason: "",
   packets: [
     {
       id: "hvac",
@@ -46,13 +54,14 @@ const hale: Assessment = {
         Brand: "Goodman",
         "Outdoor model": "GSX14",
         "Manufacture year": "2008",
-        Tonnage: "4",
+        "Listed SEER": "14",
         Refrigerant: "R-22",
         "Filter size": "16x25",
         "Return temp (°F)": "78",
         "Supply temp (°F)": "58",
         "Delta T (°F)": "20",
-        "Disconnect present": "Yes",
+        "Return static (in WC)": "0.35",
+        "Supply static (in WC)": "0.28",
       },
       photos: [{ id: "AP-1", caption: "Condenser data plate" }],
       notes: "Line set through the wall. Pad settled 1 in on the west edge.",
@@ -61,6 +70,9 @@ const hale: Assessment = {
       id: "attic",
       fields: {
         "Hatch location": "Hall closet",
+        "Hatch type": "Ladder",
+        "Hatch insulated?": "No",
+        "Hatch sealed?": "No",
         "Insulation type": "Blown cellulose",
         "Depth (in)": "4",
         Coverage: "Joists visible east run",
@@ -69,18 +81,20 @@ const hale: Assessment = {
         "Knee walls": "No",
         "Roof deck": "OSB",
         "Attic storage": "No",
+        "Top plates open": "Yes",
+        "Unsealed cans (count)": "8",
+        "Hatch weatherstrip": "No",
       },
       photos: [{ id: "AP-2", caption: "Hatch looking east" }],
       notes: "",
     },
-    { id: "air-seal", fields: { "Top plates open": "Yes", "Unsealed cans (count)": "8", "Hatch weatherstrip": "No" }, photos: [], notes: "" },
     {
       id: "ducts",
-      fields: { Material: "Flex", Location: "Attic", "Supply registers (count)": "11", "Return registers (count)": "2", "Return size": "16x25", "Boot leaks (count)": "4" },
+      fields: { Material: "Flex", Location: "Attic", "Supply registers (count)": "11", "Return registers (count)": "2", "Return 1 size": "20x25", "Return 2 size": "14x20", "Duct insulation (R)": "R-4", "Disconnected runs (count)": "1", "Boot leaks (count)": "4", Condition: "Kinked, Sagging", "Jump ducts": "0", "Transfer grilles": "0" },
       photos: [],
       notes: "",
     },
-    { id: "windows", fields: { Count: "18", Glazing: "Double", Frame: "Vinyl", "Failed seals (count)": "2" }, photos: [], notes: "" },
+    { id: "windows", fields: { Count: "18", "Window temperature (°F)": "114", Glazing: "Double", Frame: "Vinyl", "Failed seals (count)": "2" }, photos: [], notes: "" },
   ],
 };
 
@@ -107,8 +121,14 @@ function soldHouse(id: string, leadId: string, name: string, address: string, cl
       coldRooms: "",
       indoorTemp: "79",
       outdoorTemp: "102",
+      occupants: "3",
+      peakBill: "",
     },
     qualify: {},
+    intent: "Yes",
+    reportPaid: false,
+    reportWaivedBy: "",
+    reportWaiveReason: "",
     packets: [
       { id: "hvac", fields: { "System type": "Split", Brand: "Carrier", "Manufacture year": "2006", Tonnage: "4", Refrigerant: "R-22" }, photos: [], notes: "Condenser on the east pad." },
       { id: "attic", fields: { "Insulation type": "Blown cellulose", "Depth (in)": "5", "Hatch location": "Hall" }, photos: [], notes: "" },
@@ -172,9 +192,13 @@ export function startAssessment(input: {
     packets: withCats([]),
     property: { ...emptyProperty(), ...input.property },
     qualify: {},
+    intent: "",
+    reportPaid: false,
+    reportWaivedBy: "",
+    reportWaiveReason: "",
   };
   rows = { ...rows, [id]: next };
-  addHistory(input.leadId, input.closer, `Assessment ${id} opened.`);
+  addHistory(input.leadId, actingName(), `Assessment ${id} opened.`);
   emit();
   return next;
 }
@@ -233,7 +257,7 @@ export function addPacketPhoto(id: string, packet: string, caption: string, file
       kind: photo.kind,
       name: photo.name,
     });
-    addHistory(row.leadId, row.closer, `${category} file: ${photo.caption}.`);
+    addHistory(row.leadId, actingName(), `${category} file: ${photo.caption}.`);
     emit();
   };
   if (file) {
@@ -249,8 +273,43 @@ export function completeAssessment(id: string) {
   const cur = rows[id];
   if (!cur || cur.status === "Complete") return cur;
   const oppId = cur.leadId === "L-4819" ? "O-1182" : `O-${1100 + Object.keys(rows).length}`;
+  const credit = cur.reportPaid ? " Report fee of $149 was paid. Credit it on the job if they buy." : "";
   rows = { ...rows, [id]: { ...cur, status: "Complete", oppId } };
-  addHistory(cur.leadId, cur.closer, `Assessment complete. Opportunity ${oppId} opened.`);
+  addHistory(cur.leadId, actingName(), `Assessment complete. Opportunity ${oppId} opened.${credit}`);
   emit();
   return rows[id];
+}
+export function setReportIntent(id: string, intent: "" | "Yes" | "No") {
+  const cur = rows[id];
+  if (!cur) return;
+  rows = { ...rows, [id]: { ...cur, intent } };
+  addHistory(cur.leadId, actingName(), intent === "Yes" ? "Marked as a qualified assessment." : "Marked as not a qualified assessment.");
+  emit();
+}
+export function markReportPaid(id: string, charge?: { method: "Card" | "Cash" | "Check"; last4: string; brand: string; receipt: string }) {
+  const cur = rows[id];
+  if (!cur) return;
+  const slip = charge?.method === "Card" && charge.last4 ? `${charge.brand || "Card"} ····${charge.last4}` : charge?.method ?? "Card";
+  rows = { ...rows, [id]: { ...cur, reportPaid: true, reportCharge: charge } };
+  addHistory(cur.leadId, actingName(), `Charged $149 for the report (${slip}${charge?.receipt ? `, receipt ${charge.receipt}` : ""}). Credit this on the job if they buy.`);
+  emit();
+}
+export function waiveReportFee(id: string, reason: string, by: string) {
+  const cur = rows[id];
+  const clean = reason.trim();
+  if (!cur || !clean) return;
+  rows = { ...rows, [id]: { ...cur, reportWaivedBy: by, reportWaiveReason: clean } };
+  addHistory(cur.leadId, by, `Waived the $149 report fee. ${clean}`);
+  emit();
+}
+export function sendAssessmentReport(id: string, origin: string, unlocked: boolean) {
+  const cur = rows[id];
+  if (!cur || !unlocked) return false;
+  const url = origin ? `${origin}/report/${id}` : "";
+  sendMessage(cur.leadId, `Home performance report for ${cur.address || cur.name}. Measurements only. No prices.${url ? `\n\n${url}` : ""}`, "email", {
+    subject: `Your home report · ${cur.address || cur.name}`,
+  });
+  addHistory(cur.leadId, actingName(), "Assessment report sent.");
+  emit();
+  return true;
 }

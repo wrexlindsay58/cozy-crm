@@ -2,7 +2,6 @@ import { ChevronDown, Plus } from "lucide-react";
 import { useMemo, useState, type ReactNode } from "react";
 import { bookAppointment, DISPOSITIONS, setDisposition, useOps } from "@/features/ops/store";
 import { namesIn, useStaff } from "@/features/staff/store";
-import { SHOP_ACTOR } from "@/lib/chrome";
 import { stageWash, toneForStatus } from "@/lib/lead-status";
 import type { Appointment, EventKind } from "@/lib/crm-data";
 import { Float } from "@/components/float";
@@ -22,7 +21,7 @@ const EVENTS: {
   hint: string;
 }[] = [
   { id: "Sales", assign: ["Closer", "Owner"], crew: false, scope: false, length: "2h", hint: "Both home? Gate code? Dog?" },
-  { id: "Assessment", assign: ["Closer", "Owner"], crew: false, scope: false, length: "1.5h", hint: "What are we walking? Hatch, condenser, ducts." },
+  { id: "Assessment", assign: ["Closer", "Owner"], crew: false, scope: false, length: "1.5h", hint: "What are we assessing? Hatch, condenser, ducts." },
   { id: "Site survey", assign: ["PM", "Crew"], crew: true, scope: true, length: "1.5h", hint: "Size, type, placement. Room measurements. Registers." },
   { id: "Install", assign: ["PM"], crew: true, scope: true, length: "All day", hint: "Scope on the truck. Access, dump, HOA." },
   { id: "Service", assign: ["PM", "Crew"], crew: true, scope: true, length: "1h", hint: "What's broken. Fee if it is a paid call." },
@@ -49,10 +48,9 @@ export function BookWidget({
   actionTitle?: string;
   onRan?: () => void;
 }) {
-  const { viewAs } = useStaff();
+  const { actorName: setBy } = useStaff();
   const { appointments, leads, history } = useOps();
   const lead = leads.find((l) => l.id === leadId);
-  const setBy = viewAs === "Owner" ? SHOP_ACTOR : viewAs;
   const [open, setOpen] = useState(false);
   const [kind, setKind] = useState<EventKind>(defaultKind);
   const def = EVENTS.find((e) => e.id === kind) ?? EVENTS[0];

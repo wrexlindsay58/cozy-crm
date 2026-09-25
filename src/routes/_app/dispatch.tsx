@@ -10,6 +10,8 @@ import { setBookDay, shiftBookDay, useBookDay } from "@/features/book/day";
 import { TODAY, addHrs, hourOf, toIso } from "@/features/book/time";
 import { familyOf, type BookEvent } from "@/features/book/types";
 import { moveBook, useBook } from "@/features/book/store";
+import { rollsOn } from "@/features/job/prep";
+import { useJobs } from "@/features/job/store";
 import { useRoster, type Resource, type ResourceKind } from "@/features/book/roster";
 import { geoOf, isField, phoneOf, pingOf, pinColor, routeColor } from "@/features/dispatch/geo";
 import { fetchPath, mins, optimizeStops } from "@/features/dispatch/osrm";
@@ -119,7 +121,8 @@ function useStreetPaths(people: Resource[], jobs: BookEvent[]) {
 }
 
 function DispatchPage() {
-  const events = useBook();
+  const jobs = useJobs();
+  const events = useBook().filter((e) => rollsOn(e.jobId ? jobs[e.jobId] : undefined, e.start.slice(0, 10)));
   const roster = useRoster();
   const cursor = useBookDay();
   const dayKey = toIso(cursor).slice(0, 10);

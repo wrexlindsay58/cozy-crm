@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { addEvent, setEventStatus, type JobFile } from "./store";
+import { prepClear } from "./prep";
 import { PROCESSES } from "./types";
 import { cn } from "@/lib/cn";
 
@@ -24,7 +25,7 @@ export function InstallDays({ job }: { job: JobFile }) {
                 </div>
                 <div className="flex shrink-0 gap-1">
                   {(["Set", "Dispatched", "Done", "No-show"] as const).map((s) => (
-                    <button key={s} type="button" onClick={() => setEventStatus(job.jobId, e.id, s)} className={cn("h-8 rounded-md px-2.5 text-[11px] font-semibold", e.status === s ? "bg-navy text-card" : "border border-line")}>
+                    <button key={s} type="button" disabled={s === "Dispatched" && !prepClear(job, e.day)} onClick={() => setEventStatus(job.jobId, e.id, s)} className={cn("h-8 rounded-md px-2.5 text-[11px] font-semibold disabled:opacity-40", e.status === s ? "bg-navy text-card" : "border border-line")}>
                       {s}
                     </button>
                   ))}

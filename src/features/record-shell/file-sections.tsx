@@ -42,7 +42,7 @@ export type FileSection = {
   started?: boolean;
   doneAt?: string;
   icon?: LucideIcon;
-  action?: { label: string; onClick: () => void };
+  action?: { label: string; onClick: () => void; ready?: boolean };
 };
 
 const ICONS: Record<string, LucideIcon> = {
@@ -62,6 +62,7 @@ const ICONS: Record<string, LucideIcon> = {
   options: LayoutList,
   pay: CreditCard,
   proposal: FileText,
+  report: ClipboardCheck,
   agreement: FileSignature,
   stage: ListOrdered,
   job: Briefcase,
@@ -106,17 +107,20 @@ export function FileSections({
   layout = "swap",
   banner,
   start,
+  advance,
 }: {
   sections: FileSection[];
   layout?: "swap" | "stack";
   banner?: ReactNode;
   start?: string;
+  advance?: { pipeline: string; onContinue: () => void };
 }) {
   const foot = useContext(FilePaneFoot);
   const paneRef = useRef<HTMLDivElement>(null);
-  const sourced = sections.filter((s) => s.node != null);
-  const items =
-    layout === "swap" && foot ? [...sourced, { id: "media", label: "Media", node: foot, icon: Image }] : sourced;
+  const sourced = sections.filter((s) => s.node != null && s.id !== "book");
+  const book = sections.find((s) => s.id === "book" && s.node != null);
+  const ready = Boolean(advance) && sourced.every((s) => s.done);
+  const items = layout === "swap" && foot ? [...sourced, ...(book ? [book] : []), { id: "media", label: "Media", node: foot, icon: Image }] : [...sourced, ...(book ? [book] : [])];
   const [active, setActive] = useState(start && items.some((s) => s.id === start) ? start : items[0]?.id ?? "");
   const [slim, setSlim] = useState(() => {
     try {
@@ -129,6 +133,8 @@ export function FileSections({
   const idx = Math.max(0, items.findIndex((s) => s.id === current?.id));
   const next = items[idx + 1];
   const prev = items[idx - 1];
+  const lastWork = sourced[sourced.length - 1];
+  const onLast = Boolean(advance) && current?.id === lastWork?.id;
 
   useEffect(() => {
     openSection = (id: string) => {
@@ -242,11 +248,28 @@ export function FileSections({
           >
             Back
           </button>
-          {current?.action ? (
+          {current?.id === "book" || current?.id === "media" ? (
+            <span />
+          ) : onLast && advance ? (
+            <Tip label={ready ? `Open the ${advance.pipeline.toLowerCase()}` : "Finish this pipeline first"} on>
+              <button
+                type="button"
+                disabled={!ready}
+                onClick={advance.onContinue}
+                className={cn("h-9 rounded-md px-3 text-sm font-semibold", ready ? "bg-navy text-card" : "bg-page text-muted")}
+              >
+                Continue to {advance.pipeline}
+              </button>
+            </Tip>
+          ) : current?.action ? (
             <button
               type="button"
+              disabled={current.action.ready === false}
               onClick={current.action.onClick}
-              className="h-9 rounded-md bg-navy px-3 text-sm font-semibold text-card"
+              className={cn(
+                "h-9 rounded-md px-3 text-sm font-semibold",
+                current.action.ready === false ? "bg-page text-muted" : "bg-navy text-card",
+              )}
             >
               {current.action.label}
             </button>

@@ -1,6 +1,5 @@
 import { useCatalog } from "@/features/catalog/store";
 import { assessmentForLead, useAssessments } from "@/features/assessment/store";
-import { useAssessCategories } from "@/features/assessment/categories";
 import { useOps } from "@/features/ops/store";
 import { cityState, placeLine } from "@/lib/place";
 import { acceptOption, applyGoodLeap, optionRollup, requestDeposit, sendToSign, type Proposal } from "./store";
@@ -17,7 +16,6 @@ export function ProposalDoc({ proposal }: { proposal: Proposal }) {
   const { leads } = useOps();
   const lead = leads.find((l) => l.id === proposal.personId);
   const assess = assessmentForLead(proposal.personId);
-  const cats = useAssessCategories();
   const today = new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 
   return (
@@ -67,28 +65,8 @@ export function ProposalDoc({ proposal }: { proposal: Proposal }) {
 
       {assess ? (
         <section className="border-b border-line px-5 py-4 md:px-7">
-          <h3 className="text-[11px] font-bold tracking-wide text-muted uppercase">What we found</h3>
-          <p className="mt-2 text-sm">
-            {assess.property.yearBuilt || assess.property.sqft
-              ? `${assess.property.yearBuilt ? `${assess.property.yearBuilt} build` : ""}${assess.property.sqft ? ` · ${assess.property.sqft} sq ft` : ""}${assess.property.stories ? ` · ${assess.property.stories} stor${assess.property.stories === "1" ? "y" : "ies"}` : ""}`
-              : null}
-            {assess.property.hoa ? ` · HOA ${assess.property.hoa}` : ""}
-          </p>
-          {assess.property.notes ? <p className="mt-1 text-sm">{assess.property.notes}</p> : null}
-          <ul className="mt-2 space-y-1 text-sm">
-            {assess.packets
-              .filter((p) => Object.keys(p.fields).length || p.notes)
-              .map((p) => (
-                <li key={p.id}>
-                  <span className="font-semibold">{cats.find((c) => c.id === p.id)?.label ?? p.id}. </span>
-                  {Object.entries(p.fields)
-                    .filter(([, v]) => v)
-                    .map(([k, v]) => `${k} ${v}`)
-                    .join(" · ")}
-                  {p.notes ? ` — ${p.notes}` : ""}
-                </li>
-              ))}
-          </ul>
+          <h3 className="text-[11px] font-bold tracking-wide text-muted uppercase">Assessment report</h3>
+          <p className="mt-2 text-sm">The measurements are a separate file. This proposal starts at the price.</p>
         </section>
       ) : null}
 

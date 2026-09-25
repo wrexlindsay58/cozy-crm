@@ -226,3 +226,24 @@
     animation: none;
   }
 }
+
+@media print {
+  @page {
+    margin: 0.5in;
+    size: letter;
+  }
+  body.printing-report > *:not(#print-root) {
+    display: none !important;
+  }
+  body.printing-report #print-root {
+    display: block !important;
+  }
+  body.printing-report .no-print {
+    display: none !important;
+  }
+  body.printing-report #home-report,
+  body.printing-report #home-report * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}

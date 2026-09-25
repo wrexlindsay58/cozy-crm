@@ -46,7 +46,7 @@ const GROUPS = [
   {
     title: "Pipeline",
     links: [
-      { to: "/settings/assessments", title: "Assessment categories", note: "What we walk on the house, and the fields on each" },
+      { to: "/settings/assessments", title: "Assessment categories", note: "What the assessment covers, and the fields on each" },
       { to: "/settings/production", title: "Production categories", note: "Plan, permit, serials, supplier, BOM" },
       { to: "/settings/dispositions", title: "Dispositions", note: "Unmarked, no sit, sold" },
       { to: "/settings/ticket-types", title: "Ticket categories", note: "Permit, HOA, callback" },

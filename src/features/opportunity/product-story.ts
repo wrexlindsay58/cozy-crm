@@ -9,7 +9,7 @@ export const PRODUCT_STORY: Record<string, ProductStory> = {
   ducts: {
     benefits: ["Air to the rooms that starve", "Less dump in the attic", "Even temps"],
     solves: "Leaky trunks and boots dumping conditioned air in the attic.",
-    sow: "Replace the trunks and runs called on the walk. Seal boots. Test.",
+    sow: "Replace the trunks and runs called on the assessment. Seal boots. Test.",
   },
   pad: {
     benefits: ["Level pad, longer equipment life"],
@@ -24,7 +24,7 @@ export const PRODUCT_STORY: Record<string, ProductStory> = {
   "attic-r49": {
     benefits: ["The house holds heat and cold", "Quieter rooms", "Lower bill"],
     solves: "Thin, tired attic insulation that is not doing its job.",
-    sow: "Air seal the hatch and penetrations. Blow cellulose to the depth on the option. Baffles where the walk called them.",
+    sow: "Air seal the hatch and penetrations. Blow cellulose to the depth on the option. Baffles where the assessment called them.",
   },
   removal: {
     benefits: ["Clean cavity, no buried problems"],
@@ -34,7 +34,7 @@ export const PRODUCT_STORY: Record<string, ProductStory> = {
   "air-seal": {
     benefits: ["Stops the stack effect", "Holds the insulation you pay for"],
     solves: "Gaps at the hatch, cans, and plumbing that leak the house.",
-    sow: "Seal the hatch, penetrations, and cans called on the walk.",
+    sow: "Seal the hatch, penetrations, and cans called on the assessment.",
   },
   aeroseal: {
     benefits: ["Ducts that deliver", "Comfort without a new system"],
@@ -57,7 +57,7 @@ export function storyFor(sku: string): ProductStory {
   return (
     PRODUCT_STORY[sku] ?? {
       benefits: ["Part of the scope on this house"],
-      solves: "A gap the walk called out.",
+      solves: "A gap the assessment called out.",
       sow: "Install as specified on the option.",
     }
   );
