@@ -1,4 +1,5 @@
 import { useSyncExternalStore } from "react";
+import { upsertItem } from "@/features/catalog/store";
 
 type Flag = { id: string; label: string; on: boolean };
 type Row = { id: string; name: string; note: string };
@@ -17,8 +18,8 @@ let discounts: Row[] = [
   { id: "C-2", name: "Same-day close", note: "$250 off" },
 ];
 let rebates: Row[] = [
-  { id: "R-1", name: "APS attic", note: "Up to $250" },
-  { id: "R-2", name: "Oncor air seal", note: "Utility paperwork" },
+  { id: "R-1", name: "APS rebate", note: "$300" },
+  { id: "R-2", name: "Oncor rebate", note: "$400" },
 ];
 let extraCosts: Row[] = [
   { id: "X-1", name: "Permit", note: "Pass-through" },
@@ -153,7 +154,11 @@ export function addRow(bucket: keyof ReturnType<typeof pack>, name: string, note
   const next = [...list, { id: `${bucket}-${list.length + 1}`, name: n, note: note.trim() }];
   if (bucket === "dealers") dealers = next;
   if (bucket === "discounts") discounts = next;
-  if (bucket === "rebates") rebates = next;
+  if (bucket === "rebates") {
+    rebates = next;
+    const dollars = Math.abs(Number(note.replace(/[^0-9.]/g, "")) || 0);
+    upsertItem({ sku: n.toLowerCase().replace(/[^a-z0-9]+/g, "-"), label: n, sell: -dollars, cost: 0, kind: "discount", rebate: true, rebateWhen: "after", active: true });
+  }
   if (bucket === "extraCosts") extraCosts = next;
   if (bucket === "productTypes") productTypes = next;
   if (bucket === "makers") makers = next;

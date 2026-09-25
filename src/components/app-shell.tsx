@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
   Bell,
@@ -14,10 +14,9 @@ import {
   MessageSquare,
   PanelLeft,
   Radio,
-  Receipt,
   Search,
   Settings,
-  ShoppingCart,
+  ScrollText,
   Star,
   Trophy,
   UserRound,
@@ -32,6 +31,9 @@ import { unreadConversations } from "@/lib/crm-data";
 import { liveStatus, NAV_COLLAPSE_PX } from "@/lib/chrome";
 import { incidents, notCalled } from "@/lib/snapshot";
 import { useOps } from "@/features/ops/store";
+import { useJobs } from "@/features/job/store";
+import { useProposals } from "@/features/opportunity/store";
+import { paperAlertCount } from "@/features/paper/model";
 
 const DAILY = [
   { icon: Radio, label: "Live Board", to: "/", live: true },
@@ -50,8 +52,7 @@ const PIPELINE = [
 ] as const;
 
 const MONEY = [
-  { icon: Receipt, label: "Invoices", to: "/invoices" },
-  { icon: ShoppingCart, label: "Purchasing", to: "/purchasing" },
+  { icon: ScrollText, label: "Paper", to: "/paper" },
 ] as const;
 
 const COMPANY = [
@@ -84,8 +85,11 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [mobileSearch, setMobileSearch] = useState(false);
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const salesBoard = useRouterState({ select: (s) => (s.location.search as { board?: string }).board === "sales" });
-  const { actions } = useOps();
+  const { actions, leads } = useOps();
+  const jobs = useJobs();
+  const proposals = useProposals();
   const pastDueN = actions.filter((a) => liveStatus(a.status, a.due) === "Past Due").length;
+  const paperN = useMemo(() => paperAlertCount(Object.values(jobs), Object.values(proposals), leads), [jobs, proposals, leads]);
   const shut = autoCollapse ? !forceOpen : collapsed;
 
   useEffect(() => {
@@ -256,7 +260,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                     {...item}
                     label={item.to === "/" ? (salesBoard ? "Sales Board" : "Live Board") : item.label}
                     live={"live" in item && item.live && !salesBoard ? true : undefined}
-                    badge={item.to === "/tickets" ? pastDueN || undefined : "badge" in item ? item.badge : undefined}
+                    badge={item.to === "/tickets" ? pastDueN || undefined : item.to === "/paper" ? paperN || undefined : "badge" in item ? item.badge : undefined}
                   />
                 ))}
               </nav>

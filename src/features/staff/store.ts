@@ -41,7 +41,7 @@ export const SHOP_CREWS: ShopCrew[] = [
   { name: "Crew 3 — Marco", members: ["Rico Marquez", "Sam Patel"], vehicle: { kind: "Pickup and Trailer", number: "7", trailer: "3" } },
 ];
 
-export type PermKey = "seeCost" | "takeCard" | "editCatalog";
+export type PermKey = "seeCost" | "takeCard" | "editCatalog" | "overrideFee";
 export type RolePerms = Record<string, Record<PermKey, boolean>>;
 
 function seedPay(role: string, name: string): { payKind: PayKind; rate: number; pieceRates?: Record<string, number> } {
@@ -76,11 +76,11 @@ const seedPeople: Person[] = [
 ];
 
 const seedPerms: RolePerms = {
-  Owner: { seeCost: true, takeCard: true, editCatalog: true },
-  Closer: { seeCost: true, takeCard: true, editCatalog: false },
-  Setter: { seeCost: false, takeCard: false, editCatalog: false },
-  PM: { seeCost: true, takeCard: false, editCatalog: false },
-  Crew: { seeCost: false, takeCard: false, editCatalog: false },
+  Owner: { seeCost: true, takeCard: true, editCatalog: true, overrideFee: true },
+  Closer: { seeCost: true, takeCard: true, editCatalog: false, overrideFee: false },
+  Setter: { seeCost: false, takeCard: false, editCatalog: false, overrideFee: false },
+  PM: { seeCost: true, takeCard: false, editCatalog: false, overrideFee: false },
+  Crew: { seeCost: false, takeCard: false, editCatalog: false, overrideFee: false },
 };
 
 let people = seedPeople.map((p) => ({ ...p }));
@@ -121,6 +121,12 @@ export function activeClosers() {
 }
 export function canSeeCost(role = viewAs) {
   return Boolean(perms[role]?.seeCost);
+}
+export function canOverrideFee(role = viewAs) {
+  return Boolean(perms[role]?.overrideFee);
+}
+export function feeApprover() {
+  return people.find((p) => p.active && p.role === "Owner")?.name ?? "Wrex Lindsay";
 }
 export function patchPerson(name: string, patch: Partial<Person>) {
   people = people.map((p) => (p.name === name ? { ...p, ...patch } : p));

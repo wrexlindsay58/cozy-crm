@@ -6,7 +6,8 @@ import { Float } from "@/components/float";
 import { INTEREST_OPTIONS, inferInterests, interestsLabel, toggleInterest } from "./interests";
 import { cn } from "@/lib/cn";
 
-const inputClass = "mt-1 h-11 w-full rounded-md border border-line bg-card px-3 text-base md:text-sm outline-none focus:border-navy";
+const labelClass = "type-label";
+const inputClass = "mt-1.5 h-11 w-full rounded-md border border-line bg-card px-3 text-base md:text-sm outline-none focus:border-navy";
 const selectClass = `${inputClass} appearance-none pr-10`;
 
 export function DetailsForm({
@@ -55,40 +56,40 @@ export function DetailsForm({
   const interestText = picked.length ? interestsLabel(picked, draft.otherInterest) || picked.join(", ") : "Pick interests";
   return (
     <form
-      className="grid gap-3"
+      className="grid gap-5"
       onSubmit={(e) => {
         e.preventDefault();
         if (readOnly) return;
         onSubmit(draft);
       }}
     >
-      <fieldset disabled={readOnly} className="grid gap-3 border-0 p-0">
+      <fieldset disabled={readOnly} className="grid gap-5 border-0 p-0">
       <label className="block">
-        <span className="text-[11px] font-bold tracking-wide text-muted uppercase">Name</span>
+        <span className="type-label">Name</span>
         <input required autoComplete="name" value={draft.name} onChange={(e) => set("name", e.target.value)} className={inputClass} />
       </label>
       <label className="block">
-        <span className="text-[11px] font-bold tracking-wide text-muted uppercase">Phone</span>
+        <span className="type-label">Phone</span>
         <input required type="tel" inputMode="tel" autoComplete="tel" value={draft.phone} onChange={(e) => set("phone", e.target.value)} className={inputClass} />
       </label>
       <label className="block">
-        <span className="text-[11px] font-bold tracking-wide text-muted uppercase">Email</span>
+        <span className="type-label">Email</span>
         <input type="email" autoComplete="email" value={draft.email} onChange={(e) => set("email", e.target.value)} className={inputClass} />
       </label>
 
       {secondOpen ? (
-        <fieldset className="grid gap-3 rounded-md border border-line p-3">
-          <legend className="px-1 text-[11px] font-bold tracking-wide text-muted uppercase">Second homeowner</legend>
+        <fieldset className="grid gap-4 rounded-md border border-line bg-page/40 p-4">
+          <legend className="px-1 type-group">Second homeowner</legend>
           <label className="block">
-            <span className="text-[11px] font-bold tracking-wide text-muted uppercase">Name</span>
+            <span className="type-label">Name</span>
             <input value={draft.secondaryName} onChange={(e) => set("secondaryName", e.target.value)} className={inputClass} />
           </label>
           <label className="block">
-            <span className="text-[11px] font-bold tracking-wide text-muted uppercase">Phone</span>
+            <span className="type-label">Phone</span>
             <input type="tel" inputMode="tel" value={draft.secondaryPhone} onChange={(e) => set("secondaryPhone", e.target.value)} className={inputClass} />
           </label>
           <label className="block">
-            <span className="text-[11px] font-bold tracking-wide text-muted uppercase">Email</span>
+            <span className="type-label">Email</span>
             <input type="email" value={draft.secondaryEmail} onChange={(e) => set("secondaryEmail", e.target.value)} className={inputClass} />
           </label>
         </fieldset>
@@ -98,23 +99,25 @@ export function DetailsForm({
         </button>
       )}
 
+      <p className="border-t border-line pt-5 type-group">Address</p>
       <label className="block">
-        <span className="text-[11px] font-bold tracking-wide text-muted uppercase">Address</span>
+        <span className="type-label">Street</span>
         <input value={draft.address} onChange={(e) => set("address", e.target.value)} className={inputClass} />
       </label>
       <label className="block">
-        <span className="text-[11px] font-bold tracking-wide text-muted uppercase">City</span>
+        <span className="type-label">City</span>
         <input value={draft.city} onChange={(e) => set("city", e.target.value)} className={inputClass} />
       </label>
 
-      <div className="grid gap-3 sm:grid-cols-2">
+      <p className="border-t border-line pt-5 type-group">How they came in</p>
+      <div className="grid gap-4 sm:grid-cols-2">
         <Pick label="Office" value={draft.office ?? ""} onChange={(v) => set("office", v)} options={OFFICES} />
         <Pick label="Setter" value={draft.setter ?? ""} onChange={(v) => set("setter", v)} options={setters} />
       </div>
       <Pick label="Closer" value={draft.closer ?? ""} onChange={(v) => set("closer", v)} options={closers} />
 
       <label className="relative block">
-        <span className="text-[11px] font-bold tracking-wide text-muted uppercase">Lead source</span>
+        <span className="type-label">Lead source</span>
         <select value={draft.source} onChange={(e) => set("source", e.target.value)} className={selectClass}>
           {sources.map((s) => (
             <option key={s}>{s}</option>
@@ -125,18 +128,18 @@ export function DetailsForm({
       {draft.source === "Referral" ? (
         <div className="grid gap-3 sm:grid-cols-2">
           <label className="block">
-            <span className="text-[11px] font-bold tracking-wide text-muted uppercase">Referrer name</span>
+            <span className="type-label">Referrer name</span>
             <input value={draft.referrerName} onChange={(e) => set("referrerName", e.target.value)} className={inputClass} />
           </label>
           <label className="block">
-            <span className="text-[11px] font-bold tracking-wide text-muted uppercase">Referrer phone</span>
+            <span className="type-label">Referrer phone</span>
             <input type="tel" inputMode="tel" value={draft.referrerPhone} onChange={(e) => set("referrerPhone", e.target.value)} className={inputClass} />
           </label>
         </div>
       ) : null}
 
       <div>
-        <p className="text-[11px] font-bold tracking-wide text-muted uppercase">Main interests</p>
+        <p className="type-label">Main interests</p>
         <div className="relative mt-1">
           <button
             type="button"
@@ -176,14 +179,15 @@ export function DetailsForm({
         ) : null}
         {picked.includes("Other") ? (
           <label className="mt-3 block">
-            <span className="text-[11px] font-bold tracking-wide text-muted uppercase">Other</span>
+            <span className="type-label">Other</span>
             <input value={draft.otherInterest} onChange={(e) => set("otherInterest", e.target.value)} className={inputClass} />
           </label>
         ) : null}
       </div>
 
+      <p className="border-t border-line pt-5 type-group">Why they're looking</p>
       <label className="block">
-        <span className="text-[11px] font-bold tracking-wide text-muted uppercase">Why they're looking</span>
+        <span className="type-label">Customer issues</span>
         <textarea
           value={draft.pain ?? ""}
           onChange={(e) => set("pain", e.target.value)}
@@ -194,7 +198,7 @@ export function DetailsForm({
       </label>
 
       <label className="block">
-        <span className="text-[11px] font-bold tracking-wide text-muted uppercase">Homeowner notes</span>
+        <span className="type-label">Homeowner notes</span>
         <textarea value={draft.notes} onChange={(e) => set("notes", e.target.value)} rows={3} className="mt-1 w-full rounded-md border border-line bg-card px-3 py-2 text-base md:text-sm outline-none focus:border-navy" />
       </label>
       </fieldset>
@@ -220,7 +224,7 @@ function Pick({
 }) {
   return (
     <label className="relative block">
-      <span className="text-[11px] font-bold tracking-wide text-muted uppercase">{label}</span>
+      <span className="type-label">{label}</span>
       <select value={value} onChange={(e) => onChange(e.target.value)} className={selectClass}>
         {blank ? <option value="">{blank}</option> : null}
         {options.map((o) => (

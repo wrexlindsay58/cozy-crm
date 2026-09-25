@@ -22,6 +22,7 @@ import { Route as AppInvoicesRouteImport } from './routes/_app/invoices'
 import { Route as AppLeaderboardRouteImport } from './routes/_app/leaderboard'
 import { Route as AppLeadsRouteImport } from './routes/_app/leads'
 import { Route as AppOpportunitiesRouteImport } from './routes/_app/opportunities'
+import { Route as AppPaperRouteImport } from './routes/_app/paper'
 import { Route as AppProjectsRouteImport } from './routes/_app/projects'
 import { Route as AppPurchasingRouteImport } from './routes/_app/purchasing'
 import { Route as AppReportsRouteImport } from './routes/_app/reports'
@@ -144,6 +145,11 @@ const AppLeadsRoute = AppLeadsRouteImport.update({
 const AppOpportunitiesRoute = AppOpportunitiesRouteImport.update({
   id: '/opportunities',
   path: '/opportunities',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppPaperRoute = AppPaperRouteImport.update({
+  id: '/paper',
+  path: '/paper',
   getParentRoute: () => AppRoute,
 } as any)
 const AppProjectsRoute = AppProjectsRouteImport.update({
@@ -464,6 +470,7 @@ export interface FileRoutesByFullPath {
   '/leaderboard': typeof AppLeaderboardRoute
   '/leads': typeof AppLeadsRoute
   '/opportunities': typeof AppOpportunitiesRoute
+  '/paper': typeof AppPaperRoute
   '/projects': typeof AppProjectsRoute
   '/purchasing': typeof AppPurchasingRoute
   '/reports': typeof AppReportsRoute
@@ -536,6 +543,7 @@ export interface FileRoutesByTo {
   '/leaderboard': typeof AppLeaderboardRoute
   '/leads': typeof AppLeadsRoute
   '/opportunities': typeof AppOpportunitiesRoute
+  '/paper': typeof AppPaperRoute
   '/projects': typeof AppProjectsRoute
   '/purchasing': typeof AppPurchasingRoute
   '/reports': typeof AppReportsRoute
@@ -611,6 +619,7 @@ export interface FileRoutesById {
   '/_app/leaderboard': typeof AppLeaderboardRoute
   '/_app/leads': typeof AppLeadsRoute
   '/_app/opportunities': typeof AppOpportunitiesRoute
+  '/_app/paper': typeof AppPaperRoute
   '/_app/projects': typeof AppProjectsRoute
   '/_app/purchasing': typeof AppPurchasingRoute
   '/_app/reports': typeof AppReportsRoute
@@ -687,6 +696,7 @@ export interface FileRouteTypes {
     | '/leaderboard'
     | '/leads'
     | '/opportunities'
+    | '/paper'
     | '/projects'
     | '/purchasing'
     | '/reports'
@@ -759,6 +769,7 @@ export interface FileRouteTypes {
     | '/leaderboard'
     | '/leads'
     | '/opportunities'
+    | '/paper'
     | '/projects'
     | '/purchasing'
     | '/reports'
@@ -833,6 +844,7 @@ export interface FileRouteTypes {
     | '/_app/leaderboard'
     | '/_app/leads'
     | '/_app/opportunities'
+    | '/_app/paper'
     | '/_app/projects'
     | '/_app/purchasing'
     | '/_app/reports'
@@ -991,6 +1003,13 @@ declare module '@tanstack/react-router' {
       path: '/opportunities'
       fullPath: '/opportunities'
       preLoaderRoute: typeof AppOpportunitiesRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/paper': {
+      id: '/_app/paper'
+      path: '/paper'
+      fullPath: '/paper'
+      preLoaderRoute: typeof AppPaperRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/projects': {
@@ -1421,6 +1440,7 @@ interface AppRouteChildren {
   AppLeaderboardRoute: typeof AppLeaderboardRoute
   AppLeadsRoute: typeof AppLeadsRoute
   AppOpportunitiesRoute: typeof AppOpportunitiesRoute
+  AppPaperRoute: typeof AppPaperRoute
   AppProjectsRoute: typeof AppProjectsRoute
   AppPurchasingRoute: typeof AppPurchasingRoute
   AppReportsRoute: typeof AppReportsRoute
@@ -1494,6 +1514,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppLeaderboardRoute: AppLeaderboardRoute,
   AppLeadsRoute: AppLeadsRoute,
   AppOpportunitiesRoute: AppOpportunitiesRoute,
+  AppPaperRoute: AppPaperRoute,
   AppProjectsRoute: AppProjectsRoute,
   AppPurchasingRoute: AppPurchasingRoute,
   AppReportsRoute: AppReportsRoute,

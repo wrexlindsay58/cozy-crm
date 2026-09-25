@@ -4,6 +4,7 @@ const KEYS: { key: PermKey; label: string }[] = [
   { key: "seeCost", label: "See cost" },
   { key: "takeCard", label: "Take card" },
   { key: "editCatalog", label: "Edit catalog" },
+  { key: "overrideFee", label: "Override fee" },
 ];
 
 export function PermissionsMatrix() {

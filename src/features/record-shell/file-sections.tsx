@@ -9,6 +9,7 @@ import {
   CreditCard,
   Fan,
   FileText,
+  FileSignature,
   GitMerge,
   HardHat,
   House,
@@ -61,6 +62,7 @@ const ICONS: Record<string, LucideIcon> = {
   options: LayoutList,
   pay: CreditCard,
   proposal: FileText,
+  agreement: FileSignature,
   stage: ListOrdered,
   job: Briefcase,
   pipeline: GitMerge,
@@ -68,6 +70,11 @@ const ICONS: Record<string, LucideIcon> = {
   account: Building2,
   visits: CalendarDays,
   photos: Image,
+  next: CircleDollarSign,
+  follow: CircleDollarSign,
+  service: Wrench,
+  reviews: Star,
+  records: FileText,
   opp: Star,
   sold: BadgeCheck,
   survey: Ruler,
@@ -148,7 +155,7 @@ export function FileSections({
             paneRef.current = n;
             paneEl = n;
           }}
-          className="min-h-0 flex-1 space-y-3 overflow-auto overscroll-none p-2 md:p-2.5"
+          className="min-h-0 flex-1 space-y-2 overflow-auto overscroll-none p-2 md:p-2.5"
         >
           {items.map((s) => (
             <div key={s.id} id={`sec-${s.id}`}>

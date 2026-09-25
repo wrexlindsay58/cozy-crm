@@ -33,9 +33,9 @@ export function MediaAdd({
   }
 
   return (
-    <div className="w-full min-w-0 overflow-visible">
-      <div className="flex w-full min-w-0 items-end gap-2 overflow-visible p-px">
-        <div className="grid min-w-0 w-full flex-1 grid-cols-1 gap-2 sm:grid-cols-3">
+    <div className="@container w-full min-w-0">
+      <div className="flex w-full min-w-0 flex-col gap-2 @[40rem]:flex-row @[40rem]:items-end">
+        <div className="grid min-w-0 w-full flex-1 grid-cols-1 gap-2 @[40rem]:grid-cols-3">
           <FillField label="Description">
             <input
               value={caption}
@@ -74,8 +74,8 @@ export function MediaAdd({
             </select>
           </FillField>
         </div>
-        <button type="button" onClick={go} className={cn("h-10 shrink-0 rounded-md px-3 text-[12px] font-semibold", ready ? "bg-navy text-card" : "border border-line text-muted")}>
-          <span className="inline-flex items-center gap-1.5">
+        <button type="button" onClick={go} className={cn("h-10 w-full shrink-0 rounded-md px-3 text-[12px] font-semibold @[40rem]:w-auto", ready ? "bg-navy text-card" : "border border-line text-muted")}>
+          <span className="inline-flex items-center justify-center gap-1.5">
             <ImagePlus className="size-3.5" />
             Upload
           </span>

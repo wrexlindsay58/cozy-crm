@@ -32,8 +32,7 @@ export const NAV: NavGroup[] = [
   {
     label: "Money",
     items: [
-      { label: "Invoices", to: "/invoices" },
-      { label: "Purchasing", to: "/purchasing" },
+      { label: "Paper", to: "/paper" },
     ],
   },
   {

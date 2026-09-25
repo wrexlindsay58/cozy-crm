@@ -9,6 +9,7 @@ import { PACKAGES } from "./packages";
 import { OptionCard } from "./option-card";
 import { PayTiles } from "./pay-tiles";
 import { ProposalPanel } from "./proposal-panel";
+import { AgreementPanel } from "./agreement-panel";
 import { AssessSnap } from "./assess-snap";
 import { FileSections } from "@/features/record-shell/file-sections";
 
@@ -26,11 +27,11 @@ export function OppWorkspace({ proposal }: { proposal: Proposal }) {
         { id: "assess", label: "Assessment", done: true, node: <AssessSnap leadId={proposal.personId} /> },
         {
           id: "options",
-          label: "Options",
+          label: "Scope",
           node: (
-            <div className="space-y-3">
+            <div className="space-y-2">
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <h2 className="text-sm font-semibold">Proposal options</h2>
+                <h2 className="text-sm font-semibold">Scope</h2>
                 {!proposal.accepted ? (
                   <div className="flex flex-wrap gap-2">
                     <button
@@ -67,7 +68,7 @@ export function OppWorkspace({ proposal }: { proposal: Proposal }) {
                   </div>
                 ) : null}
               </div>
-              <div className="space-y-3">
+              <div className="space-y-2">
                 {proposal.options
                   .filter((opt) => showAllOpts || !proposal.accepted || opt.id === proposal.accepted)
                   .map((opt) => (
@@ -82,8 +83,11 @@ export function OppWorkspace({ proposal }: { proposal: Proposal }) {
             </div>
           ),
         },
-        { id: "pay", label: "Pay", node: <PayTiles proposal={proposal} /> },
+        { id: "pay", label: "Payment", node: <PayTiles proposal={proposal} /> },
         { id: "proposal", label: "Proposal", node: <ProposalPanel proposal={proposal} /> },
+        ...(proposal.agreement?.status === "Signed" || proposal.agreements?.some((a) => a.status === "Signed")
+          ? [{ id: "agreement", label: "Agreement", node: <AgreementPanel proposal={proposal} /> }]
+          : []),
         { id: "book", label: "Book", node: <BookWidget leadId={proposal.personId} defaultCloser={proposal.closer} defaultKind="Callback" /> },
       ]}
     />

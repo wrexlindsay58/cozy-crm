@@ -33,7 +33,7 @@ const GROUPS = [
     title: "Money",
     links: [
       { to: "/settings/pricebook", title: "Products and pricing", note: "Catalog, HVAC, roof, adders. No separate roof/HVAC admin." },
-      { to: "/settings/financers", title: "Financers", note: "GoodLeap dealer fee + cash / 12-mo" },
+      { to: "/settings/financers", title: "Financers", note: "Methods, fees, and loan terms" },
       { to: "/settings/terms", title: "Payment terms", note: "Deposit / progress / final" },
       { to: "/settings/commission", title: "Commission", note: "Writes the job cost line" },
       { to: "/settings/visits", title: "Visits and memberships", note: "Service fee vs cost" },
@@ -80,8 +80,8 @@ export function SettingsHub() {
             {g.links.map((l) => (
               <li key={l.to}>
                 <a href={l.to} className="block px-4 py-3 hover:bg-page">
-                  <p className="font-semibold">{l.title}</p>
-                  <p className="text-sm text-muted">{l.note}</p>
+                  <p className="type-group">{l.title}</p>
+                  <p className="type-meta">{l.note}</p>
                 </a>
               </li>
             ))}

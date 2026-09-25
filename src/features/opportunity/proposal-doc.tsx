@@ -1,12 +1,13 @@
-import { itemBySku, useCatalog } from "@/features/catalog/store";
+import { useCatalog } from "@/features/catalog/store";
 import { assessmentForLead, useAssessments } from "@/features/assessment/store";
 import { useAssessCategories } from "@/features/assessment/categories";
 import { useOps } from "@/features/ops/store";
-import { money } from "@/lib/crm-data";
 import { cityState, placeLine } from "@/lib/place";
-import { acceptOption, applyGoodLeap, demoMonthly, lineAmount, optionTotal, requestDeposit, sendToSign, type Proposal } from "./store";
+import { acceptOption, applyGoodLeap, optionRollup, requestDeposit, sendToSign, type Proposal } from "./store";
 import { useBrand } from "@/features/brand/store";
-import { picksOn, scopeLines, TERM_LABEL } from "./proposal-copy";
+import { picksOn, scopeLines } from "./proposal-copy";
+import { PriceLines } from "./sold-summary";
+import { MatchedPay } from "./pay-tiles";
 import { cn } from "@/lib/cn";
 
 export function ProposalDoc({ proposal }: { proposal: Proposal }) {
@@ -95,32 +96,22 @@ export function ProposalDoc({ proposal }: { proposal: Proposal }) {
         <h3 className="text-[11px] font-bold tracking-wide text-muted uppercase">Options</h3>
         {proposal.options.map((opt) => {
           const taken = proposal.accepted === opt.id;
-          const goods = opt.lines.filter((l) => l.kind !== "discount");
-          const offs = opt.lines.filter((l) => l.kind === "discount");
+          const roll = optionRollup(opt);
+          const included = opt.lines.filter((l) => l.kind !== "discount" && !l.rebate);
           return (
             <div key={opt.id} className={cn("rounded-md border p-4", taken ? "border-navy" : "border-line")}>
-              <div className="flex flex-wrap items-baseline justify-between gap-2">
-                <h4 className="text-sm font-extrabold tracking-wide uppercase">{opt.name}</h4>
-                <p className="text-xl font-extrabold tabular-nums">{money(optionTotal(opt))}</p>
-              </div>
-              <ul className="mt-3 space-y-1.5 text-sm">
-                {goods.map((l) => (
-                  <li key={l.sku} className="flex justify-between gap-3">
-                    <span>
-                      {l.label}
-                      {picksOn(l) ? <span className="text-muted"> · {picksOn(l)}</span> : null}
-                      {l.kind === "adder" ? <span className="text-muted"> · adder</span> : null}
-                    </span>
-                    <span className="tabular-nums">{money(lineAmount(l) || l.unit * l.qty)}</span>
-                  </li>
-                ))}
-                {offs.map((l) => (
-                  <li key={l.sku} className="flex justify-between gap-3 text-muted">
-                    <span>{l.label} · off</span>
-                    <span className="tabular-nums">{l.pct ? `-${l.pct}%` : money(l.unit * l.qty)}</span>
+              <h4 className="text-sm font-extrabold tracking-wide uppercase">{opt.name}</h4>
+              <p className="mt-3 text-[11px] font-bold tracking-wide text-muted uppercase">Included</p>
+              <ul className="mt-1 space-y-1 text-sm">
+                {included.map((l) => (
+                  <li key={l.sku}>
+                    {l.label}
+                    {picksOn(l) ? <span className="text-muted"> · {picksOn(l)}</span> : null}
+                    {l.qty > 1 ? <span className="text-muted"> · {l.qty}</span> : null}
                   </li>
                 ))}
               </ul>
+              <PriceLines roll={roll} />
               <div className="mt-3">
                 <p className="text-[11px] font-bold tracking-wide text-muted uppercase">Scope</p>
                 <p className="mt-1 text-sm">We will {scopeLines(opt).join("; ").toLowerCase()}.</p>
@@ -143,40 +134,7 @@ export function ProposalDoc({ proposal }: { proposal: Proposal }) {
 
       <section className="border-b border-line px-5 py-4 md:px-7">
         <h3 className="text-[11px] font-bold tracking-wide text-muted uppercase">How you pay</h3>
-        {proposal.payOffers.length === 0 ? <p className="mt-2 text-sm text-muted">Add cash, card, or financing on the file and generate again.</p> : null}
-        <div className="mt-3 space-y-3">
-          {proposal.payOffers.map((offer) => (
-            <div key={offer.id}>
-              <p className="text-sm font-semibold">
-                {offer.kind === "cash" ? "Cash" : offer.kind === "card" ? "Credit card" : `Financing · ${offer.financer ?? "GoodLeap"}`}
-              </p>
-              {offer.kind !== "finance" ? (
-                <ul className="mt-1 text-sm">
-                  {proposal.options.map((o) => (
-                    <li key={o.id} className="flex justify-between gap-3">
-                      <span>{o.name}</span>
-                      <span className="font-extrabold tabular-nums">{money(optionTotal(o))}</span>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                offer.terms.map((m) => (
-                  <div key={m} className="mt-1">
-                    <p className="text-[11px] font-bold tracking-wide text-muted uppercase">{TERM_LABEL[m] ?? `${m} mo`}</p>
-                    <ul className="text-sm">
-                      {proposal.options.map((o) => (
-                        <li key={o.id} className="flex justify-between gap-3">
-                          <span>{o.name}</span>
-                          <span className="font-extrabold tabular-nums">{money(demoMonthly(optionTotal(o), m))}/mo</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                ))
-              )}
-            </div>
-          ))}
-        </div>
+        {proposal.payOffers.length === 0 ? <p className="mt-2 text-sm text-muted">Add cash, card, or financing on the file and generate again.</p> : <div className="mt-3"><MatchedPay proposal={proposal} /></div>}
       </section>
 
       <section className="px-5 py-4 md:px-7">

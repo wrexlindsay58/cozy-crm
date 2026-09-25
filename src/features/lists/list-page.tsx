@@ -39,7 +39,7 @@ export function ListPage({
               value={search}
               onChange={(e) => onSearch(e.target.value)}
               placeholder={searchPlaceholder}
-              className="h-11 min-h-11 w-full min-w-40 shrink-0 rounded-md border border-line bg-page px-3 text-sm outline-none focus:border-navy sm:w-64"
+              className="h-11 min-h-11 w-full min-w-40 shrink-0 rounded-md border border-line bg-card px-3 text-sm outline-none focus:border-navy sm:w-64"
             />
           ) : null}
           {views?.length ? (

@@ -84,6 +84,12 @@ function downloadPnl(job: JobFile) {
   URL.revokeObjectURL(a.href);
 }
 
+export function JobPnl({ job }: { job: JobFile }) {
+  useStaff();
+  if (!canSeeCost()) return <p className="text-[15px]">Contract {money(tally(job).revenue)}. Cost is hidden for this login.</p>;
+  return <PnLSheet job={job} readOnly />;
+}
+
 export function MoneyBlock({ job }: { job: JobFile }) {
   useStaff();
   const t = tally(job);
@@ -91,7 +97,7 @@ export function MoneyBlock({ job }: { job: JobFile }) {
   const financeCos = job.changeOrders.filter((c) => c.lane === "finance");
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-2">
       {canSeeCost() ? (
         <JobCard
           kicker="Money"
@@ -485,7 +491,7 @@ function CommRow({
   );
 }
 
-function PnLSheet({ job }: { job: JobFile }) {
+function PnLSheet({ job, readOnly = false }: { job: JobFile; readOnly?: boolean }) {
   const t = tally(job);
   const of = t.revenue;
   const products = job.scope.filter((s) => s.kind === "product");
@@ -602,12 +608,12 @@ function PnLSheet({ job }: { job: JobFile }) {
         </div>
       </div>
 
-      <TrueDiscountHits job={job} />
+      <TrueDiscountHits job={job} readOnly={readOnly} />
     </div>
   );
 }
 
-function TrueDiscountHits({ job }: { job: JobFile }) {
+function TrueDiscountHits({ job, readOnly = false }: { job: JobFile; readOnly?: boolean }) {
   const listed = job.scope.filter((s) => s.kind === "discount" || s.amount < 0);
   const sales = (job.costHits ?? []).filter((h) => h.kind === "sales");
   const [reason, setReason] = useState<SalesFault>(SALES_FAULTS[0]);
@@ -632,14 +638,17 @@ function TrueDiscountHits({ job }: { job: JobFile }) {
             </span>
             <span className="flex items-center gap-2">
               <span className="font-semibold tabular-nums text-alert">{money(h.amount)}</span>
+              {readOnly ? null : (
               <button type="button" aria-label="Remove" className="grid size-8 place-items-center rounded-md text-muted hover:text-alert" onClick={() => removeCostHit(job.jobId, h.id)}>
                 <Trash2 className="size-4" />
               </button>
+              )}
             </span>
           </li>
         ))}
         {!listed.length && !sales.length ? <li className="py-1.5 text-sm text-muted">None on this file.</li> : null}
       </ul>
+      {readOnly ? null : (
       <form
         className="mt-3 grid gap-2 sm:grid-cols-[minmax(0,1fr)_6.5rem_minmax(0,1.2fr)_auto]"
         onSubmit={(e) => {
@@ -660,6 +669,7 @@ function TrueDiscountHits({ job }: { job: JobFile }) {
           Add
         </button>
       </form>
+      )}
     </div>
   );
 }

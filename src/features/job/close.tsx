@@ -1,41 +1,29 @@
 import { useState } from "react";
-import { cancelJob, closeBlocks, completeJob, sendPacket, setCheckCallout, signPost, signPre, togglePacket, togglePost, togglePre, type JobFile } from "./store";
+import { cancelJob, closeBlocks, completeJob, sendPacket, setCheckCallout, togglePacket, togglePost, togglePre, type JobFile } from "./store";
 import { cn } from "@/lib/cn";
 import { JobCard } from "./job-card";
 import { CheckLine } from "./callouts";
+import { CheckSign } from "./check-sign";
+import { JobPacket } from "@/features/paper/paper-page";
+import { signedProposals } from "@/features/opportunity/agreement-panel";
+import { useProposals } from "@/features/opportunity/store";
+import { sendMessage } from "@/features/thread/store";
 
 export function CloseBlock({ job }: { job: JobFile }) {
-  const [pre, setPre] = useState("");
-  const [post, setPost] = useState("");
   const [why, setWhy] = useState("");
   const blocks = closeBlocks(job);
+  const proposal = signedProposals(job.leadId, useProposals())[0];
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-2">
       {job.cancelled ? (
         <JobCard kicker="Cancelled" title={job.cancelWhy || job.cancelledAt || "This job is cancelled."} done>
           <p className="text-sm text-alert">No more production on this file.</p>
         </JobCard>
       ) : null}
       <div className="grid gap-3 lg:grid-cols-2">
-        <CheckCard
-          title="Pre-install"
-          check={job.preCheck}
-          onToggle={(id) => togglePre(job.jobId, id)}
-          onCallout={(id, v) => setCheckCallout(job.jobId, "pre", id, v)}
-          who={pre}
-          setWho={setPre}
-          onSign={() => signPre(job.jobId, pre)}
-        />
-        <CheckCard
-          title="Post-install"
-          check={job.postCheck}
-          onToggle={(id) => togglePost(job.jobId, id)}
-          onCallout={(id, v) => setCheckCallout(job.jobId, "post", id, v)}
-          who={post}
-          setWho={setPost}
-          onSign={() => signPost(job.jobId, post)}
-        />
+        <CheckCard title="Pre-install acknowledgement" job={job} kind="pre" />
+        <CheckCard title="Post-install acknowledgement" job={job} kind="post" />
       </div>
       <JobCard kicker="Closeout" title="Closing packet" done={job.packet.sent}>
         <ul className="space-y-1">
@@ -48,7 +36,23 @@ export function CloseBlock({ job }: { job: JobFile }) {
             </li>
           ))}
         </ul>
-        <button type="button" onClick={() => sendPacket(job.jobId)} className="mt-3 h-10 rounded-md bg-navy px-3 text-sm font-semibold text-card">
+        <div className="mt-4 border-t border-line pt-4">
+          <JobPacket jobId={job.jobId} />
+        </div>
+        <button
+          type="button"
+          onClick={() => {
+            sendPacket(job.jobId);
+            const file = proposal?.agreements?.find((a) => a.status === "Signed" && a.fileUrl) ?? proposal?.agreement;
+            if (file?.fileUrl) {
+              sendMessage(job.personId, `Closing packet for ${job.product}. The signed agreement is attached. Print it or save it as a PDF.`, "email", {
+                subject: "Closing packet",
+                files: [{ name: file.fileName ?? "agreement.html", kind: "file", src: file.fileUrl }],
+              });
+            }
+          }}
+          className="mt-3 h-10 rounded-md bg-navy px-3 text-sm font-semibold text-card"
+        >
           {job.packet.sent ? `Sent ${job.packet.sentAt}` : "Send closing packet"}
         </button>
       </JobCard>
@@ -81,23 +85,8 @@ export function CloseBlock({ job }: { job: JobFile }) {
   );
 }
 
-function CheckCard({
-  title,
-  check,
-  onToggle,
-  onCallout,
-  who,
-  setWho,
-  onSign,
-}: {
-  title: string;
-  check: JobFile["preCheck"];
-  onToggle: (id: string) => void;
-  onCallout: (id: string, v: string) => void;
-  who: string;
-  setWho: (v: string) => void;
-  onSign: () => void;
-}) {
+function CheckCard({ title, job, kind }: { title: string; job: JobFile; kind: "pre" | "post" }) {
+  const check = kind === "pre" ? job.preCheck : job.postCheck;
   return (
     <JobCard kicker="Checklist" title={title} aside={check.signedAt ? `Signed ${check.signedBy}` : "Open"} done={Boolean(check.signedAt)}>
       <ul>
@@ -107,29 +96,12 @@ function CheckCard({
             label={i.label}
             on={i.on}
             callout={i.callout}
-            onToggle={() => onToggle(i.id)}
-            onCallout={(v) => onCallout(i.id, v)}
+            onToggle={() => (kind === "pre" ? togglePre(job.jobId, i.id) : togglePost(job.jobId, i.id))}
+            onCallout={(v) => setCheckCallout(job.jobId, kind, i.id, v)}
           />
         ))}
       </ul>
-      {check.signedAt ? (
-        <p className="mt-3 text-sm font-semibold text-up">
-          Signed {check.signedBy} · {check.signedAt}
-        </p>
-      ) : (
-        <form
-          className="mt-3 flex gap-2"
-          onSubmit={(e) => {
-            e.preventDefault();
-            onSign();
-          }}
-        >
-          <input value={who} onChange={(e) => setWho(e.target.value)} placeholder="Homeowner name" className="h-10 flex-1 rounded-md border border-line px-3 text-sm" />
-          <button type="submit" className="h-10 rounded-md bg-navy px-3 text-sm font-semibold text-card">
-            Sign
-          </button>
-        </form>
-      )}
+      <CheckSign job={job} kind={kind} />
     </JobCard>
   );
 }

@@ -71,9 +71,9 @@ export function PageTitle({
 }) {
   return (
     <div className={cn("flex min-w-0 items-center gap-2", flush ? "min-h-14 w-full" : "mb-4")}>
-      <h1 className="shrink-0 text-[20px] font-bold tracking-tight">
+      <h1 className="type-page shrink-0">
         {title}
-        {count ? <span className="ml-2 text-[13px] font-semibold text-muted">{count}</span> : null}
+        {count ? <span className="type-meta ml-2 font-normal">{count}</span> : null}
       </h1>
       <div className="flex min-w-0 flex-1 items-center gap-2 overflow-x-auto">{actions}</div>
       <p className="hidden shrink-0 text-[13px] text-muted tabular-nums md:block">{clockLabel()}</p>

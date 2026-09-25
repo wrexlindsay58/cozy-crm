@@ -1,9 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { Plus, Search } from "lucide-react";
-import { cn } from "@/lib/cn";
 import { PageTitle } from "@/components/ui-bits";
-import { Tip } from "@/components/tip";
 import { useStaff } from "@/features/staff/store";
 import { ResourceBoard } from "@/features/book/board";
 import { EventModal } from "@/features/book/event-modal";
@@ -88,32 +86,13 @@ function CalendarPage() {
       <header className="shrink-0 border-b border-line bg-card px-3 py-2 md:hidden">
         <div className="flex items-center gap-2">
           <h1 className="text-[20px] font-bold tracking-tight">Book</h1>
-          <Tip label="Event" on className="ml-auto">
-            <button
-              type="button"
-              aria-label="Event"
-              className="grid size-9 place-items-center rounded-md bg-navy text-card"
-              onClick={bookEvent}
-            >
-              <Plus className="size-4" />
-            </button>
-          </Tip>
-        </div>
-        <div className="mt-2 overflow-x-auto">
-          <div className="flex w-max rounded-md bg-page p-0.5">
-            {VIEWS.map((v) => (
-              <button
-                key={v}
-                type="button"
-                className={cn("h-8 shrink-0 px-2.5 text-[13px] font-semibold", view === v ? "bg-navy text-card" : "text-muted")}
-                onClick={() => setView(v)}
-              >
-                {VIEW_LABEL[v]}
-              </button>
-            ))}
-          </div>
         </div>
         <div className="mt-2 flex items-center gap-1.5 overflow-x-auto">
+          <BookPick
+            value={view}
+            onChange={setView}
+            items={VIEWS.map((v) => ({ id: v, label: VIEW_LABEL[v] }))}
+          />
           <BookPick
             value={office}
             onChange={setOffice}
@@ -157,6 +136,14 @@ function CalendarPage() {
           <p className="min-w-0 flex-1 truncate text-sm font-semibold">
             {cursor.toLocaleDateString("en-US", { month: "short", day: "numeric" })}
           </p>
+          <button
+            type="button"
+            className="ml-auto inline-flex h-8 shrink-0 items-center gap-1 rounded-md bg-navy px-2.5 text-xs font-semibold text-card"
+            onClick={bookEvent}
+          >
+            <Plus className="size-3.5" />
+            Event
+          </button>
         </div>
       </header>
 
@@ -166,22 +153,11 @@ function CalendarPage() {
           flush
           actions={
             <>
-              <div className="flex rounded-md bg-page p-0.5">
-                {VIEWS.map((v) => (
-                  <button
-                    key={v}
-                    type="button"
-                    className={cn(
-                      "h-8 px-2.5 text-[13px] font-semibold",
-                      v === "resource" && "max-md:hidden",
-                      view === v ? "bg-navy text-card" : "text-muted",
-                    )}
-                    onClick={() => setView(v)}
-                  >
-                    {VIEW_LABEL[v]}
-                  </button>
-                ))}
-              </div>
+              <BookPick
+                value={view}
+                onChange={setView}
+                items={VIEWS.map((v) => ({ id: v, label: VIEW_LABEL[v] }))}
+              />
               <BookPick
                 value={office}
                 onChange={setOffice}
@@ -211,14 +187,6 @@ function CalendarPage() {
                   { id: "shop", label: "Shop" },
                 ]}
               />
-              <button
-                type="button"
-                className="inline-flex h-9 items-center gap-1 rounded-md bg-navy px-3 text-sm font-semibold text-card"
-                onClick={bookEvent}
-              >
-                <Plus className="size-4" />
-                Event
-              </button>
             </>
           }
         />
@@ -237,15 +205,23 @@ function CalendarPage() {
         <p className="shrink-0 truncate text-sm font-semibold">
           {cursor.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
         </p>
-        <label className="relative min-w-0 max-w-64 flex-1 md:ml-auto md:min-w-40">
+        <label className="relative ml-auto min-w-0 max-w-64 flex-1 md:min-w-40">
           <Search className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-faint" />
           <input
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="Find a sit"
+            placeholder="Find an Event"
             className="h-8 w-full rounded-md border border-line bg-card pr-3 pl-8 text-[13px] outline-none placeholder:text-faint"
           />
         </label>
+        <button
+          type="button"
+          className="inline-flex h-8 shrink-0 items-center gap-1 rounded-md bg-navy px-3 text-sm font-semibold text-card"
+          onClick={bookEvent}
+        >
+          <Plus className="size-4" />
+          Event
+        </button>
       </div>
 
       {view === "resource" ? (
@@ -279,8 +255,9 @@ function CalendarPage() {
           selectedDay={cursor.getDate()}
           onDay={(d) => {
             setBookDay(new Date(cursor.getFullYear(), cursor.getMonth(), d));
-            setView("three");
+            setView("resource");
           }}
+          onEvent={setPicked}
         />
       ) : null}
 

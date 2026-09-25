@@ -36,7 +36,7 @@ export function FileMedia({ personId, photos: seed }: { personId: string; photos
   }
   const keys = ORDER.filter((k) => groups.has(k));
   return (
-    <div className="space-y-5">
+    <div className="space-y-2">
       <div className="flex items-center justify-between gap-2">
         <h2 className="text-[11px] font-bold tracking-wide text-muted uppercase">Media</h2>
         <Tip label="Add media" on>

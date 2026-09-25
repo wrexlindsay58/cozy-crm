@@ -9,15 +9,18 @@ export function MonthGrid({
   events,
   selectedDay,
   onDay,
+  onEvent,
 }: {
   events: BookEvent[];
   selectedDay: number;
   onDay: (d: number) => void;
+  onEvent: (id: string) => void;
 }) {
   const cells = monthGrid();
+  const weeks = cells.length / 7;
   return (
-    <div className="flex min-h-0 flex-1 flex-col overflow-auto p-4">
-      <div className="grid grid-cols-7 text-center text-[11px] font-bold tracking-wide text-muted uppercase max-md:text-[10px] max-md:tracking-normal">
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden p-2 md:p-4">
+      <div className="grid shrink-0 grid-cols-7 text-center text-[11px] font-bold tracking-wide text-muted uppercase max-md:text-[10px] max-md:tracking-normal">
         {DAYS.map((d) => (
           <span key={d} className="py-1 max-md:px-0">
             {d.slice(0, 1)}
@@ -25,39 +28,35 @@ export function MonthGrid({
           </span>
         ))}
       </div>
-      <div className="grid flex-1 grid-cols-7 gap-1">
+      <div className="grid min-h-0 flex-1 grid-cols-7 gap-1" style={{ gridTemplateRows: `repeat(${weeks}, minmax(0, 1fr))` }}>
         {cells.map((d, i) => {
-          if (!d) return <div key={`e-${i}`} className="min-h-20 max-md:min-h-14" />;
+          if (!d) return <div key={`e-${i}`} className="min-h-0" />;
           const marks = events.filter((e) => Number(e.start.slice(8, 10)) === d);
+          const on = d === selectedDay;
           return (
-            <button
+            <div
               key={d}
-              type="button"
               onClick={() => onDay(d)}
-              className={cn("min-h-20 rounded-md p-2 text-left max-md:min-h-14 max-md:p-1", d === selectedDay ? "bg-navy text-card" : "bg-card border border-line")}
+              className={cn("flex min-h-0 cursor-pointer flex-col overflow-hidden rounded-md p-1 md:p-2", on ? "bg-navy text-card" : "border border-line bg-card")}
             >
-              <span className="text-[13px] font-bold">{d}</span>
-              <div className="mt-1 space-y-0.5 max-md:mt-1 max-md:flex max-md:flex-wrap max-md:gap-0.5 max-md:space-y-0">
-                {marks.slice(0, 3).map((m) => (
-                  <p
+              <span className="shrink-0 text-left text-[13px] font-bold">{d}</span>
+              <div className="mt-1 min-h-0 flex-1 space-y-0.5 overflow-y-auto">
+                {marks.map((m) => (
+                  <button
                     key={m.id}
-                    className={cn("truncate rounded-sm px-1 text-[11px] leading-5 max-md:hidden", d === selectedDay ? "bg-card/20 text-card" : "text-ink")}
-                    style={d === selectedDay ? undefined : { background: TYPE_TONE[m.type]?.bg }}
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onEvent(m.id);
+                    }}
+                    className={cn("block w-full truncate rounded-sm px-1 text-left text-[11px] leading-5", on ? "bg-card/20 text-card" : "text-ink")}
+                    style={on ? undefined : { background: TYPE_TONE[m.type]?.bg }}
                   >
                     {m.title.split(" ")[0]} · {m.type}
-                  </p>
+                  </button>
                 ))}
-                {marks.slice(0, 4).map((m) => (
-                  <i
-                    key={`dot-${m.id}`}
-                    className="hidden size-1.5 rounded-full max-md:inline-block"
-                    style={{ background: d === selectedDay ? "var(--color-card)" : TYPE_TONE[m.type]?.bar ?? "var(--color-navy)" }}
-                    aria-hidden
-                  />
-                ))}
-                {marks.length > 3 ? <p className="text-[11px] opacity-70 max-md:hidden">+{marks.length - 3}</p> : null}
               </div>
-            </button>
+            </div>
           );
         })}
       </div>

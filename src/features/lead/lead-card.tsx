@@ -22,11 +22,11 @@ export function LeadCard({
   }
 
   return (
-    <section className="rounded-md border border-line bg-card p-4">
-      <div className="mb-3 flex items-center justify-between gap-2">
+    <section className="rounded-md border border-line bg-card">
+      <div className="flex items-center justify-between gap-2 border-b border-line px-4 py-3">
         <div className="min-w-0">
-          <h2 className="text-sm font-semibold">Contact</h2>
-          <p className="mt-0.5 text-[11px] text-muted">{lead.id}</p>
+          <h2 className="type-section">Contact</h2>
+          <p className="type-meta mt-1">{lead.name}</p>
         </div>
         {locked ? (
           <Tip label={edit ? "Done" : "Edit"} on>
@@ -41,7 +41,9 @@ export function LeadCard({
           </Tip>
         ) : null}
       </div>
+      <div className="px-4 py-3">
       {locked && !edit ? <ContactView lead={lead} /> : <DetailsForm key={`${lead.id}-${edit}`} initial={lead} submitLabel="Save contact" onSubmit={save} />}
+      </div>
     </section>
   );
 }

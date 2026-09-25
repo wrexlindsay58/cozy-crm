@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
-import { addBom, addJobSurvey, addScopeMedia, addSurveyMedia, addSurveyRoom, attachPlanFile, orderBom, patchBom, patchJobSurvey, patchPermit, patchSurveyFact, patchSurveyRoom, removeJobSurvey, setSurveyDone, skipSurvey, signPre, togglePre, type JobFile } from "./store";
+import { addBom, addJobSurvey, addScopeMedia, addSurveyMedia, addSurveyRoom, attachPlanFile, orderBom, patchBom, patchJobSurvey, patchPermit, patchSurveyFact, patchSurveyRoom, removeJobSurvey, setSurveyDone, skipSurvey, togglePre, type JobFile } from "./store";
+import { CheckSign } from "./check-sign";
 import { profileById, useProdProfiles } from "./profiles";
 import { money } from "@/lib/crm-data";
 import type { Lead } from "@/lib/crm-data";
@@ -26,7 +27,6 @@ const KINDS: { id: SurveyKind; label: string }[] = [
 ];
 
 export function ReadyChapter({ job }: { job: JobFile }) {
-  const [who, setWho] = useState("");
   const lines = job.scope.filter((s) => s.kind === "product" || s.kind === "adder");
   return (
     <div className="space-y-3">
@@ -41,22 +41,7 @@ export function ReadyChapter({ job }: { job: JobFile }) {
             </li>
           ))}
         </ul>
-        {job.preCheck.signedAt ? (
-          <p className="mt-2 text-[12px] text-muted">{job.preCheck.signedAt}</p>
-        ) : (
-          <form
-            className="mt-3 flex gap-2"
-            onSubmit={(e) => {
-              e.preventDefault();
-              signPre(job.jobId, who);
-            }}
-          >
-            <input value={who} onChange={(e) => setWho(e.target.value)} placeholder="Homeowner" className={cn(FILL_IN, "flex-1")} />
-            <button type="submit" className="h-10 shrink-0 rounded-md bg-navy px-3 text-sm font-semibold text-card">
-              Sign
-            </button>
-          </form>
-        )}
+        <CheckSign job={job} kind="pre" />
         {lines[0] ? (
           <MediaStrip
             files={lines[0].media.filter((m) => m.cat === "Before" || m.purpose === "Pre-install")}

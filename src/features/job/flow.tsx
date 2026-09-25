@@ -19,7 +19,7 @@ const LABEL: Record<Chapter, string> = {
 
 export function JobChapter({ job, chap }: { job: JobFile; chap: Chapter }) {
   return (
-    <div className="space-y-3">
+    <div className="space-y-2">
       {chap === "sold" ? <SoldChapter job={job} /> : null}
       {chap === "ready" ? <ReadyChapter job={job} /> : null}
       {chap === "crew" ? <CrewChapter job={job} /> : null}

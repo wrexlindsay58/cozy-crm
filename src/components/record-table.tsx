@@ -24,8 +24,8 @@ export function RecordTable<T extends { id: string }>({
         {rows.map((row) => (
           <li key={row.id}>
             <a href={href(row)} className="flex flex-col gap-1.5 px-4 py-3">
-              <span className="text-sm font-semibold text-ink">{columns[0]?.render(row)}</span>
-              <span className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px] text-muted">
+              <span className="type-group">{columns[0]?.render(row)}</span>
+              <span className="type-meta flex flex-wrap items-center gap-x-2 gap-y-1">
                 {cardCols.slice(1).map((c) => (
                   <span key={c.key} className="inline-flex min-w-0 items-center">
                     {c.render(row)}
@@ -37,7 +37,7 @@ export function RecordTable<T extends { id: string }>({
         ))}
       </ul>
       <div className="hidden w-full min-w-0 overflow-auto md:block">
-        <table className="w-full min-w-[720px] border-separate border-spacing-0 text-left text-sm">
+        <table className="type-body w-full min-w-[720px] border-separate border-spacing-0 text-left">
           <thead>
             <tr>
               {columns.map((c, i) => (
@@ -71,7 +71,7 @@ export function RecordTable<T extends { id: string }>({
                     )}
                   >
                     {i === 0 ? (
-                      <a href={href(row)} className="flex min-h-11 items-center font-semibold text-ink hover:text-navy">
+                      <a href={href(row)} className="type-value flex min-h-11 items-center hover:text-navy">
                         {c.render(row)}
                       </a>
                     ) : (

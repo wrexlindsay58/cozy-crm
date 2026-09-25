@@ -122,19 +122,17 @@ export function ThreadPane({
         <button
           type="button"
           onClick={() => onScope?.(scope === "action" ? "house" : "action")}
-          className="shrink-0 border-b border-line bg-page px-3 py-2 text-left"
+          className="flex shrink-0 items-center justify-between gap-3 border-b border-line bg-page px-3 py-2 text-left"
         >
-          <p className="text-[12px] font-semibold text-navy">
+          <p className="min-w-0 truncate text-[12px] font-semibold text-navy">
             {scope === "action"
               ? mode === "internal"
                 ? "View all Internal on this house"
                 : "View all customer talk"
               : `Back to this ${word}`}
           </p>
-          <p className="text-[11px] text-muted">
-            {scope === "action"
-              ? `${rows.length} on this ${word}`
-              : `All talk · ${houseRows.length}`}
+          <p className="shrink-0 text-[11px] text-muted">
+            {scope === "action" ? `${rows.length} on this ${word}` : `All talk · ${houseRows.length}`}
           </p>
         </button>
       ) : null}
@@ -395,7 +393,7 @@ function NestBlock({
 }) {
   const label = nest.kind === "ticket" ? "Ticket" : nest.kind === "task" ? "Task" : nest.kind === "request" ? "Request" : nest.kind === "note" ? "Note" : "Media";
   return (
-    <div className="rounded-md border border-line bg-page px-2.5 py-2">
+    <div className="rounded-md border border-line bg-card px-2.5 py-2">
       <p className="text-[10px] font-bold tracking-wide text-muted uppercase">
         {label} · {nest.title}
       </p>

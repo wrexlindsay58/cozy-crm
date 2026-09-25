@@ -34,12 +34,12 @@ export function EmailThread({
           const name = whoName(m, contact);
           const shop = m.from === "shop";
           return (
-            <li key={m.id} className={cn("flex", shop ? "justify-end" : "justify-start")}>
-              <div className={cn("flex max-w-[92%] items-start gap-2", shop && "flex-row-reverse")}>
+            <li key={m.id} className="w-full">
+              <div className={cn("flex w-full items-start gap-2", shop && "flex-row-reverse")}>
                 <Initial name={name} />
                 <div
                   className={cn(
-                    "min-w-0 rounded-md border bg-card px-3 py-2",
+                    "min-w-0 flex-1 rounded-md border bg-card px-3 py-2",
                     shop ? "border border-navy/20 border-l-[3px] border-l-navy bg-card" : "border border-navy/15 bg-info-bg",
                   )}
                 >
@@ -51,7 +51,17 @@ export function EmailThread({
                   ) : null}
                   <p className="mt-1 whitespace-pre-wrap text-sm">{m.text}</p>
                   {m.files?.length ? (
-                    <p className="mt-2 text-[11px] font-semibold text-muted">{m.files.map((f) => f.name).join(" · ")}</p>
+                    <p className="mt-2 text-[11px] font-semibold text-muted">
+                      {m.files.map((f) =>
+                        f.src ? (
+                          <a key={f.name} href={f.src} download={f.name} className="text-navy">
+                            {f.name}
+                          </a>
+                        ) : (
+                          <span key={f.name}>{f.name}</span>
+                        ),
+                      )}
+                    </p>
                   ) : null}
                 </div>
               </div>

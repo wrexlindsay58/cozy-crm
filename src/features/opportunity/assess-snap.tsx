@@ -16,13 +16,11 @@ export function AssessSnap({ leadId }: { leadId: string }) {
   if (!file) return <p className="text-sm text-muted">No assessment on this file.</p>;
 
   return (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between gap-2">
+    <div className="space-y-2">
+      <div className="flex items-center justify-between gap-3 px-1">
         <div className="min-w-0">
-          <h2 className="text-sm font-semibold">Assessment</h2>
-          <p className="mt-0.5 text-[11px] text-muted">
-            {file.id} · {file.status}
-          </p>
+          <h2 className="type-section">Assessment</h2>
+          <p className="type-meta mt-1">{file.status}</p>
         </div>
         <Tip label={edit ? "Done" : "Edit"} on>
           <button

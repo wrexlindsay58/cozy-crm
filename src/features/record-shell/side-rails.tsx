@@ -96,12 +96,12 @@ export function PhotoRail({
         <button
           type="button"
           onClick={() => onScope?.(scope === "action" ? "house" : "action")}
-          className="shrink-0 border-b border-line bg-page px-3 py-2 text-left"
+          className="flex shrink-0 items-center justify-between gap-3 border-b border-line bg-page px-3 py-2 text-left"
         >
-          <p className="text-[12px] font-semibold text-navy">
+          <p className="min-w-0 truncate text-[12px] font-semibold text-navy">
             {scope === "action" ? "View all media on this house" : `Back to this ${word}`}
           </p>
-          <p className="text-[11px] text-muted">
+          <p className="shrink-0 text-[11px] text-muted">
             {scope === "action" ? `${photos.length} on this ${word}` : `All files · ${all.length}`}
           </p>
         </button>

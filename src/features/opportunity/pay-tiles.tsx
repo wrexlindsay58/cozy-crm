@@ -1,152 +1,185 @@
 import { useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
 import { money } from "@/lib/crm-data";
-import { addPayOffer, demoMonthly, optionTotal, removePayOffer, setPayFinancer, setPayPick, togglePayTerm, type PayKind, type Proposal } from "./store";
+import { chargedFee, feeCeiling, financeMonthly, methodPlans, offerPlans, optionTotal, payAmount, payLabel, priceWithFee, removePayOffer, setMatchHighFee, togglePayPlan, addPayOffer, type PayOffer, type Proposal } from "./store";
 import { cn } from "@/lib/cn";
 import { useMoneySettings } from "@/features/money-settings/store";
 import { Float } from "@/components/float";
 
-const TERM_PICKS = [
-  { months: 60, label: "5 yr" },
-  { months: 120, label: "10 yr" },
-  { months: 144, label: "12 yr" },
-  { months: 180, label: "15 yr" },
-  { months: 240, label: "20 yr" },
-];
+function termOf(months: number) {
+  return months % 12 === 0 ? `${months / 12} yr` : `${months} mo`;
+}
 
-const ADD: { kind: PayKind; label: string }[] = [
-  { kind: "cash", label: "Cash" },
-  { kind: "card", label: "Credit card" },
-  { kind: "finance", label: "Financing" },
-];
-
-function OptionPrices({ proposal, format }: { proposal: Proposal; format: (n: number) => string }) {
+export function MatchedPay({ proposal }: { proposal: Proposal }) {
+  const finance = proposal.payOffers.filter((o) => o.kind === "finance");
+  const straight = proposal.payOffers.filter((o) => o.kind !== "finance");
+  const ceiling = feeCeiling(proposal);
+  if (!proposal.payOffers.length) return null;
   return (
-    <ul className="mt-2 space-y-1">
-      {proposal.options.map((opt) => (
-        <li key={opt.id} className="flex items-baseline justify-between gap-3 text-sm">
-          <span className="min-w-0 truncate">{opt.name}</span>
-          <span className="shrink-0 font-extrabold tabular-nums">{format(optionTotal(opt))}</span>
-        </li>
-      ))}
-    </ul>
+    <div className="space-y-4">
+      {proposal.matchHighFee ? <p className="type-meta">Every way to pay uses the {ceiling}% fee.</p> : null}
+      {proposal.options.map((opt) => {
+        const total = optionTotal(opt);
+        return (
+          <section key={opt.id} className="rounded-md border border-line p-3">
+            <h4 className="type-group text-navy">{opt.name}</h4>
+            <ul className="mt-2">
+              {straight.map((offer) => {
+                const own = priceWithFee(total, offer);
+                const shown = payAmount(proposal, total, offer);
+                const added = shown - own;
+                return (
+                  <li key={offer.id} className="flex items-center justify-between gap-4 border-t border-line py-2">
+                    <span className="type-value">{payLabel(offer)}</span>
+                    <span className="flex items-baseline gap-6">
+                      {proposal.matchHighFee && added > 0 ? <span className="type-meta">Added {money(added)}</span> : null}
+                      {proposal.matchHighFee ? null : <span className="type-meta">{chargedFee(offer) ? `${chargedFee(offer)}% fee` : "No fee"}</span>}
+                      <span className="type-value text-navy">{money(shown)}</span>
+                    </span>
+                  </li>
+                );
+              })}
+              {finance.flatMap((offer) =>
+                offerPlans(offer).map((plan) => {
+                  const shown = payAmount(proposal, total, offer, plan);
+                  return (
+                    <li key={`${offer.id}-${plan.months}-${plan.apr}`} className="flex items-center justify-between gap-4 border-t border-line py-2">
+                      <span className="flex flex-wrap items-baseline gap-x-6">
+                        <span className="type-value">{payLabel(offer)}</span>
+                        <span className="type-body">{termOf(plan.months)}</span>
+                        <span className="type-body">{plan.apr}%</span>
+                        {proposal.matchHighFee ? null : <span className="type-meta">{chargedFee(offer, plan)}% fee</span>}
+                      </span>
+                      <span className="flex items-baseline gap-6">
+                        {proposal.matchHighFee ? <span className="type-value text-navy">{money(shown)}</span> : null}
+                        <span className="type-value text-navy">{money(financeMonthly(shown, plan.apr, plan.months))}/mo</span>
+                      </span>
+                    </li>
+                  );
+                }),
+              )}
+            </ul>
+          </section>
+        );
+      })}
+    </div>
+  );
+}
+
+function RatePicks({ proposal, offer }: { proposal: Proposal; offer: PayOffer }) {
+  const plans = methodPlans(offer);
+  const chosen = offerPlans(offer);
+  if (!plans.length) return null;
+  return (
+    <div className="mt-3 flex flex-wrap gap-1.5">
+      {plans.map((plan) => {
+        const on = chosen.some((p) => p.months === plan.months && p.apr === plan.apr);
+        return (
+          <button
+            key={`${plan.months}-${plan.apr}`}
+            type="button"
+            onClick={() => togglePayPlan(proposal.oppId, offer.id, plan.months, plan.apr)}
+            className={cn("inline-flex h-10 items-center gap-3 rounded-md px-3 text-sm font-semibold", on ? "bg-navy text-card" : "border border-line")}
+          >
+            <span>{termOf(plan.months)}</span>
+            <span>{plan.apr}%</span>
+          </button>
+        );
+      })}
+    </div>
   );
 }
 
 export function PayTiles({ proposal }: { proposal: Proposal }) {
   const { financers } = useMoneySettings();
-  const shops = financers.filter((f) => f.active && f.name !== "Cash");
+  const openMethods = financers.filter(
+    (f) => f.active && !proposal.payOffers.some((o) => o.methodId === f.id || (f.kind !== "finance" && o.kind === f.kind) || (f.kind === "finance" && o.financer === f.name)),
+  );
   const [open, setOpen] = useState(false);
   const [anchor, setAnchor] = useState<DOMRect | null>(null);
 
   return (
     <section className="rounded-md border border-line bg-card p-4">
-      <div className="mb-3 flex items-center justify-between gap-2">
-        <h2 className="text-sm font-semibold">Payment options</h2>
-        <button
-          type="button"
-          className="inline-flex h-10 items-center gap-1 rounded-md bg-navy px-3 text-sm font-semibold text-card"
-          onClick={(e) => {
-            setAnchor(e.currentTarget.getBoundingClientRect());
-            setOpen((v) => !v);
-          }}
-        >
-          <Plus className="size-4" />
-          Add
-        </button>
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <h2 className="text-sm font-semibold">Payment</h2>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setMatchHighFee(proposal.oppId, !proposal.matchHighFee)}
+            className={cn("h-10 rounded-md px-3 text-sm font-semibold", proposal.matchHighFee ? "bg-navy text-card" : "border border-line")}
+          >
+            Match to highest fee
+          </button>
+          <button
+            type="button"
+            className="inline-flex h-10 items-center gap-1 rounded-md bg-navy px-3 text-sm font-semibold text-card"
+            onClick={(e) => {
+              setAnchor(e.currentTarget.getBoundingClientRect());
+              setOpen((v) => !v);
+            }}
+          >
+            <Plus className="size-4" />
+            Add
+          </button>
+        </div>
         {open && anchor ? (
           <Float anchor={anchor} prefer="bottom" onClose={() => setOpen(false)}>
-            {ADD.map((a) => (
+            {openMethods.length === 0 ? <p className="px-3 py-2 text-sm text-muted">Every method in settings is already on this option.</p> : null}
+            {openMethods.map((m) => (
               <button
-                key={a.kind}
+                key={m.id}
                 type="button"
-                className="flex h-10 w-full min-w-40 items-center px-3 text-sm hover:bg-page"
+                className="flex h-10 w-full min-w-52 items-center justify-between gap-3 px-3 text-sm hover:bg-page"
                 onClick={() => {
-                  addPayOffer(proposal.oppId, a.kind);
+                  addPayOffer(proposal.oppId, m.id);
                   setOpen(false);
                 }}
               >
-                {a.label}
+                <span>{m.name}</span>
+                <span className="tabular-nums text-muted">{m.feePct}%</span>
               </button>
             ))}
           </Float>
         ) : null}
       </div>
-      {proposal.payOffers.length === 0 ? <p className="text-sm text-muted">Add cash, credit card, or financing before you generate.</p> : null}
-      <div className="space-y-2">
-        {proposal.payOffers.map((offer) => {
-          const shop = shops.find((f) => f.name === offer.financer) ?? shops[0];
-          const feePct = offer.kind === "finance" ? (shop?.feePct ?? 0) / 100 : 0;
-          return (
-            <article key={offer.id} className={cn("rounded-md border p-3", proposal.payPick?.offerId === offer.id ? "border-navy ring-1 ring-navy" : "border-line")}>
-              <div className="flex items-start justify-between gap-2">
-                <div className="min-w-0 flex-1">
-                  <p className="text-[11px] font-bold tracking-wide text-muted uppercase">
-                    {offer.kind === "cash" ? "Cash" : offer.kind === "card" ? "Credit card" : "Financing"}
-                    {proposal.payPick?.offerId === offer.id ? " · on the proposal" : ""}
-                  </p>
-                  {proposal.payPick?.offerId !== offer.id ? (
-                    <button type="button" className="mt-1 text-xs font-semibold text-navy" onClick={() => setPayPick(proposal.oppId, offer.id, offer.terms[0])}>
-                      Use this on the proposal
-                    </button>
-                  ) : null}
-                  {offer.kind !== "finance" ? <OptionPrices proposal={proposal} format={money} /> : null}
-                  {offer.kind === "finance" ? (
-                    <div className="mt-2 space-y-3">
-                      <label className="block text-[11px] font-bold tracking-wide text-muted uppercase">
-                        Company
-                        <select
-                          value={offer.financer ?? shop?.name ?? ""}
-                          onChange={(e) => setPayFinancer(proposal.oppId, offer.id, e.target.value)}
-                          className="mt-1 h-10 w-full rounded-md border border-line bg-card px-2 text-sm font-semibold normal-case tracking-normal"
-                        >
-                          {shops.map((f) => (
-                            <option key={f.id} value={f.name}>
-                              {f.name}
-                              {f.feePct ? ` · ${f.feePct}% fee` : ""}
-                            </option>
-                          ))}
-                        </select>
-                      </label>
-                      <div className="flex flex-wrap gap-1.5">
-                        {TERM_PICKS.map((t) => {
-                          const on = offer.terms.includes(t.months);
-                          return (
-                            <button
-                              key={t.months}
-                              type="button"
-                              onClick={() => togglePayTerm(proposal.oppId, offer.id, t.months)}
-                              className={cn("h-10 rounded-md px-3 text-sm font-semibold", on ? "bg-navy text-card" : "border border-line")}
-                            >
-                              {t.label}
-                            </button>
-                          );
-                        })}
-                      </div>
-                      {offer.terms.map((months) => {
-                        const t = TERM_PICKS.find((x) => x.months === months);
-                        return (
-                          <div key={months}>
-                            <p className="text-[11px] font-bold tracking-wide text-muted uppercase">{t?.label ?? `${months} mo`}</p>
-                            <OptionPrices
-                              proposal={proposal}
-                              format={(n) => `${money(demoMonthly(Math.round(n * (1 + feePct)), months))}/mo`}
-                            />
-                          </div>
-                        );
-                      })}
-                      {feePct ? <p className="text-[11px] text-muted">Dealer fee is in the monthly.</p> : null}
-                    </div>
-                  ) : null}
-                </div>
-                <button type="button" aria-label="Remove payment option" className="grid size-8 shrink-0 place-items-center text-muted hover:text-alert" onClick={() => removePayOffer(proposal.oppId, offer.id)}>
-                  <Trash2 className="size-4" />
-                </button>
+      {proposal.payOffers.length === 0 ? <p className="text-sm text-muted">Turn a method on in settings, then add it here.</p> : null}
+      <div className="space-y-4">
+        {proposal.payOffers.map((offer) => (
+          <div key={offer.id}>
+            <div className="flex items-center justify-between gap-2">
+              <p className="type-group">{payLabel(offer)}</p>
+              <button type="button" aria-label={`Remove ${payLabel(offer)}`} className="grid size-8 place-items-center text-muted hover:text-alert" onClick={() => removePayOffer(proposal.oppId, offer.id)}>
+                <Trash2 className="size-4" />
+              </button>
+            </div>
+            {offer.kind === "finance" ? (
+              <RatePicks proposal={proposal} offer={offer} />
+            ) : (
+              <div className="mt-1">
+                <p className="type-meta">{chargedFee(offer) ? `${chargedFee(offer)}% fee from settings` : "No fee"}</p>
+                {proposal.matchHighFee
+                  ? proposal.options.map((opt) => {
+                      const total = optionTotal(opt);
+                      const added = payAmount(proposal, total, offer) - priceWithFee(total, offer);
+                      if (added <= 0) return null;
+                      return (
+                        <p key={opt.id} className="type-body mt-1">
+                          {opt.name}
+                          <span className="type-meta"> Added {money(added)}</span>
+                        </p>
+                      );
+                    })
+                  : null}
               </div>
-            </article>
-          );
-        })}
+            )}
+          </div>
+        ))}
       </div>
+      {proposal.payOffers.length ? (
+        <div className="mt-6 border-t border-line pt-4">
+          <MatchedPay proposal={proposal} />
+        </div>
+      ) : null}
     </section>
   );
 }

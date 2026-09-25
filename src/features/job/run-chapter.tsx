@@ -72,7 +72,7 @@ export function RunChapter({ job }: { job: JobFile }) {
   const ducts = products.some((s) => (profileById(s.categoryId)?.id ?? s.categoryId) === "ducts");
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-2">
       <JobCard kicker="Time" title="Time clocks" done={job.punches.length > 0} aside={`Est ${est}h · actual ${actual.toFixed(1)}h`}>
         <ul className="space-y-3">
           {job.punches.map((p) => {

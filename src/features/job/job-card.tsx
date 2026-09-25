@@ -33,7 +33,7 @@ export function JobCard({
           {actions}
         </div>
       </header>
-      {children ? <div className="p-4">{children}</div> : null}
+      {children ? <div className="px-4 py-3">{children}</div> : null}
     </section>
   );
 }

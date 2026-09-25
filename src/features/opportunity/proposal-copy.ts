@@ -2,7 +2,7 @@ import { itemBySku } from "@/features/catalog/store";
 import type { OptCard, OptLine } from "./store";
 
 export function picksOn(line: OptLine) {
-  const item = itemBySku(line.sku);
+  const item = itemBySku(line.sku.split("@")[0] ?? line.sku);
   if (!item?.choices?.length) return "";
   return item.choices
     .map((c) => c.picks.find((p) => p.id === line.picks?.[c.id])?.label)

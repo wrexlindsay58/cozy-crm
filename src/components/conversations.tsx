@@ -245,7 +245,7 @@ export function Conversations() {
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Name or number"
-                className="h-10 w-full rounded-md border border-line bg-page pr-3 pl-9 text-sm outline-none"
+                className="h-10 w-full rounded-md border border-line bg-card pr-3 pl-9 text-sm outline-none"
               />
             </label>
             <div className="mt-1.5 flex w-full items-center gap-0.5">
@@ -298,14 +298,14 @@ export function Conversations() {
                         </span>
                         <span className="min-w-0 flex-1">
                           <span className="flex items-center gap-1">
-                            <span className={cn("truncate text-sm", t.unread ? "font-bold" : "font-semibold")}>{t.name}</span>
+                            <span className={cn("type-group truncate", t.unread && "font-bold")}>{t.name}</span>
                             {t.blocked ? <Ban className="size-3 shrink-0 text-stop" /> : null}
                             {t.dndOn ? <BellOff className="size-3 shrink-0 text-alert" /> : null}
                           </span>
                         </span>
                         <span className="shrink-0 text-[10px] text-faint">{t.last?.at ?? ""}</span>
                       </span>
-                      <span className="mt-1 flex items-center gap-1 text-[11px] text-muted">
+                      <span className="type-meta mt-1 flex items-center gap-1">
                         {t.last?.channel === "call" ? <Phone className="size-3" /> : t.last?.channel === "email" ? <Mail className="size-3" /> : t.last?.channel === "internal" ? <Users className="size-3" /> : <MessageSquare className="size-3" />}
                         <span className="truncate">{t.last?.text ?? "No talk yet"}</span>
                       </span>
@@ -346,7 +346,7 @@ export function Conversations() {
                     <ChevronLeft className="size-5" />
                   </button>
                   <div className="flex min-w-0 items-center gap-2">
-                    <h2 className="min-w-0 truncate text-base font-bold">{active.name}</h2>
+                    <h2 className="type-section min-w-0 truncate">{active.name}</h2>
                     <Tip label="Open file" on>
                       <a
                         href={active.pipe.href}
@@ -390,7 +390,7 @@ export function Conversations() {
               <header className="hidden min-h-14 items-center gap-3 border-b border-line px-3 py-2 md:flex">
                 <div className="min-w-0">
                   <div className="flex min-w-0 flex-wrap items-center gap-2">
-                    <h2 className="min-w-0 truncate text-base font-bold">{active.name}</h2>
+                    <h2 className="type-section min-w-0 truncate">{active.name}</h2>
                     <Tip label="Open file" on>
                       <a href={active.pipe.href} aria-label="Open file" className="grid size-9 shrink-0 place-items-center rounded-md border border-line text-navy">
                         <SquareArrowOutUpRight className="size-4" />

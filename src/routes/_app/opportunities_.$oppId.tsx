@@ -24,9 +24,11 @@ function OppFile() {
   const accepted = proposal?.options.find((o) => o.id === proposal.accepted);
   const shown = accepted ? optionTotal(accepted) : proposal ? Math.max(...proposal.options.map(optionTotal)) : opp.amount;
   const stage =
-    proposal?.signStatus === "Sent"
-      ? "Agreement sent"
-      : proposal?.proposalStatus === "Sent"
+    proposal?.signStatus === "Signed"
+      ? "Agreement signed"
+      : proposal?.signStatus === "Sent"
+        ? "Agreement sent"
+        : proposal?.proposalStatus === "Sent"
         ? "Proposal sent"
         : proposal?.proposalStatus === "Generated"
           ? "Proposal ready"

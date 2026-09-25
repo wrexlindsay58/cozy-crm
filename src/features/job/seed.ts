@@ -154,10 +154,11 @@ export function seedJobs(): JobFile[] {
         crew: "Crew 2 — Tasha",
         notes: "Attic R-49 + ducts.",
         file: { name: "WO-14.pdf", url: "#" },
+        since: "2026-09-20",
       },
     ],
     pos: [
-      { id: "PO-88", vendor: "Carrier", amount: 9800, status: "Sent", what: "4-ton condenser + coil", scopeId: "SC-2", file: { name: "PO-88-Carrier.pdf", url: "#" } },
+      { id: "PO-88", vendor: "Carrier", amount: 9800, status: "Sent", what: "4-ton condenser + coil", scopeId: "SC-2", since: "2026-09-15", file: { name: "PO-88-Carrier.pdf", url: "#" } },
       { id: "PO-81", vendor: "GreenFiber", amount: 2100, status: "Received", what: "Cellulose", scopeId: "SC-1", file: { name: "PO-81-GreenFiber.pdf", url: "#" } },
     ],
     changeOrders: [],
@@ -170,6 +171,17 @@ export function seedJobs(): JobFile[] {
         status: "Sent",
         file: { name: "INV-41.pdf", url: "#" },
         payments: [],
+        since: "2026-09-18",
+      },
+      {
+        id: "INV-42",
+        kind: "Progress",
+        amount: 8000,
+        paid: 0,
+        status: "Draft",
+        payments: [],
+        party: "customer",
+        since: "2026-09-23",
       },
     ],
     events: [
@@ -221,7 +233,7 @@ export function seedJobs(): JobFile[] {
         name: p.name,
         product: p.product,
         pm: p.pm,
-        closer: "Dana Ortiz",
+        closer: account?.owner || "Dana Ortiz",
         stage: (p.status === "On hold" ? "Sold" : p.status) as Stage,
         holds: p.status === "On hold" ? [{ kind: "HOA" as const, note: "Waiting on HOA. Need the written sign-off.", at: "Sep 10" }] : [],
         sold: p.amount,
@@ -262,5 +274,27 @@ export function seedJobs(): JobFile[] {
         financeRev: 1,
       };
     });
-  return [cho, ...rest];
+  return [cho, ...rest].map((job) => {
+    if (job.jobId === "P-328") {
+      return {
+        ...job,
+        invoices: [{ id: "INV-328", kind: "Deposit" as const, amount: 4200, paid: 0, status: "Past due" as const, payments: [], party: "customer" as const, since: "2026-09-16" }],
+      };
+    }
+    if (job.jobId === "P-322") {
+      return {
+        ...job,
+        pos: [{ id: "PO-322", vendor: "GreenFiber", amount: 1460, status: "Sent" as const, what: "Cellulose", since: "2026-09-21" }],
+        invoices: [{ id: "INV-322", kind: "Deposit" as const, amount: 2500, paid: 0, status: "Draft" as const, payments: [], party: "customer" as const, since: "2026-09-23" }],
+      };
+    }
+    if (job.jobId === "P-318") {
+      return {
+        ...job,
+        changeOrders: [{ id: "CO-318", why: "Extra return", amount: 800, cost: 220, status: "Approved" as const, lane: "install" as const, signed: true, signedAt: "Sep 14", since: "2026-09-14" }],
+        invoices: [{ id: "INV-318", kind: "Final" as const, amount: 6400, paid: 6400, status: "Paid" as const, payments: [{ id: "PY-318", amount: 6400, at: "Sep 12", how: "Card", status: "Paid" as const }], party: "customer" as const }],
+      };
+    }
+    return job;
+  });
 }

@@ -3,6 +3,7 @@ import { addPacketPhoto, setField, setPacketNotes } from "./store";
 import { useAssessCategories, type AssessCategory } from "./categories";
 import { FieldInput } from "./field-input";
 import { FileLightbox } from "@/features/record-shell/file-lightbox";
+import { Fact, FactGrid } from "@/features/record-shell/file-sheet";
 import { cn } from "@/lib/cn";
 import type { Assessment, Packet } from "./types";
 import type { Photo } from "@/lib/file-data";
@@ -10,7 +11,7 @@ import type { Photo } from "@/lib/file-data";
 export function PacketList({ file, readOnly = false }: { file: Assessment; readOnly?: boolean }) {
   const cats = useAssessCategories().filter((c) => c.on);
   return (
-    <div className="space-y-3">
+    <div className="space-y-2">
       {cats.map((def) => {
         const packet = file.packets.find((p) => p.id === def.id) ?? { id: def.id, fields: {}, photos: [], notes: "" };
         return <PacketCard key={def.id} assessmentId={file.id} def={def} packet={packet} readOnly={readOnly} />;
@@ -47,28 +48,41 @@ export function PacketCard({
   }));
 
   return (
-    <section className="rounded-md border border-line bg-card p-4">
+    <section className="rounded-md border border-line bg-card px-5 py-5">
       {readOnly ? (
-        <div className="flex w-full items-center justify-between">
-          <h2 className="text-sm font-semibold">{def.label}</h2>
-          <span className="text-[11px] text-muted">
-            {filled}/{def.fields.length} · {packet.photos.length} files
-          </span>
-        </div>
+        <header className="border-b border-line pb-4">
+          <h2 className="type-section">{def.label}</h2>
+          <p className="type-meta mt-1">
+            {filled} of {def.fields.length} answered · {packet.photos.length} files
+          </p>
+        </header>
       ) : (
       <button type="button" onClick={() => setOpen((v) => !v)} className="flex w-full items-center justify-between text-left">
-        <h2 className="text-[11px] font-bold tracking-wide text-muted uppercase">{def.label}</h2>
-        <span className="text-[11px] text-muted">
+        <h2 className="type-section">{def.label}</h2>
+        <span className="type-meta">
           {filled}/{def.fields.length} · {packet.photos.length} files
         </span>
       </button>
       )}
       {open || readOnly ? (
-        <div className="mt-3 space-y-3">
-          <div className="grid gap-3 sm:grid-cols-2">
+        <div className={readOnly ? "mt-5 space-y-5" : "mt-4 space-y-4"}>
+          {readOnly ? (
+            filled ? (
+              <FactGrid>
+                {def.fields
+                  .filter((field) => packet.fields[field.label])
+                  .map((field) => (
+                    <Fact key={field.id} label={field.label} value={packet.fields[field.label]} wide={field.kind === "multi"} />
+                  ))}
+              </FactGrid>
+            ) : (
+              <p className="text-sm text-muted">Nothing logged in this section.</p>
+            )
+          ) : (
+          <div className="grid gap-4 sm:grid-cols-2">
             {def.fields.map((field) => (
               <label key={field.id} className={cn("block text-sm", field.kind === "multi" && "sm:col-span-2")}>
-                <span className="text-[11px] font-bold tracking-wide text-muted uppercase">{field.label}</span>
+                <span className="text-[13px] font-semibold text-ink">{field.label}</span>
                 <FieldInput
                   field={field}
                   value={packet.fields[field.label] ?? ""}
@@ -78,20 +92,23 @@ export function PacketCard({
               </label>
             ))}
           </div>
+          )}
+          {readOnly && !packet.notes ? null : (
           <label className="block text-sm">
-            <span className="text-[11px] font-bold tracking-wide text-muted uppercase">Notes</span>
+            <span className="text-[13px] font-semibold text-ink">Notes</span>
             {readOnly ? (
-              <p className="mt-1 text-sm">{packet.notes || "—"}</p>
+              <p className="mt-1.5 text-[15px] leading-snug">{packet.notes}</p>
             ) : (
               <textarea
                 value={packet.notes}
                 onChange={(e) => setPacketNotes(assessmentId, def.id, e.target.value)}
                 rows={3}
                 placeholder={`Measured / observed on ${def.label.toLowerCase()}.`}
-                className="mt-1 w-full rounded-md border border-line px-3 py-2 text-sm outline-none focus:border-navy"
+                className="mt-1.5 w-full rounded-md border border-line px-3 py-2 text-sm outline-none focus:border-navy"
               />
             )}
           </label>
+          )}
           {readOnly ? null : (
           <form
             className="flex flex-col gap-2 sm:flex-row"

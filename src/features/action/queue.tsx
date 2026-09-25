@@ -401,7 +401,7 @@ export function ActionQueue({ selectedId }: { selectedId?: string }) {
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Title, house, owner, id"
-                className="h-11 w-full rounded-md border border-line bg-page pr-3 pl-9 text-sm outline-none focus:border-navy"
+                className="h-11 w-full rounded-md border border-line bg-card pr-3 pl-9 text-sm outline-none focus:border-navy"
               />
             </label>
             <div className="mt-2">

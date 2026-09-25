@@ -84,7 +84,41 @@ const hale: Assessment = {
   ],
 };
 
-let rows: Record<string, Assessment> = { "AS-19": hale };
+function soldHouse(id: string, leadId: string, name: string, address: string, closer: string): Assessment {
+  return {
+    id,
+    leadId,
+    name,
+    address,
+    closer,
+    status: "Complete",
+    property: {
+      yearBuilt: "1998",
+      sqft: "1860",
+      stories: "1",
+      occupancy: "Owner",
+      hoa: "No",
+      access: "Gate code on the file. Ladder to the hatch.",
+      electrical: "200A",
+      notes: "Both owners home for the visit.",
+      utility: "APS",
+      bothHome: "Yes",
+      hotRooms: "",
+      coldRooms: "",
+      indoorTemp: "79",
+      outdoorTemp: "102",
+    },
+    qualify: {},
+    packets: [
+      { id: "hvac", fields: { "System type": "Split", Brand: "Carrier", "Manufacture year": "2006", Tonnage: "4", Refrigerant: "R-22" }, photos: [], notes: "Condenser on the east pad." },
+      { id: "attic", fields: { "Insulation type": "Blown cellulose", "Depth (in)": "5", "Hatch location": "Hall" }, photos: [], notes: "" },
+      { id: "ducts", fields: { Material: "Flex", "Supply registers (count)": "9", "Return registers (count)": "1" }, photos: [], notes: "" },
+      { id: "windows", fields: { Count: "14", Glazing: "Double", Frame: "Vinyl" }, photos: [], notes: "" },
+    ],
+  };
+}
+
+let rows: Record<string, Assessment> = { "AS-19": hale, "AS-18": soldHouse("AS-18", "L-4788", "Ben & Alyssa Cho", "11840 W Desert Hills", "Dana Ortiz"), "AS-17": soldHouse("AS-17", "L-4761", "The Whitakers", "Scottsdale", "Dana Ortiz") };
 for (const p of hale.packets) {
   for (const ph of p.photos) {
     const cat = p.id === "hvac" ? "HVAC" : p.id === "attic" ? "Attic" : p.id;

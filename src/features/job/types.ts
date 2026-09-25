@@ -108,6 +108,7 @@ export type WorkOrder = {
   ackedBy?: string;
   signedAt?: string;
   signedBy?: string;
+  since?: string;
 };
 
 export type JobEvent = {
@@ -142,6 +143,8 @@ export type PurchaseOrder = {
   what: string;
   scopeId?: string;
   file?: FileLink;
+  since?: string;
+  receivedAmount?: number;
 };
 export type ChangeOrder = {
   id: string;
@@ -152,6 +155,7 @@ export type ChangeOrder = {
   lane: "install" | "finance";
   signed: boolean;
   signedAt?: string;
+  since?: string;
 };
 export type PayStatus = "Draft" | "Sent" | "Partial" | "Paid" | "Past due" | "NSF" | "Card declined" | "Void" | "Refunded";
 export type JobPayment = { id: string; amount: number; at: string; how: string; status: PayStatus };
@@ -168,6 +172,7 @@ export type JobInvoice = {
   who?: string;
   itemize?: boolean;
   lines?: InvoiceLine[];
+  since?: string;
 };
 
 export type EquipRow = {
@@ -183,7 +188,7 @@ export type EquipRow = {
 };
 export type PunchItem = { id: string; item: string; owner: string; status: "Open" | "Done" };
 export type CheckItem = { id: string; label: string; on: boolean; callout?: string };
-export type SignedCheck = { items: CheckItem[]; signedBy: string; signedAt: string };
+export type SignedCheck = { items: CheckItem[]; signedBy: string; signedAt: string; signature?: string; relation?: string; photos?: ScopeMedia[] };
 export type PermitFile = { number: string; city: string; inspection: string; result: "None" | "Scheduled" | "Pass" | "Fail"; file?: FileLink };
 export type RebateFile = { utility: string; program: string; amount: number; status: "None" | "Reserved" | "Submitted" | "Approved" | "Paid"; reservation: string; file?: FileLink };
 export type TestOut = {
@@ -499,6 +504,7 @@ export function defaultPacket(): ClosingPacket {
     sent: false,
     sentAt: "",
     parts: [
+      { id: "agreement", label: "Signed agreement" },
       { id: "inv", label: "Paid invoice" },
       { id: "warr", label: "Labor warranty" },
       { id: "serial", label: "Serials / AHRI" },

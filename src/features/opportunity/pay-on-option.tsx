@@ -1,48 +1,49 @@
 import { money } from "@/lib/crm-data";
 import { cn } from "@/lib/cn";
-import { demoMonthly, optionTotal, type OptCard, type Proposal } from "./store";
-import { useMoneySettings } from "@/features/money-settings/store";
+import { chargedFee, financeMonthly, offerPlans, optionTotal, payAmount, payLabel, type OptCard, type Proposal } from "./store";
 
 export function PayOnOption({ proposal, option }: { proposal: Proposal; option: OptCard }) {
   const total = optionTotal(option);
   const sold = proposal.accepted === option.id;
-  const { financers } = useMoneySettings();
   const offers = proposal.payOffers;
   if (!offers.length) return null;
   return (
     <div className="mt-3 border-t border-line pt-3">
-      <p className="mb-1.5 text-[11px] font-bold tracking-wide text-muted uppercase">Payment</p>
-      <ul className="space-y-1">
-        {offers.map((o) => {
-          const picked = sold && proposal.payPick?.offerId === o.id;
-          const shop = financers.find((f) => f.name === o.financer);
-          const feePct = o.kind === "finance" ? (shop?.feePct ?? 0) / 100 : 0;
-          const name = o.kind === "cash" ? "Cash" : o.kind === "card" ? "Credit card" : o.financer || "Financing";
-          let amt = money(total);
-          if (o.kind === "finance") {
-            const months = (picked ? proposal.payPick?.term : undefined) ?? o.terms[0] ?? 120;
-            amt = `${money(demoMonthly(Math.round(total * (1 + feePct)), months))}/mo`;
-            const yrs = months / 12;
+      <p className="mb-1 text-[11px] font-bold tracking-wide text-muted uppercase">Payment</p>
+      <ul>
+        {offers
+          .filter((o) => o.kind !== "finance")
+          .map((o) => {
+            const picked = sold && proposal.payPick?.offerId === o.id;
             return (
-              <li key={o.id} className={cn("flex items-baseline justify-between gap-3 text-sm", picked && "font-semibold text-navy")}>
-                <span>
-                  {name} · {yrs} yr
-                  {picked ? " · sold" : ""}
+              <li key={o.id} className="flex items-baseline justify-between gap-4 border-t border-line py-1.5">
+                <span className={cn("type-body", picked && "font-semibold text-navy")}>{payLabel(o)}</span>
+                <span className="flex items-baseline gap-4">
+                  {proposal.matchHighFee ? null : <span className="type-meta">{chargedFee(o) ? `${chargedFee(o)}%` : "No fee"}</span>}
+                  <span className={cn("type-value", picked && "text-navy")}>{money(payAmount(proposal, total, o))}</span>
                 </span>
-                <span className="tabular-nums">{amt}</span>
               </li>
             );
-          }
-          return (
-            <li key={o.id} className={cn("flex items-baseline justify-between gap-3 text-sm", picked && "font-semibold text-navy")}>
-              <span>
-                {name}
-                {picked ? " · sold" : ""}
-              </span>
-              <span className="tabular-nums">{amt}</span>
-            </li>
-          );
-        })}
+          })}
+        {offers
+          .filter((o) => o.kind === "finance")
+          .flatMap((o) =>
+            offerPlans(o).map((plan) => {
+              const picked = sold && proposal.payPick?.offerId === o.id && proposal.payPick?.term === plan.months && proposal.payPick?.apr === plan.apr;
+              return (
+                <li key={`${o.id}-${plan.months}-${plan.apr}`} className="flex items-baseline justify-between gap-4 border-t border-line py-1.5">
+                  <span className={cn("flex gap-4", picked && "font-semibold text-navy")}>
+                    <span className="type-body">{plan.months % 12 === 0 ? `${plan.months / 12} yr` : `${plan.months} mo`}</span>
+                    <span className="type-body">{plan.apr}%</span>
+                  </span>
+                  <span className="flex items-baseline gap-4">
+                    {proposal.matchHighFee ? null : <span className="type-meta">{chargedFee(o, plan)}%</span>}
+                    <span className={cn("type-value", picked && "text-navy")}>{money(financeMonthly(payAmount(proposal, total, o, plan), plan.apr, plan.months))}/mo</span>
+                  </span>
+                </li>
+              );
+            }),
+          )}
       </ul>
     </div>
   );

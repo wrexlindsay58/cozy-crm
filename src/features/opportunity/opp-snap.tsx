@@ -10,15 +10,15 @@ import { PayOnOption } from "./pay-on-option";
 function OptionRead({ proposal, option }: { proposal: Proposal; option: OptCard }) {
   const accepted = proposal.accepted === option.id;
   return (
-    <article className={cn("rounded-md border bg-card p-4", accepted ? "border-navy bg-info-bg/40 ring-1 ring-navy" : "border-line")}>
-      <div className="mb-3 flex items-baseline justify-between gap-2">
-        <h3 className="text-sm font-semibold">
+    <article className={cn("rounded-md border bg-card px-5 py-5", accepted ? "border-navy bg-info-bg/40 ring-1 ring-navy" : "border-line")}>
+      <div className="mb-4 flex items-baseline justify-between gap-3">
+        <h3 className="type-group">
           {option.name}
-          {accepted ? <span className="ml-2 text-[11px] font-bold tracking-wide text-navy uppercase">Sold</span> : null}
+          {accepted ? <span className="ml-2 text-[13px] font-semibold text-navy">Sold</span> : null}
         </h3>
         <p className="text-lg font-extrabold tabular-nums">{money(optionTotal(option))}</p>
       </div>
-      <ul className="space-y-1.5">
+      <ul className="space-y-2.5">
         {option.lines.map((l) => (
           <li key={l.sku} className="flex items-baseline justify-between gap-3 text-sm">
             <span className="min-w-0 truncate">
@@ -39,11 +39,11 @@ export function OppSnap({ oppId }: { oppId: string }) {
   const [edit, setEdit] = useState(false);
   if (!proposal) return null;
   return (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between gap-2">
+    <div className="space-y-4">
+      <div className="flex items-center justify-between gap-3 px-1">
         <div className="min-w-0">
-          <h2 className="text-sm font-semibold">Opportunity</h2>
-          <p className="mt-0.5 text-[11px] text-muted">{proposal.oppId}</p>
+          <h2 className="type-section">Opportunity</h2>
+          <p className="type-meta mt-1">{proposal.accepted ? "Sold option is marked" : "Not sold yet"}</p>
         </div>
         <Tip label={edit ? "Done" : "Edit"} on>
           <button

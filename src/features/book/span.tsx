@@ -1,9 +1,7 @@
 import { EventChip } from "./chip";
-import { pack, packStyle } from "./layout";
+import { pack } from "./layout";
 import { addDays, hourOf, isoFromDateHour, labelTime, toIso } from "./time";
 import type { BookEvent } from "./types";
-
-const ROW = 48;
 
 export function DaySpan({
   start,
@@ -84,49 +82,44 @@ export function DaySpan({
   }
 
   const startH = hours[0] ?? 7;
-  const height = hours.length * ROW;
+  const span = Math.max(1, hours.length);
   const gutter = phone ? "2.25rem" : "3rem";
-  const col = phone ? "minmax(0, 1fr)" : "minmax(12rem, 1fr)";
-  const minWidth = phone ? "100%" : `max(100%, calc(3rem + ${cols.length} * 12rem))`;
+  const colsTemplate = `${gutter} repeat(${cols.length}, minmax(0, 1fr))`;
 
   return (
-    <div className="min-h-0 flex-1 overflow-auto">
-      <div
-        className="min-w-full"
-        style={{
-          display: "grid",
-          minWidth,
-          gridTemplateColumns: `${gutter} repeat(${cols.length}, ${col})`,
-          gridTemplateRows: `3rem ${height}px`,
-        }}
-      >
-        <div className="sticky top-0 left-0 z-50 border-b border-r border-line bg-card" />
+    <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-card">
+      <div className="grid h-12 shrink-0" style={{ gridTemplateColumns: colsTemplate }}>
+        <div className="border-r border-b border-line bg-card" />
         {cols.map((d) => (
-          <div key={toIso(d).slice(0, 10)} className="sticky top-0 z-40 flex flex-col justify-center border-b border-r border-line bg-card px-2">
-            <p className="text-[12px] font-semibold">{d.toLocaleDateString("en-US", { weekday: "short" })}</p>
+          <div key={toIso(d).slice(0, 10)} className="flex min-w-0 flex-col justify-center border-r border-b border-line bg-card px-2">
+            <p className="truncate text-[12px] font-semibold">{d.toLocaleDateString("en-US", { weekday: "short" })}</p>
             <p className="text-[11px] text-muted">{d.getDate()}</p>
           </div>
         ))}
-        <div className="sticky left-0 z-30 border-r border-line bg-card">
-          <div className="relative" style={{ height }}>
-            {hours.map((h, i) => (
-              <div key={h} className="absolute inset-x-0 border-b border-line px-1 text-right text-[10px] font-bold text-muted" style={{ top: i * ROW, height: ROW }}>
-                {h === 12 ? "12" : h > 12 ? `${h - 12}p` : `${h}a`}
-              </div>
-            ))}
-          </div>
+      </div>
+      <div className="grid min-h-0 min-w-0 flex-1" style={{ gridTemplateColumns: colsTemplate }}>
+        <div className="relative border-r border-line bg-card">
+          {hours.map((h, i) => (
+            <div
+              key={h}
+              className="absolute inset-x-0 border-b border-line px-1 text-right text-[10px] font-bold text-muted"
+              style={{ top: `${(i / span) * 100}%`, height: `${100 / span}%` }}
+            >
+              {h === 12 ? "12" : h > 12 ? `${h - 12}p` : `${h}a`}
+            </div>
+          ))}
         </div>
         {cols.map((d) => {
           const key = toIso(d).slice(0, 10);
           const mine = events.filter((e) => e.start.slice(0, 10) === key);
           return (
-            <div key={key} className="relative z-0 isolate overflow-hidden border-r border-line bg-page">
+            <div key={key} className="relative z-0 isolate min-w-0 overflow-hidden border-r border-line bg-page">
               {hours.map((h, i) => (
                 <button
                   key={h}
                   type="button"
                   className="absolute inset-x-0 border-b border-line/80"
-                  style={{ top: i * ROW, height: ROW }}
+                  style={{ top: `${(i / span) * 100}%`, height: `${100 / span}%` }}
                   onClick={() => onSlot("", isoFromDateHour(d, h))}
                   onDragOver={(e) => e.preventDefault()}
                   onDrop={(e) => {
@@ -138,11 +131,21 @@ export function DaySpan({
                 />
               ))}
               {pack(mine).map((p) => {
-                const top = Math.max(0, (hourOf(p.e.start) - startH) * ROW + 2);
                 const hrs = Math.max(0.45, hourOf(p.e.end) - hourOf(p.e.start));
+                const shift = p.cols > 1 ? (p.col / p.cols) * 46 : 0;
                 return (
-                  <div key={p.e.id} style={packStyle(p, top, hrs * ROW - 4)}>
-                    <EventChip e={p.e} selected={selectedId === p.e.id} thin={p.cols >= 3 || hrs * ROW < 40} onClick={() => onSelect(p.e.id)} />
+                  <div
+                    key={p.e.id}
+                    className="absolute"
+                    style={{
+                      top: `${((hourOf(p.e.start) - startH) / span) * 100}%`,
+                      height: `${(hrs / span) * 100}%`,
+                      left: `calc(${shift}% + 2px)`,
+                      width: `calc(${100 - shift}% - 4px)`,
+                      zIndex: 1 + p.col,
+                    }}
+                  >
+                    <EventChip e={p.e} selected={selectedId === p.e.id} thin={p.cols >= 3 || hrs < 1} onClick={() => onSelect(p.e.id)} />
                   </div>
                 );
               })}

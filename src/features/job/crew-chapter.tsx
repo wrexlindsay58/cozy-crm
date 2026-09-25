@@ -25,7 +25,7 @@ export function CrewChapter({ job }: { job: JobFile }) {
   const products = job.scope.filter((s) => s.kind !== "promise");
 
   return (
-    <div className="min-w-0 space-y-3">
+    <div className="min-w-0 space-y-2">
       <JobCard
         kicker="Crews"
         title={`${job.assignments.length} assigned · ${job.events.length} days on the book`}

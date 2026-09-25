@@ -25,7 +25,7 @@ export function FieldBlock({ job }: { job: JobFile }) {
   const [access, setAcc] = useState(job.access);
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-2">
       <section className="rounded-md border border-line bg-card p-4">
         <div className="mb-3 flex items-end justify-between gap-2">
           <h2 className="text-[11px] font-bold tracking-wide text-muted uppercase">Labor</h2>

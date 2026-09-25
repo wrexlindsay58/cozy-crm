@@ -6,6 +6,7 @@ import { putFromJob } from "@/features/book/store";
 import { seedJobs } from "./seed";
 import {
   closeBlocks,
+  catFromTag,
   commissionCost,
   contractTotal,
   inferStage,
@@ -630,8 +631,23 @@ export function addPurchaseOrder(jobId: string, vendor: string, what: string, am
     return { ...j, pos: [row, ...j.pos] };
   });
 }
+export function sendPo(jobId: string, poId: string) {
+  patch(jobId, (j) => ({ ...j, pos: j.pos.map((p) => (p.id === poId ? { ...p, status: "Sent" } : p)) }));
+}
 export function receivePo(jobId: string, poId: string) {
-  patch(jobId, (j) => ({ ...j, pos: j.pos.map((p) => (p.id === poId ? { ...p, status: "Received" } : p)) }));
+  receivePoAmount(jobId, poId, Number.POSITIVE_INFINITY, "");
+}
+export function receivePoAmount(jobId: string, poId: string, amount: number, who: string) {
+  patch(jobId, (j) => {
+    const po = j.pos.find((p) => p.id === poId);
+    const got = Math.min(po?.amount ?? amount, (po?.receivedAmount ?? 0) + amount);
+    const done = Boolean(po && got >= po.amount);
+    addHistory(j.personId, who || j.pm, done ? `PO ${poId} received.` : `PO ${poId} received short.`);
+    return {
+      ...j,
+      pos: j.pos.map((p) => (p.id === poId ? { ...p, receivedAmount: got, status: done ? "Received" : "Partial" } : p)),
+    };
+  });
 }
 export function addInvoice(jobId: string, kind: JobInvoice["kind"], amount: number) {
   if (amount <= 0) return;
@@ -659,15 +675,21 @@ export function setInvoiceStatus(jobId: string, invoiceId: string, status: PaySt
   patch(jobId, (j) => ({ ...j, invoices: j.invoices.map((i) => (i.id === invoiceId ? { ...i, status } : i)) }));
 }
 export function payInvoice(jobId: string, invoiceId: string, how = "Card") {
+  const invoice = jobs[jobId]?.invoices.find((i) => i.id === invoiceId);
+  recordPayment(jobId, invoiceId, Math.max(0, (invoice?.amount ?? 0) - (invoice?.paid ?? 0)), how, "Now");
+}
+export function recordPayment(jobId: string, invoiceId: string, amount: number, how: string, at: string) {
+  if (amount <= 0) return;
   patch(jobId, (j) => {
-    addHistory(j.personId, j.pm, `Invoice ${invoiceId} paid.`);
+    addHistory(j.personId, j.pm, `Invoice ${invoiceId} ${how} ${amount}.`);
     return {
       ...j,
-      invoices: j.invoices.map((i) =>
-        i.id === invoiceId
-          ? { ...i, paid: i.amount, status: "Paid", payments: [...i.payments, { id: `PY-${Date.now()}`, amount: i.amount - i.paid, at: "Now", how, status: "Paid" }] }
-          : i,
-      ),
+      invoices: j.invoices.map((i) => {
+        if (i.id !== invoiceId) return i;
+        const paid = Math.min(i.amount, i.paid + amount);
+        const status = paid >= i.amount ? "Paid" : "Partial";
+        return { ...i, paid, status, payments: [...i.payments, { id: `PY-${Date.now()}`, amount, at, how, status: "Paid" as const }] };
+      }),
     };
   });
 }
@@ -814,18 +836,38 @@ export function setCheckCallout(jobId: string, which: "pre" | "post", id: string
     return { ...j, [key]: { ...pack, items } };
   }, { nudge: false });
 }
-export function signPre(jobId: string, who: string) {
-  if (!who.trim()) return;
+export function signPre(jobId: string, input: { name: string; signature: string; relation?: string }) {
+  const name = input.name.trim();
+  if (name.length < 3 || !input.signature.startsWith("data:image")) return;
   patch(jobId, (j) => {
-    addHistory(j.personId, j.pm, `Pre-install signed by ${who.trim()}.`);
-    return { ...j, preCheck: { ...j.preCheck, signedBy: who.trim(), signedAt: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric" }) } };
+    addHistory(j.personId, j.pm, `Pre-install signed in person by ${name}${input.relation ? ` (${input.relation})` : ""}.`);
+    return { ...j, preCheck: { ...j.preCheck, signedBy: name, signedAt: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric" }), signature: input.signature, relation: input.relation } };
   }, { nudge: false });
 }
-export function signPost(jobId: string, who: string) {
-  if (!who.trim()) return;
+export function signPost(jobId: string, input: { name: string; signature: string; relation?: string }) {
+  const name = input.name.trim();
+  if (name.length < 3 || !input.signature.startsWith("data:image")) return;
   patch(jobId, (j) => {
-    addHistory(j.personId, j.pm, `Post-install signed by ${who.trim()}.`);
-    return { ...j, postCheck: { ...j.postCheck, signedBy: who.trim(), signedAt: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric" }) } };
+    addHistory(j.personId, j.pm, `Post-install signed in person by ${name}${input.relation ? ` (${input.relation})` : ""}.`);
+    return { ...j, postCheck: { ...j.postCheck, signedBy: name, signedAt: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric" }), signature: input.signature, relation: input.relation } };
+  }, { nudge: false });
+}
+export function addCheckMedia(jobId: string, kind: "pre" | "post", file: File, meta: { name: string; caption: string; tag: string }) {
+  const url = URL.createObjectURL(file);
+  const row: ScopeMedia = {
+    id: `CK-${Date.now()}`,
+    cat: catFromTag(meta.tag),
+    name: meta.name.trim() || file.name,
+    url,
+    kind: file.type.startsWith("video/") ? "video" : "photo",
+    caption: meta.caption,
+    purpose: meta.tag,
+  };
+  patch(jobId, (j) => {
+    const key = kind === "pre" ? "preCheck" : "postCheck";
+    const pack = j[key];
+    addHistory(j.personId, j.pm, `${kind === "pre" ? "Pre" : "Post"}-install acknowledgement photo ${row.name}.`);
+    return { ...j, [key]: { ...pack, photos: [row, ...(pack.photos ?? [])] } };
   }, { nudge: false });
 }
 export function togglePacket(jobId: string, id: string) {

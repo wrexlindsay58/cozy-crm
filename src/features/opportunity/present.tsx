@@ -10,9 +10,11 @@ import { usePhotos } from "@/features/photos/store";
 import { brandVars, useBrand } from "@/features/brand/store";
 import { money } from "@/lib/crm-data";
 import { cityState, placeLine } from "@/lib/place";
-import { addPayOffer, applyGoodLeap, demoMonthly, lineAmount, optionTotal, requestDeposit, sendProposal, sendToSign, setPayPick, acceptOption, type PayKind, type Proposal } from "./store";
+import { addPayOffer, applyGoodLeap, financeMonthly, lineAmount, offerPlans, optionTotal, payAmount, payLabel, requestDeposit, sendProposal, setPayPick, type Proposal } from "./store";
+import { SignCeremony } from "./sign-ceremony";
+import { useMoneySettings } from "@/features/money-settings/store";
 import { PresentOption } from "./present-option";
-import { picksOn, scopeLines, TERM_LABEL } from "./proposal-copy";
+import { picksOn, scopeLines } from "./proposal-copy";
 import { storyFor } from "./product-story";
 import { BarRow, MoneyBars, StepRail } from "./present-viz";
 import { cn } from "@/lib/cn";
@@ -27,7 +29,7 @@ const SHOT = {
   inside: "/brand/slides/interior.jpg",
 };
 
-export function Present({ proposal }: { proposal: Proposal }) {
+export function Present({ proposal, mode = "customer" }: { proposal: Proposal; mode?: "present" | "customer" }) {
   useCatalog();
   useAssessments();
   const brand = useBrand();
@@ -37,11 +39,14 @@ export function Present({ proposal }: { proposal: Proposal }) {
   const assess = assessmentForLead(proposal.personId);
   const cats = useAssessCategories();
   const photos = usePhotos(proposal.personId);
+  const { financers } = useMoneySettings();
   const [step, setStep] = useState<Step>("cover");
   const [picked, setPicked] = useState(proposal.accepted ?? proposal.options[0]?.id ?? "");
   const [name, setName] = useState(lead?.name ?? "");
   const [copied, setCopied] = useState("");
   const [showAllOpts, setShowAllOpts] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const staff = mode === "present";
   const opt = proposal.options.find((o) => o.id === picked) ?? proposal.options[0];
   const total = opt ? optionTotal(opt) : 0;
   const i = STEPS.indexOf(step);
@@ -49,6 +54,9 @@ export function Present({ proposal }: { proposal: Proposal }) {
   const today = new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
   const payOffer = proposal.payOffers.find((o) => o.id === proposal.payPick?.offerId) ?? proposal.payOffers[0];
   const term = proposal.payPick?.term ?? payOffer?.terms[0] ?? 120;
+  const plans = payOffer ? offerPlans(payOffer) : [];
+  const plan = plans.find((p) => p.months === term && p.apr === proposal.payPick?.apr) ?? plans[0];
+  const payNow = payOffer ? payAmount(proposal, total, payOffer, payOffer.kind === "finance" ? plan : undefined) : total;
   const products = uniqueProducts(proposal);
   const hero = photos.find((p) => p.src)?.src ?? SHOT.house;
 
@@ -57,11 +65,8 @@ export function Present({ proposal }: { proposal: Proposal }) {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  function sign() {
-    if (!opt || !payOffer) return;
-    acceptOption(proposal.oppId, opt.id);
-    sendToSign(proposal.oppId);
-    if (payOffer.kind === "finance") applyGoodLeap(proposal.oppId);
+  function signed() {
+    if (payOffer?.kind === "finance") applyGoodLeap(proposal.oppId);
     else requestDeposit(proposal.oppId);
     go("done");
   }
@@ -83,7 +88,7 @@ export function Present({ proposal }: { proposal: Proposal }) {
       `}</style>
 
       <div className="no-print sticky top-0 z-20 flex items-center gap-2 border-b border-[var(--p-trim)] bg-white px-3 py-2 text-[var(--p-navy)] md:px-6">
-        <button type="button" className="grid size-11 place-items-center text-[var(--p-gray)]" aria-label="Close proposal" onClick={() => navigate(fileTo)}>
+        <button type="button" className="grid size-11 place-items-center text-[var(--p-gray)]" aria-label="Close proposal" onClick={() => (staff ? navigate(fileTo) : go("cover"))}>
           <X className="size-5" />
         </button>
         {step !== "cover" ? (
@@ -96,10 +101,12 @@ export function Present({ proposal }: { proposal: Proposal }) {
           <StepRail i={i} n={STEPS.length} />
         </div>
         <span className="ml-auto md:hidden" />
-        <button type="button" className="inline-flex h-11 items-center gap-1.5 px-2 text-[11px] font-semibold uppercase tracking-widest text-[var(--p-gray)]" onClick={copyLink}>
-          <Link2 className="size-4" />
-          {copied || "Link"}
-        </button>
+        {staff ? (
+          <button type="button" className="inline-flex h-11 items-center gap-1.5 px-2 text-[11px] font-semibold uppercase tracking-widest text-[var(--p-gray)]" onClick={copyLink}>
+            <Link2 className="size-4" />
+            {copied || "Link"}
+          </button>
+        ) : null}
         <button type="button" className="inline-flex h-11 items-center gap-1.5 px-2 text-[11px] font-semibold uppercase tracking-widest text-[var(--p-gray)]" onClick={() => window.print()}>
           <Printer className="size-4" />
           PDF
@@ -265,7 +272,14 @@ export function Present({ proposal }: { proposal: Proposal }) {
       {step === "options" ? (
         <section className="mx-auto max-w-5xl px-5 py-10 md:px-8 md:py-14">
           <p className="p-sub text-[11px] text-[var(--p-gray)]">Options</p>
-          <h2 className="p-head mt-2 text-5xl text-[var(--p-navy)]">Pick a path.</h2>
+          <div className="mt-8 flex items-end justify-between gap-3">
+            <h2 className="p-head text-5xl text-[var(--p-navy)]">Pick a path.</h2>
+            {staff ? (
+              <button type="button" className="h-11 border border-[var(--p-trim)] bg-white px-4 text-sm font-semibold" onClick={() => setEditing((v) => !v)}>
+                {editing ? "Lock" : "Edit"}
+              </button>
+            ) : null}
+          </div>
           <div className="mt-8 space-y-4">
             {proposal.options
               .filter((o) => showAllOpts || !picked || o.id === picked)
@@ -275,6 +289,7 @@ export function Present({ proposal }: { proposal: Proposal }) {
                   proposal={proposal}
                   option={o}
                   selected={picked === o.id}
+                  editing={staff && editing}
                   onPick={() => {
                     setPicked(o.id);
                     setShowAllOpts(false);
@@ -302,7 +317,7 @@ export function Present({ proposal }: { proposal: Proposal }) {
             <div>
               <p className="p-sub text-[11px] text-white/60">{payOffer?.kind === "finance" ? "Monthly" : "Investment"}</p>
               <p className="p-head mt-2 text-6xl md:text-8xl">
-                {payOffer?.kind === "finance" ? money(demoMonthly(total, term)) : money(total)}
+                {payOffer?.kind === "finance" && plan ? money(financeMonthly(payNow, plan.apr, plan.months)) : money(payNow)}
                 {payOffer?.kind === "finance" ? <span className="text-3xl">/mo</span> : null}
               </p>
             </div>
@@ -314,11 +329,15 @@ export function Present({ proposal }: { proposal: Proposal }) {
               <MoneyBars rows={proposal.options.map((o) => ({ id: o.id, name: o.name, amount: optionTotal(o) }))} picked={picked} />
             </div>
             <div className="mt-4 flex flex-wrap gap-2">
-              {(["cash", "card", "finance"] as PayKind[]).map((k) => (
-                <button key={k} type="button" className="h-10 border border-[var(--p-trim)] bg-white px-3 text-xs font-semibold uppercase tracking-wider text-[var(--p-gray)]" onClick={() => addPayOffer(proposal.oppId, k)}>
-                  Add {k === "card" ? "card" : k}
-                </button>
-              ))}
+              {staff
+                ? financers
+                    .filter((m) => m.active && !proposal.payOffers.some((o) => o.methodId === m.id || (m.kind !== "finance" && o.kind === m.kind) || (m.kind === "finance" && o.financer === m.name)))
+                    .map((m) => (
+                      <button key={m.id} type="button" className="h-10 border border-[var(--p-trim)] bg-white px-3 text-xs font-semibold uppercase tracking-wider text-[var(--p-gray)]" onClick={() => addPayOffer(proposal.oppId, m.id)}>
+                        Add {m.name}
+                      </button>
+                    ))
+                : null}
             </div>
             <div className="mt-4 grid gap-2">
               {proposal.payOffers.map((offer) => {
@@ -327,25 +346,32 @@ export function Present({ proposal }: { proposal: Proposal }) {
                   <button
                     key={offer.id}
                     type="button"
-                    onClick={() => setPayPick(proposal.oppId, offer.id, offer.terms[0])}
+                    onClick={() => {
+                      const first = offerPlans(offer)[0];
+                      setPayPick(proposal.oppId, offer.id, first?.months, first?.apr);
+                    }}
                     className={cn("bg-white px-5 py-4 text-left", on ? "outline outline-2 outline-[var(--p-navy)]" : "border border-[var(--p-trim)]")}
                   >
-                    <p className="p-sub text-[11px] text-[var(--p-gray)]">{offer.kind === "cash" ? "Cash" : offer.kind === "card" ? "Credit card" : `Financing · ${offer.financer ?? "GoodLeap"}`}</p>
-                    <p className="p-head mt-1 text-3xl text-[var(--p-navy)]">{offer.kind === "finance" ? `${money(demoMonthly(total, term))}/mo` : money(total)}</p>
+                    <p className="p-sub text-[11px] text-[var(--p-gray)]">{payLabel(offer)}</p>
+                    <p className="p-head mt-1 text-3xl text-[var(--p-navy)]">
+                      {offer.kind === "finance"
+                        ? `${money(financeMonthly(payAmount(proposal, total, offer, offerPlans(offer)[0]), offerPlans(offer)[0]?.apr ?? 0, offerPlans(offer)[0]?.months ?? term))}/mo`
+                        : money(payAmount(proposal, total, offer))}
+                    </p>
                   </button>
                 );
               })}
             </div>
             {payOffer?.kind === "finance" ? (
               <div className="mt-4 flex flex-wrap gap-2">
-                {(payOffer.terms.length ? payOffer.terms : [120, 144, 180]).map((m) => (
+                {plans.map((p) => (
                   <button
-                    key={m}
+                    key={`${p.months}-${p.apr}`}
                     type="button"
-                    onClick={() => setPayPick(proposal.oppId, payOffer.id, m)}
-                    className={cn("h-12 px-4 text-sm font-semibold", term === m ? "bg-[var(--p-navy)] text-white" : "border border-[var(--p-trim)] bg-white")}
+                    onClick={() => setPayPick(proposal.oppId, payOffer.id, p.months, p.apr)}
+                    className={cn("h-12 px-4 text-sm font-semibold", plan?.months === p.months && plan?.apr === p.apr ? "bg-[var(--p-navy)] text-white" : "border border-[var(--p-trim)] bg-white")}
                   >
-                    {TERM_LABEL[m]} · {money(demoMonthly(total, m))}/mo
+                    {p.months % 12 === 0 ? `${p.months / 12} yr` : `${p.months} mo`} {p.apr}% {money(financeMonthly(payAmount(proposal, total, payOffer, p), p.apr, p.months))}/mo
                   </button>
                 ))}
               </div>
@@ -357,62 +383,7 @@ export function Present({ proposal }: { proposal: Proposal }) {
         </section>
       ) : null}
 
-      {step === "sign" ? (
-        <section className="mx-auto grid max-w-5xl gap-8 px-5 py-10 md:grid-cols-2 md:px-8 md:py-14">
-          <div>
-            <p className="p-sub text-[11px] text-[var(--p-gray)]">Agreement</p>
-            <h2 className="p-head mt-2 text-5xl text-[var(--p-navy)]">Lock it in.</h2>
-            <p className="mt-4 text-sm text-[var(--p-gray)]">
-              {opt?.name} · {money(total)} · {payOffer?.kind === "finance" ? `${TERM_LABEL[term]} · ${money(demoMonthly(total, term))}/mo` : payOffer?.kind === "card" ? "Card" : "Cash"}
-            </p>
-            <ul className="mt-6 space-y-2 text-sm">
-              {opt?.lines
-                .filter((l) => l.kind !== "discount")
-                .map((l) => (
-                  <li key={l.sku} className="flex justify-between gap-3 border-b border-[var(--p-trim)] py-2">
-                    <span>
-                      {l.label}
-                      {picksOn(l) ? ` · ${picksOn(l)}` : ""}
-                    </span>
-                    <span className="tabular-nums">{money(lineAmount(l) || l.unit * l.qty)}</span>
-                  </li>
-                ))}
-            </ul>
-            <p className="mt-4 text-sm text-[var(--p-gray)]">We will {opt ? scopeLines(opt).join("; ").toLowerCase() : ""}.</p>
-          </div>
-          <div className="bg-white p-6 md:p-8">
-            <ol className="space-y-4 text-sm">
-              <li>
-                <span className="p-head text-2xl text-[var(--p-navy)]">01</span>
-                <p className="mt-1">Sign this agreement.</p>
-              </li>
-              <li>
-                <span className="p-head text-2xl text-[var(--p-navy)]">02</span>
-                <p className="mt-1">{payOffer?.kind === "finance" ? "Apply for financing." : "Deposit on the card to hold the date."}</p>
-              </li>
-              <li>
-                <span className="p-head text-2xl text-[var(--p-navy)]">03</span>
-                <p className="mt-1">We confirm the install. Crew gets the scope and photos.</p>
-              </li>
-              <li>
-                <span className="p-head text-2xl text-[var(--p-navy)]">04</span>
-                <p className="mt-1">Good 14 days from {today}.</p>
-              </li>
-            </ol>
-            <label className="mt-8 block text-[11px] font-bold tracking-wide uppercase text-[var(--p-gray)]">
-              Full name
-              <input value={name} onChange={(e) => setName(e.target.value)} className="mt-1 h-12 w-full border border-[var(--p-trim)] bg-[var(--p-paper)] px-3 text-base outline-none focus:border-[var(--p-navy)]" />
-            </label>
-            <p className="mt-3 text-[12px] text-[var(--p-gray)]">
-              {name || "You"} authorize {brand.name} ({brand.license}) at {lead?.address}
-              {lead ? `, ${cityState(lead.city, lead.office)}` : ""}.
-            </p>
-            <button type="button" disabled={name.trim().length < 3} className="mt-6 h-12 w-full bg-[var(--p-red)] text-sm font-semibold text-white disabled:opacity-40" onClick={sign}>
-              Sign agreement
-            </button>
-          </div>
-        </section>
-      ) : null}
+      {step === "sign" && opt ? <SignCeremony proposal={proposal} mode="in-home" optionId={opt.id} witnessed={staff} onDone={signed} /> : null}
 
       {step === "done" ? (
         <section className="relative min-h-[calc(100dvh-56px)] overflow-hidden">

@@ -1,7 +1,9 @@
 import { useState } from "react";
 import { Pencil } from "lucide-react";
 import { addScopeMedia, patchScope, setSoldNotes, togglePromise, type JobFile } from "./store";
-import { money } from "@/lib/crm-data";
+import { money, opportunities } from "@/lib/crm-data";
+import { useProposals } from "@/features/opportunity/store";
+import { SoldSummary } from "@/features/opportunity/sold-summary";
 import { cn } from "@/lib/cn";
 import { JobCard } from "./job-card";
 import { MediaStrip } from "./media-strip";
@@ -12,12 +14,13 @@ const KIND = { product: "Product", adder: "Adder", discount: "Discount", promise
 export function SoldChapter({ job }: { job: JobFile }) {
   const [edit, setEdit] = useState(false);
   const [noteEdit, setNoteEdit] = useState(false);
+  const proposal = useProposals()[opportunities.find((o) => o.leadId === job.leadId)?.id ?? ""];
   const total = job.scope.reduce((s, r) => s + r.amount, 0);
   const counts = `${job.scope.filter((s) => s.kind === "product").length} products · ${job.scope.filter((s) => s.kind === "adder").length} adders · ${job.scope.filter((s) => s.kind === "discount").length} discounts · ${job.scope.filter((s) => s.kind === "promise").length} promises`;
   const products = job.scope.filter((s) => s.kind === "product");
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-2">
       <JobCard
         kicker="Job notes"
         title={job.soldNotes ? undefined : "Nothing on the file yet"}
@@ -45,6 +48,11 @@ export function SoldChapter({ job }: { job: JobFile }) {
           </button>
         }
       >
+      {proposal?.accepted ? (
+        <div className="mb-4">
+          <SoldSummary proposal={proposal} />
+        </div>
+      ) : null}
       <div className="overflow-x-auto">
         <table className="w-full text-left text-sm">
           <thead>
