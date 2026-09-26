@@ -23,6 +23,55 @@ function toggleReact(reacts: Reacts | undefined, mark: string, who = "You"): Rea
   return next;
 }
 
+function countReplies(line: ChatLine): number {
+  return (line.replies ?? []).reduce((n, row) => n + 1 + countReplies(row), 0);
+}
+
+function holds(line: ChatLine, id: string): boolean {
+  if (line.id === id) return true;
+  return (line.replies ?? []).some((row) => holds(row, id));
+}
+
+function rootId(rows: ChatLine[], id: string) {
+  return rows.find((row) => holds(row, id))?.id ?? null;
+}
+
+type FlatReply = { line: ChatLine; parent: ChatLine };
+
+function flatten(root: ChatLine): FlatReply[] {
+  const out: FlatReply[] = [];
+  const walk = (parent: ChatLine) => {
+    for (const child of parent.replies ?? []) {
+      out.push({ line: child, parent });
+      walk(child);
+    }
+  };
+  walk(root);
+  return out;
+}
+
+function shortName(name: string) {
+  if (name.includes("—")) return name.split("—").pop()?.trim().split(/\s+/)[0] || name;
+  return name.split(/\s+/)[0] || name;
+}
+
+function tagLabel(parent: ChatLine, roster: ChatLine[]) {
+  const name = shortName(parent.who);
+  const clash = roster.some((row) => row.id !== parent.id && shortName(row.who) === name);
+  if (!clash) return name;
+  const bit = parent.text.replace(/\s+/g, " ").trim();
+  const cut = bit.length > 22 ? `${bit.slice(0, 22).trimEnd()}…` : bit;
+  return `${name} · ${cut}`;
+}
+
+function mapLine(rows: ChatLine[], id: string, fn: (line: ChatLine) => ChatLine): ChatLine[] {
+  return rows.map((row) => {
+    if (row.id === id) return fn(row);
+    if (!row.replies?.length) return row;
+    return { ...row, replies: mapLine(row.replies, id, fn) };
+  });
+}
+
 const TABS: { id: FeedTab; label: string; icon: ReactNode }[] = [
   { id: "activity", label: "Activity", icon: <BoltIco /> },
   { id: "chat", label: "Chat", icon: <ChatIco /> },
@@ -36,6 +85,7 @@ export function ShopFeed({ open, onOpen, onClose }: { open: boolean; onOpen: () 
   const [file, setFile] = useState<string>("");
   const [replyTo, setReplyTo] = useState<string | null>(null);
   const [reply, setReply] = useState("");
+  const [openThreads, setOpenThreads] = useState<Record<string, boolean>>({});
   const pick = useRef<HTMLInputElement>(null);
 
   function send() {
@@ -50,7 +100,9 @@ export function ShopFeed({ open, onOpen, onClose }: { open: boolean; onOpen: () 
     const text = reply.trim();
     if (!text) return;
     const line: ChatLine = { id: `r-${Date.now()}`, who: "You", text, at: "now" };
-    setChat((rows) => rows.map((m) => (m.id === id ? { ...m, replies: [...(m.replies ?? []), line] } : m)));
+    const root = rootId(chat, id);
+    setChat((rows) => mapLine(rows, id, (m) => ({ ...m, replies: [...(m.replies ?? []), line] })));
+    if (root) setOpenThreads((cur) => ({ ...cur, [root]: true }));
     setReply("");
     setReplyTo(null);
   }
@@ -69,7 +121,7 @@ export function ShopFeed({ open, onOpen, onClose }: { open: boolean; onOpen: () 
       {open ? <button type="button" aria-label="Close feed" className="absolute inset-0 z-20 bg-ink/20 xl:hidden" onClick={onClose} /> : null}
       <aside
         className={cn(
-          "min-h-0 w-[298px] shrink-0 flex-col border-line bg-card text-[12px]",
+          "min-h-0 w-[clamp(298px,calc(298px+(100vw-1280px)*0.125),418px)] shrink-0 flex-col border-line bg-card text-[12px]",
           "xl:relative xl:flex xl:border-l",
           open ? "absolute inset-y-0 right-0 z-30 flex border-l shadow-lg" : "hidden",
         )}
@@ -100,15 +152,17 @@ export function ShopFeed({ open, onOpen, onClose }: { open: boolean; onOpen: () 
                 <li key={m.id}>
                   <ChatBlock
                     m={m}
-                    replyOpen={replyTo === m.id}
+                    openThread={m.id in openThreads ? openThreads[m.id] : countReplies(m) < 4}
+                    onThread={(open) => setOpenThreads((cur) => ({ ...cur, [m.id]: open }))}
+                    replyTo={replyTo}
                     reply={reply}
                     onReplyChange={setReply}
-                    onToggleReply={() => {
-                      setReplyTo(replyTo === m.id ? null : m.id);
+                    onToggleReply={(id) => {
+                      setReplyTo(replyTo === id ? null : id);
                       setReply("");
                     }}
-                    onSendReply={() => sendReply(m.id)}
-                    onReact={(k) => setChat((rows) => rows.map((row) => (row.id === m.id ? { ...row, reacts: toggleReact(row.reacts, k) } : row)))}
+                    onSendReply={sendReply}
+                    onReact={(id, k) => setChat((rows) => mapLine(rows, id, (row) => ({ ...row, reacts: toggleReact(row.reacts, k) })))}
                   />
                 </li>
               ))}
@@ -187,6 +241,94 @@ export function ShopFeed({ open, onOpen, onClose }: { open: boolean; onOpen: () 
 
 function ChatBlock({
   m,
+  openThread,
+  onThread,
+  replyTo,
+  reply,
+  onReplyChange,
+  onToggleReply,
+  onSendReply,
+  onReact,
+}: {
+  m: ChatLine;
+  openThread: boolean;
+  onThread: (open: boolean) => void;
+  replyTo: string | null;
+  reply: string;
+  onReplyChange: (v: string) => void;
+  onToggleReply: (id: string) => void;
+  onSendReply: (id: string) => void;
+  onReact: (id: string, k: string) => void;
+}) {
+  const [flash, setFlash] = useState<string | null>(null);
+  const timer = useRef<number | null>(null);
+  const flat = flatten(m);
+  const roster = [m, ...flat.flatMap((row) => [row.line, row.parent])];
+  const long = flat.length >= 4;
+
+  function jump(id: string) {
+    document.getElementById(`feed-line-${id}`)?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    setFlash(id);
+    if (timer.current) window.clearTimeout(timer.current);
+    timer.current = window.setTimeout(() => setFlash(null), 1400);
+  }
+
+  return (
+    <div>
+      <ChatLineView
+        m={m}
+        flash={flash === m.id}
+        replyOpen={replyTo === m.id}
+        reply={reply}
+        onReplyChange={onReplyChange}
+        onToggleReply={() => onToggleReply(m.id)}
+        onSendReply={() => onSendReply(m.id)}
+        onReact={(k) => onReact(m.id, k)}
+      />
+      {flat.length ? (
+        long && !openThread ? (
+          <button type="button" onClick={() => onThread(true)} className="mt-2 ml-10 text-[11px] font-bold text-navy">
+            {flat.length} replies
+          </button>
+        ) : (
+          <div className="mt-2 border-l border-line pl-2.5">
+            <ul className="space-y-2.5">
+              {flat.map(({ line, parent }) => (
+                <li key={line.id}>
+                  <ChatLineView
+                    m={line}
+                    small
+                    flash={flash === line.id}
+                    tag={parent.id === m.id ? undefined : tagLabel(parent, roster)}
+                    onTag={parent.id === m.id ? undefined : () => jump(parent.id)}
+                    replyOpen={replyTo === line.id}
+                    reply={reply}
+                    onReplyChange={onReplyChange}
+                    onToggleReply={() => onToggleReply(line.id)}
+                    onSendReply={() => onSendReply(line.id)}
+                    onReact={(k) => onReact(line.id, k)}
+                  />
+                </li>
+              ))}
+            </ul>
+            {long ? (
+              <button type="button" onClick={() => onThread(false)} className="mt-2 text-[11px] font-bold text-muted">
+                Hide
+              </button>
+            ) : null}
+          </div>
+        )
+      ) : null}
+    </div>
+  );
+}
+
+function ChatLineView({
+  m,
+  small = false,
+  flash = false,
+  tag,
+  onTag,
   replyOpen,
   reply,
   onReplyChange,
@@ -195,6 +337,10 @@ function ChatBlock({
   onReact,
 }: {
   m: ChatLine;
+  small?: boolean;
+  flash?: boolean;
+  tag?: string;
+  onTag?: () => void;
   replyOpen: boolean;
   reply: string;
   onReplyChange: (v: string) => void;
@@ -203,11 +349,16 @@ function ChatBlock({
   onReact: (k: string) => void;
 }) {
   return (
-    <div className="flex gap-3">
-      <Face name={m.who} />
+    <div id={`feed-line-${m.id}`} className={cn("flex gap-2.5 rounded-md", flash && "bg-info-bg")}>
+      <Face name={m.who} small={small} />
       <div className="min-w-0 flex-1">
         <p className="text-[12px] leading-4">
           <span className="font-semibold">{m.who}</span>
+          {tag && onTag ? (
+            <button type="button" onClick={onTag} className="mt-0.5 block max-w-full truncate text-left text-[11px] font-semibold text-navy">
+              ↩ {tag}
+            </button>
+          ) : null}
           <span className="mt-0.5 block">{m.text}</span>
           {m.media ? <span className="mt-1 block truncate rounded-md bg-page px-2 py-1 text-[11px] font-semibold">{m.media.name}</span> : null}
           <span className="mt-0.5 block text-[10px] text-muted">{m.at}</span>
@@ -218,17 +369,6 @@ function ChatBlock({
           </button>
           <ReactBar reacts={m.reacts} onToggle={onReact} />
         </div>
-        {m.replies?.length ? (
-          <ul className="mt-2 space-y-2 border-l border-line pl-3">
-            {m.replies.map((r) => (
-              <li key={r.id} className="text-[12px] leading-4">
-                <span className="font-semibold">{r.who}</span>
-                <span className="mt-0.5 block">{r.text}</span>
-                <span className="mt-0.5 block text-[10px] text-muted">{r.at}</span>
-              </li>
-            ))}
-          </ul>
-        ) : null}
         {replyOpen ? (
           <form
             className="mt-2 flex gap-2"
@@ -240,7 +380,7 @@ function ChatBlock({
             <input
               value={reply}
               onChange={(e) => onReplyChange(e.target.value)}
-              placeholder={`Reply to ${m.who.split(" ")[0]}`}
+              placeholder={`Reply to ${shortName(m.who)}`}
               className="h-8 min-w-0 flex-1 rounded-md border border-line px-2 text-[12px]"
               aria-label="Reply"
             />
@@ -301,8 +441,12 @@ function ReactBar({ reacts, onToggle }: { reacts?: Reacts; onToggle: (k: string)
   );
 }
 
-function Face({ name }: { name: string }) {
-  return <span className="mt-0.5 grid size-8 shrink-0 place-items-center rounded-full bg-navy text-[10px] font-bold tracking-wide text-card">{initials(name)}</span>;
+function Face({ name, small = false }: { name: string; small?: boolean }) {
+  return (
+    <span className={cn("mt-0.5 grid shrink-0 place-items-center rounded-full bg-navy font-bold tracking-wide text-card", small ? "size-6 text-[9px]" : "size-8 text-[10px]")}>
+      {initials(name)}
+    </span>
+  );
 }
 
 function ChatIco() {

@@ -26,7 +26,23 @@ export const seedChat: ChatLine[] = [
     who: "Dana Ortiz",
     text: "Hale agreement is out. Waiting on both owners.",
     at: "4:06p",
-    replies: [{ id: "c3r", who: "Marco Velez", text: "I'll ping them if it's still open at 5.", at: "4:08p" }],
+    replies: [
+      {
+        id: "c3r",
+        who: "Marco Velez",
+        text: "I'll ping them if it's still open at 5.",
+        at: "4:08p",
+        replies: [
+          {
+            id: "c3r2",
+            who: "Dana Ortiz",
+            text: "Both should be home after 5:30.",
+            at: "4:11p",
+            replies: [{ id: "c3r3", who: "Priya Shah", text: "I'll hold the crew until you hear back.", at: "4:13p" }],
+          },
+        ],
+      },
+    ],
   },
   { id: "c4", who: "Evan Cole", text: "Whitaker WO signed. Dumpster is on the street.", at: "3:58p" },
   { id: "c5", who: "Marco Velez", text: "Need a second sit tomorrow in Gilbert if anyone's light.", at: "3:41p" },
