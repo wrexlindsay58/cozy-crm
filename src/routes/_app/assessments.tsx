@@ -1,12 +1,14 @@
 import { useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
+import { Circle, CircleCheck } from "lucide-react";
 import { Empty, StatusPill } from "@/components/ui-bits";
 import { RecordTable } from "@/components/record-table";
 import { useAssessments } from "@/features/assessment/store";
 import { useDoors } from "@/features/flow/door";
-import { ContactName, countsFor, QuietFilter } from "@/features/lists/bits";
+import { ContactName, countsFor, QuietFilter, Reach, WhoStack } from "@/features/lists/bits";
 import { ListPage } from "@/features/lists/list-page";
 import { sortRows, type Sort } from "@/features/lists/sort";
+import { useOps } from "@/features/ops/store";
 
 export const Route = createFileRoute("/_app/assessments")({
   component: AssessmentsPage,
@@ -15,16 +17,19 @@ export const Route = createFileRoute("/_app/assessments")({
 function AssessmentsPage() {
   const all = useAssessments();
   const doors = useDoors();
+  const { leads } = useOps();
   const [view, setView] = useState("All");
   const [query, setQuery] = useState("");
   const [owner, setOwner] = useState("");
   const [sort, setSort] = useState<Sort>({ key: "rank", dir: "asc" });
-  const pool = all.filter((r) => doors[r.leadId]?.place === "assessment");
+  const pool = all
+    .filter((r) => doors[r.leadId]?.place === "assessment")
+    .map((r) => ({ ...r, lead: leads.find((l) => l.id === r.leadId) }));
   const owners = [...new Set(pool.map((r) => r.closer))].sort();
   const scoped = pool.filter((r) => !owner || r.closer === owner);
   const cards = countsFor(scoped, [
-    { id: "Open", label: "Open", match: (r) => r.status === "Open" },
-    { id: "Ready", label: "Ready", tone: "watch", match: (r) => r.status === "Complete" },
+    { id: "Open", label: "Open", icon: Circle, match: (r) => r.status === "Open" },
+    { id: "Ready", label: "Ready", tone: "watch", icon: CircleCheck, match: (r) => r.status === "Complete" },
   ]);
   const rows = useMemo(() => {
     const needle = query.trim().toLowerCase();
@@ -32,7 +37,7 @@ function AssessmentsPage() {
       if (view === "Open" && r.status !== "Open") return false;
       if (view === "Ready" && r.status !== "Complete") return false;
       if (!needle) return true;
-      return [r.name, r.address, r.closer].join(" ").toLowerCase().includes(needle);
+      return [r.name, r.lead?.secondaryName, r.address, r.closer, r.lead?.phone, r.lead?.email].join(" ").toLowerCase().includes(needle);
     });
     return sortRows(filtered, sort, (r, key) => {
       if (key === "name") return r.name;
@@ -60,10 +65,11 @@ function AssessmentsPage() {
         sort={sort}
         onSort={(key) => setSort((s) => (s.key === key ? { key, dir: s.dir === "asc" ? "desc" : "asc" } : { key, dir: "asc" }))}
         columns={[
-          { key: "name", label: "Name", render: (r) => <ContactName name={r.name} place={r.address} /> },
+          { key: "name", label: "Name", render: (r) => <ContactName name={r.lead?.name || r.name} second={r.lead?.secondaryName} place={r.address} /> },
+          { key: "reach", label: "Phone", render: (r) => <Reach phone={r.lead?.phone} email={r.lead?.email} /> },
           { key: "status", label: "Status", render: (r) => <StatusPill label={r.status === "Complete" ? "Ready" : "Open"} tone={r.status === "Complete" ? "up" : "navy"} /> },
           { key: "next", label: "Next", render: (r) => (r.status === "Complete" ? "Continue to opportunity" : "Finish the assessment") },
-          { key: "who", label: "Who", hide: "md", render: (r) => r.closer },
+          { key: "who", label: "Who", render: (r) => <WhoStack name={r.closer} /> },
         ]}
       />
     </ListPage>

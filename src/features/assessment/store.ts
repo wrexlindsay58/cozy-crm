@@ -5,6 +5,7 @@ import { kindFromFile, putPhoto } from "@/features/photos/store";
 import { activeCategories } from "./categories";
 import { actingName } from "@/features/staff/store";
 import { emptyProperty, type Assessment, type Packet, type Property } from "./types";
+import { rosterAssessments } from "@/lib/roster";
 
 function emptyPacket(id: string): Packet {
   return { id, fields: {}, photos: [], notes: "" };
@@ -19,7 +20,7 @@ function withCats(packets: Packet[]): Packet[] {
 const hale: Assessment = {
   id: "AS-19",
   leadId: "L-4819",
-  name: "Todd & Kim Hale",
+  name: "Todd Hale",
   address: "7721 E Via de Ventura",
   closer: "Dana Ortiz",
   status: "Open",
@@ -138,7 +139,10 @@ function soldHouse(id: string, leadId: string, name: string, address: string, cl
   };
 }
 
-let rows: Record<string, Assessment> = { "AS-19": hale, "AS-18": soldHouse("AS-18", "L-4788", "Ben & Alyssa Cho", "11840 W Desert Hills", "Dana Ortiz"), "AS-17": soldHouse("AS-17", "L-4761", "The Whitakers", "Scottsdale", "Dana Ortiz") };
+let rows: Record<string, Assessment> = { "AS-19": hale, "AS-18": soldHouse("AS-18", "L-4788", "Ben Cho", "11840 W Desert Hills", "Dana Ortiz"), "AS-17": soldHouse("AS-17", "L-4761", "Ann Whitaker", "Scottsdale", "Dana Ortiz") };
+for (const extra of rosterAssessments) {
+  rows[extra.id] = { ...soldHouse(extra.id, extra.leadId, extra.name, extra.address, extra.closer), status: extra.status };
+}
 for (const p of hale.packets) {
   for (const ph of p.photos) {
     const cat = p.id === "hvac" ? "HVAC" : p.id === "attic" ? "Attic" : p.id;

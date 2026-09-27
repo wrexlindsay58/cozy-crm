@@ -8,6 +8,7 @@ import { planById, termPrice } from "./catalog";
 import { isoDay, parseDay, plusDays, rateAfterTerm, renewalOpen, NOTICE_DAYS } from "./renew";
 import type { CancelRecord, CardOnFile, LedgerRow, MemberAgreement, MemberOrigin, MemberStatus, MemberVisit, MembershipFile, PayMode, PlanChange, PlanFunding, TermYears, VisitPart, VisitRepair } from "./types";
 import { memberAgreement } from "./agreement";
+import { rosterMemberships } from "@/lib/roster";
 
 function pretty(d: Date) {
   return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
@@ -52,7 +53,7 @@ let files: MembershipFile[] = ([
   {
     id: "M-101",
     personId: "L-4761",
-    name: "The Whitakers",
+    name: "Ann Whitaker",
     address: "11820 E Shea Blvd",
     city: "Scottsdale, AZ",
     office: "Scottsdale",
@@ -74,7 +75,7 @@ let files: MembershipFile[] = ([
   {
     id: "M-102",
     personId: "L-4788",
-    name: "Ben & Alyssa Cho",
+    name: "Ben Cho",
     address: "9812 N 90th St",
     city: "Scottsdale, AZ",
     office: "Scottsdale",
@@ -96,7 +97,7 @@ let files: MembershipFile[] = ([
   {
     id: "M-103",
     personId: "L-4819",
-    name: "Todd & Kim Hale",
+    name: "Todd Hale",
     address: "7721 E Via de Ventura",
     city: "Scottsdale, AZ",
     office: "Scottsdale",
@@ -119,7 +120,7 @@ let files: MembershipFile[] = ([
   {
     id: "M-104",
     personId: "L-4726",
-    name: "Paul & Diane Kerr",
+    name: "Paul Kerr",
     address: "6402 E Thunderbird Rd",
     city: "Scottsdale, AZ",
     office: "Scottsdale",
@@ -138,6 +139,7 @@ let files: MembershipFile[] = ([
     end: "Dec 1, 2026",
     nextBill: "Oct 1, 2026",
   },
+  ...rosterMemberships,
 ] as Array<Omit<MembershipFile, "included" | "repairDiscount">>).map((seed) => {
   const file = { ...seed, included: planById(seed.planId).included, repairDiscount: planById(seed.planId).repairDiscount };
   if (file.id === "M-101") {
@@ -193,8 +195,16 @@ let files: MembershipFile[] = ([
   }
   return {
     ...file,
-    agreement: readyAgreement(file),
-    ledger: [{ id: "M-103-1", at: file.start, amount: file.termPrice, status: "Held" as const, note: "Included in the loan. Not job revenue." }],
+    agreement: file.status === "Active" ? { status: "Signed" as const, at: file.start, signer: file.name, body: memberAgreement(file, getBrand().name) } : readyAgreement(file),
+    ledger: [
+      {
+        id: `${file.id}-1`,
+        at: file.start,
+        amount: file.termPrice,
+        status: file.funding === "loan" && file.status !== "Active" ? ("Held" as const) : file.pay === "prepaid" ? ("Paid" as const) : ("Open" as const),
+        note: file.funding === "loan" ? "Included in the loan. Not job revenue." : file.pay === "prepaid" ? "Prepaid on the membership." : "Monthly bill.",
+      },
+    ],
   };
 });
 

@@ -7,6 +7,7 @@ export type Col<T> = {
   label: string;
   hide?: "sm" | "md" | "lg";
   align?: "right";
+  interactive?: boolean;
   render: (row: T) => ReactNode;
 };
 
@@ -30,22 +31,22 @@ export function RecordTable<T extends { id: string }>({
     <>
       <ul className="divide-y divide-line bg-card md:hidden">
         {rows.map((row) => (
-          <li key={row.id}>
-            <a href={href(row)} className="flex flex-col gap-1.5 px-4 py-3">
-              <span className="type-group">{columns[0]?.render(row)}</span>
-              <span className="type-meta flex flex-wrap items-center gap-x-2 gap-y-1">
-                {cardCols.slice(1).map((c) => (
-                  <span key={c.key} className="inline-flex min-w-0 items-center">
-                    {c.render(row)}
-                  </span>
-                ))}
-              </span>
+          <li key={row.id} className="flex flex-col gap-1.5 px-4 py-3">
+            <a href={href(row)} className="type-group">
+              {columns[0]?.render(row)}
             </a>
+            <span className="type-meta flex flex-wrap items-center gap-x-3 gap-y-2">
+              {cardCols.slice(1).map((c) => (
+                <span key={c.key} className="inline-flex min-w-0 items-center">
+                  {c.render(row)}
+                </span>
+              ))}
+            </span>
           </li>
         ))}
       </ul>
       <div className="hidden w-full min-w-0 overflow-auto md:block">
-        <table className="type-body w-full min-w-[720px] border-separate border-spacing-0 text-left">
+        <table className="type-body w-full min-w-[1080px] border-separate border-spacing-0 text-left">
           <thead>
             <tr>
               {columns.map((c, i) => (
@@ -88,8 +89,8 @@ export function RecordTable<T extends { id: string }>({
                       c.hide === "lg" && "hidden lg:table-cell",
                     )}
                   >
-                    <a href={href(row)} className="absolute inset-0" aria-label={i === 0 ? "Open" : undefined} tabIndex={i === 0 ? 0 : -1} />
-                    <div className={cn("pointer-events-none relative flex min-h-11 items-center", c.align === "right" && "justify-end")}>{c.render(row)}</div>
+                    <a href={href(row)} className={cn("absolute inset-0", c.interactive && "hidden")} aria-label={i === 0 ? "Open" : undefined} tabIndex={i === 0 ? 0 : -1} />
+                    <div className={cn("relative flex min-h-11 items-center", !c.interactive && "pointer-events-none", c.align === "right" && "justify-end")}>{c.render(row)}</div>
                   </td>
                 ))}
                 {action ? (

@@ -1,5 +1,6 @@
 import { useSyncExternalStore } from "react";
 import { accounts, leads, opportunities, projects } from "@/lib/crm-data";
+import { rosterAccountLeads, rosterAccounts, rosterAssessments } from "@/lib/roster";
 
 export type FlowPlace = "lead" | "assessment" | "opportunity" | "job" | "account";
 
@@ -32,6 +33,12 @@ for (const project of projects) {
 put("A-176", "account", "A-176");
 put("A-169", "account", "A-169");
 put("A-154", "account", "A-154");
+for (const row of rosterAssessments) put(row.leadId, "assessment", row.id);
+rosterAccounts.forEach((account, i) => {
+  const lead = rosterAccountLeads[i];
+  if (lead) put(lead.id, "account", account.id);
+  put(account.id, "account", account.id);
+});
 
 function emit() {
   listeners.forEach((l) => l());

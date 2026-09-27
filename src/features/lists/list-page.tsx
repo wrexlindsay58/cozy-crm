@@ -49,6 +49,24 @@ export function ListPage({
             />
           ) : null}
           {filters}
+          {cards
+            ? cards.map((c) => {
+                const on = view === c.id;
+                const Icon = c.icon;
+                return (
+                  <button
+                    key={c.id}
+                    type="button"
+                    onClick={() => onView?.(c.id)}
+                    className={cn("inline-flex h-11 shrink-0 items-center gap-1.5 rounded-md border px-2.5", on ? "border-navy bg-navy text-card" : "border-line bg-card")}
+                  >
+                    {Icon ? <Icon className="size-3.5" /> : null}
+                    <span className={cn("text-sm font-semibold tabular-nums", !on && (c.tone === "alert" ? "text-alert" : c.tone === "watch" ? "text-watch" : "text-navy"))}>{c.count}</span>
+                    <span className={cn("text-[13px] font-medium", on ? "text-card" : "text-muted")}>{c.label}</span>
+                  </button>
+                );
+              })
+            : null}
           {!cards && views?.length ? (
             <label className="w-full md:hidden">
               <span className="sr-only">View</span>
@@ -71,24 +89,6 @@ export function ListPage({
             </div>
           ) : null}
         </div>
-        {cards ? (
-          <div className="mt-2 flex flex-nowrap items-center gap-1.5 overflow-x-auto">
-            {cards.map((c) => {
-              const on = view === c.id;
-              return (
-                <button
-                  key={c.id}
-                  type="button"
-                  onClick={() => onView?.(c.id)}
-                  className={cn("flex h-9 shrink-0 items-center gap-1.5 rounded-md border bg-card px-2", on ? "border-navy" : "border-line")}
-                >
-                  <span className={cn("text-sm font-semibold tabular-nums", c.tone === "alert" ? "text-alert" : c.tone === "watch" ? "text-watch" : "text-navy")}>{c.count}</span>
-                  <span className="text-[11px] font-medium text-muted">{c.label}</span>
-                </button>
-              );
-            })}
-          </div>
-        ) : null}
       </div>
       <div className="min-h-0 min-w-0 flex-1 overflow-auto">{empty ? <div className="p-4">{empty}</div> : children}</div>
     </main>

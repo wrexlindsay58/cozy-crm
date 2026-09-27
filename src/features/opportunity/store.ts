@@ -216,6 +216,20 @@ export function optionRollup(opt: OptCard) {
 export function optionTotal(opt: OptCard) {
   return optionRollup(opt).total;
 }
+
+/** The list shows one number: the accepted option if they bought one, otherwise the recommended option. The other options stay on the proposal. */
+export function listedQuote(proposal: Proposal | undefined, fallback: number) {
+  const options = proposal?.options ?? [];
+  const sold = proposal?.accepted ? options.find((o) => o.id === proposal.accepted) : undefined;
+  const recommended = options.find((o) => o.id === "A") ?? options[0];
+  const picked = sold ?? recommended;
+  if (!picked) return { amount: fallback, label: "No options yet", count: options.length };
+  return {
+    amount: optionTotal(picked),
+    label: sold ? `Sold · ${picked.name}` : picked.name,
+    count: options.length,
+  };
+}
 function defaultOffers(oppId: string): PayOffer[] {
   const methods = activePayMethods().filter((m) => m.kind === "cash" || m.kind === "card" || m.name === "GoodLeap");
   return methods.map((m) => ({
@@ -408,8 +422,8 @@ function seedFor(oppId: string, personId: string, closer: string, product: strin
     products,
     options: [
       { id: "A", name: "Recommended", lines: a },
-      { id: "B", name: "Good / better", lines: a.map((l) => ({ ...l })) },
-      { id: "C", name: "Good", lines: a.map((l) => ({ ...l })) },
+      { id: "B", name: "Better", lines: a.length > 1 ? a.slice(0, -1).map((l) => ({ ...l })) : a.map((l) => ({ ...l })) },
+      { id: "C", name: "Good", lines: a.slice(0, 1).map((l) => ({ ...l })) },
     ],
     accepted: won ? "A" : undefined,
     pay: cash ? "cash" : "goodleap",

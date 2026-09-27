@@ -1,11 +1,12 @@
 import { useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
+import { Flag, Hammer, Handshake, Package, Pause } from "lucide-react";
 import { Empty, StatusPill } from "@/components/ui-bits";
 import { RecordTable } from "@/components/record-table";
 import { jobTone, tally, useJobs, type JobFile } from "@/features/job/store";
 import { useOps } from "@/features/ops/store";
 import { useDoors } from "@/features/flow/door";
-import { ContactName, countsFor, QuietFilter } from "@/features/lists/bits";
+import { ContactName, countsFor, QuietFilter, Reach, WhoStack } from "@/features/lists/bits";
 import { ListPage } from "@/features/lists/list-page";
 import { sortRows, type Sort } from "@/features/lists/sort";
 import { money, accounts, type Lead } from "@/lib/crm-data";
@@ -63,18 +64,18 @@ function JobsPage() {
   const owners = [...new Set(pool.map((j) => j.pm).filter(Boolean))].sort();
   const scoped = pool.filter((j) => (!office || j.lead?.office === office) && (!owner || j.pm === owner));
   const cards = countsFor(scoped, [
-    { id: "Acceptance", label: "Acceptance", match: (j) => j.q === "Acceptance" },
-    { id: "Prep", label: "Prep", match: (j) => j.q === "Prep" },
-    { id: "On the board", label: "On the board", match: (j) => j.q === "On the board" },
-    { id: "Held", label: "Held", tone: "alert", match: (j) => j.q === "Held" },
-    { id: "Ready to close", label: "Ready to close", tone: "watch", match: (j) => j.q === "Ready to close" },
+    { id: "Acceptance", label: "Acceptance", icon: Handshake, match: (j) => j.q === "Acceptance" },
+    { id: "Prep", label: "Prep", icon: Package, match: (j) => j.q === "Prep" },
+    { id: "On the board", label: "On the board", icon: Hammer, match: (j) => j.q === "On the board" },
+    { id: "Held", label: "Held", tone: "alert", icon: Pause, match: (j) => j.q === "Held" },
+    { id: "Ready to close", label: "Ready to close", tone: "watch", icon: Flag, match: (j) => j.q === "Ready to close" },
   ]);
   const rows = useMemo(() => {
     const needle = query.trim().toLowerCase();
     const filtered = scoped.filter((j) => {
       if (view !== "All" && j.q !== view) return false;
       if (!needle) return true;
-      return [j.lead?.name, j.account?.name, j.name, j.product, j.pm, j.lead?.address, j.lead?.city].join(" ").toLowerCase().includes(needle);
+      return [j.lead?.name, j.lead?.secondaryName, j.account?.name, j.account?.secondaryName, j.name, j.product, j.pm, j.lead?.address, j.lead?.phone, j.lead?.email, j.account?.phone, j.account?.email].join(" ").toLowerCase().includes(needle);
     });
     return sortRows(filtered, sort, (j, key) => {
       if (key === "name") return j.lead?.name ?? j.account?.name ?? j.name;
@@ -109,10 +110,11 @@ function JobsPage() {
         sort={sort}
         onSort={(key) => setSort((s) => (s.key === key ? { key, dir: s.dir === "asc" ? "desc" : "asc" } : { key, dir: "asc" }))}
         columns={[
-          { key: "name", label: "Name", render: (r) => <ContactName name={r.lead?.name ?? r.account?.name ?? r.name} second={r.lead?.secondaryName} place={r.lead?.address || r.product} /> },
+          { key: "name", label: "Name", render: (r) => <ContactName name={r.lead?.name ?? r.account?.name ?? r.name} second={r.lead?.secondaryName ?? r.account?.secondaryName} place={r.lead?.address || r.product} /> },
+          { key: "reach", label: "Phone", render: (r) => <Reach phone={r.lead?.phone || r.account?.phone} email={r.lead?.email || r.account?.email} /> },
           { key: "status", label: "Status", render: (r) => <StatusPill label={r.holds.length ? `${r.stage} · ${r.holds.map((h) => h.kind).join(", ")}` : r.stage} tone={jobTone(r)} /> },
           { key: "next", label: "Next", render: (r) => r.next },
-          { key: "who", label: "Who", hide: "md", render: (r) => r.pm },
+          { key: "who", label: "Who", render: (r) => <WhoStack name={r.pm} /> },
           { key: "amount", label: "Contract", align: "right", render: (r) => <span className="font-semibold tabular-nums">{money(tally(r).revenue)}</span> },
         ]}
       />

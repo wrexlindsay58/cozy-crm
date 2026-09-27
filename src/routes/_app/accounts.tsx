@@ -1,10 +1,11 @@
 import { useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
+import { Shield, Star, TriangleAlert } from "lucide-react";
 import { useAccountFiles, useAccountRows } from "@/features/account/store";
 import { useDoors } from "@/features/flow/door";
 import { Empty, StatusPill } from "@/components/ui-bits";
 import { RecordTable } from "@/components/record-table";
-import { ContactName, countsFor, QuietFilter } from "@/features/lists/bits";
+import { ContactName, countsFor, QuietFilter, Reach, WhoStack } from "@/features/lists/bits";
 import { ListPage } from "@/features/lists/list-page";
 import { sortRows, type Sort } from "@/features/lists/sort";
 import { leads, money } from "@/lib/crm-data";
@@ -33,7 +34,7 @@ function AccountsPage() {
         const q = open ? "Open issue" : reviewDue ? "Review due" : warranty ? "Warranty ending" : "Quiet";
         const next = open ? `Resolve ${open} open` : reviewDue ? "Ask for a review" : warranty ? `Warranty through ${file?.warrantyUntil}` : "Nothing waiting";
         const rank = open ? 0 : reviewDue ? 1 : warranty ? 2 : 3;
-        return { ...a, lead, q, next, rank, phone: lead?.phone ?? "", address: lead?.address ?? "" };
+        return { ...a, lead, q, next, rank, phone: lead?.phone || a.phone || "", email: lead?.email || a.email || "", address: lead?.address || a.city };
       })
       .filter((a) => {
         const file = files[a.id];
@@ -45,16 +46,16 @@ function AccountsPage() {
   const owners = [...new Set(pool.map((a) => a.owner))].sort();
   const scoped = pool.filter((a) => !owner || a.owner === owner);
   const cards = countsFor(scoped, [
-    { id: "Open issue", label: "Open issue", tone: "alert", match: (a) => a.q === "Open issue" },
-    { id: "Review due", label: "Review due", tone: "watch", match: (a) => a.q === "Review due" },
-    { id: "Warranty ending", label: "Warranty ending", tone: "watch", match: (a) => a.q === "Warranty ending" },
+    { id: "Open issue", label: "Open issue", tone: "alert", icon: TriangleAlert, match: (a) => a.q === "Open issue" },
+    { id: "Review due", label: "Review due", tone: "watch", icon: Star, match: (a) => a.q === "Review due" },
+    { id: "Warranty ending", label: "Warranty ending", tone: "watch", icon: Shield, match: (a) => a.q === "Warranty ending" },
   ]);
   const rows = useMemo(() => {
     const needle = query.trim().toLowerCase();
     const filtered = scoped.filter((a) => {
       if (view !== "All" && a.q !== view) return false;
       if (!needle) return true;
-      return [a.name, a.city, a.owner, a.phone, a.address].join(" ").toLowerCase().includes(needle);
+      return [a.name, a.secondaryName, a.lead?.secondaryName, a.city, a.owner, a.phone, a.email, a.address].join(" ").toLowerCase().includes(needle);
     });
     return sortRows(filtered, sort, (a, key) => {
       if (key === "name") return a.name;
@@ -84,10 +85,11 @@ function AccountsPage() {
         sort={sort}
         onSort={(key) => setSort((s) => (s.key === key ? { key, dir: s.dir === "asc" ? "desc" : "asc" } : { key, dir: "asc" }))}
         columns={[
-          { key: "name", label: "Name", render: (r) => <ContactName name={r.lead?.name || r.name} second={r.lead?.secondaryName} place={r.address || r.city} /> },
+          { key: "name", label: "Name", render: (r) => <ContactName name={r.lead?.name || r.name} second={r.lead?.secondaryName || r.secondaryName} place={r.address || r.city} /> },
+          { key: "reach", label: "Phone", render: (r) => <Reach phone={r.phone} email={r.email} /> },
           { key: "status", label: "Status", render: (r) => <StatusPill label={r.q} tone={r.q === "Open issue" ? "alert" : r.q === "Quiet" ? "muted" : "navy"} /> },
           { key: "next", label: "Next", render: (r) => r.next },
-          { key: "who", label: "Who", hide: "md", render: (r) => r.owner },
+          { key: "who", label: "Who", render: (r) => <WhoStack name={r.owner} /> },
           { key: "life", label: "Lifetime", align: "right", render: (r) => <span className="font-semibold tabular-nums">{money(r.lifetime)}</span> },
         ]}
       />

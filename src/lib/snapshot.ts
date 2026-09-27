@@ -137,7 +137,7 @@ export const jobsToday = [
     hour: 17,
     time: "5:00p",
     leadId: "L-4819",
-    name: "Todd & Kim Hale",
+    name: "Todd Hale",
     job: "HVAC 4-ton + ducts",
     city: "Scottsdale",
     who: "Dana Ortiz",
@@ -228,13 +228,13 @@ export const weekSetters = [
 
 export const reviews = [
   { id: "R-4", stars: 5, name: "Ben Cho", text: "Crew showed at 7. Attic was clean.", flag: "go" as Flag },
-  { id: "R-3", stars: 5, name: "The Whitakers", text: "Second job with Cozy. Same quality.", flag: "go" as Flag },
+  { id: "R-3", stars: 5, name: "Ann Whitaker", text: "Second job with Cozy. Same quality.", flag: "go" as Flag },
   { id: "R-2", stars: 5, name: "Renee Alvarez", text: "House is quieter. Worth it.", flag: "go" as Flag },
   { id: "R-1", stars: 1, name: "Sharon Nguyen", text: "Nobody showed. I waited 40 minutes.", flag: "stop" as Flag },
 ];
 
 export const referrals = [
-  { id: "F-6", from: "Whitakers", to: "Marcus Bell", status: "Set" },
+  { id: "F-6", from: "Ann Whitaker", to: "Marcus Bell", status: "Set" },
   { id: "F-5", from: "Cho", to: "Patterson neighbor", status: "Set" },
   { id: "F-4", from: "Alvarez", to: "Sister in Glendale", status: "Set" },
   { id: "F-3", from: "Rahman", to: "Office manager", status: "Set" },
@@ -242,7 +242,7 @@ export const referrals = [
 
 export const surveys = [
   { id: "S-4", name: "Ben Cho", score: 5, note: "Crew on time. Attic clean." },
-  { id: "S-3", name: "The Whitakers", score: 5, note: "Second job. Same quality." },
+  { id: "S-3", name: "Ann Whitaker", score: 5, note: "Second job. Same quality." },
   { id: "S-2", name: "Renee Alvarez", score: 4, note: "House is quieter." },
   { id: "S-1", name: "Owen Briggs", score: 5, note: "Would refer a neighbor." },
 ];

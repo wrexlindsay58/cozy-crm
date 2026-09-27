@@ -60,7 +60,7 @@ export type AccountFile = {
 const whitaker: AccountFile = {
   accountId: "A-198",
   leadId: "L-4761",
-  name: "The Whitakers",
+  name: "Ann Whitaker",
   city: "Scottsdale, AZ",
   owner: "Dana Ortiz",
   visits: [

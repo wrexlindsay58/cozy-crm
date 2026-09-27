@@ -55,7 +55,7 @@ export const seedActivity: ActivityLine[] = [
   { id: "a3", who: "Marco Velez", text: "signed $18,400 with Rahman.", at: "3:55p", reacts: { "🔥": ["Priya Shah", "Dana Ortiz"] } },
   { id: "a4", who: "Priya Shah", text: "set Patterson for tomorrow 5:00p.", at: "3:44p" },
   { id: "a5", who: "Omar Diaz", text: "closed the HOA baffle ticket.", at: "3:31p" },
-  { id: "a6", who: "Crew 1 — Evan", text: "got a 5-star from the Whitakers.", at: "3:18p", reacts: { "👍": ["Tasha Reed"] } },
+  { id: "a6", who: "Crew 1 — Evan", text: "got a 5-star from Ann Whitaker.", at: "3:18p", reacts: { "👍": ["Tasha Reed"] } },
   { id: "a7", who: "Amber Quinn", text: "set Bell in Dallas for Friday.", at: "2:56p" },
   { id: "a8", who: "Crew 3 — Dallas", text: "dispatched Fort Worth for Alvarez.", at: "2:40p" },
   { id: "a9", who: "Luis Haddad", text: "sent the agreement to Nguyen.", at: "2:21p" },
