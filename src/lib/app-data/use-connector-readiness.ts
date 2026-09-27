@@ -16,23 +16,20 @@ export type ConnectorWaitStatus =
 
 export const READINESS_PROBE_TIMEOUT_MS = 10_000;
 
-function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T | null> {
-  return new Promise((resolve) => {
-    const timer = setTimeout(() => resolve(null), ms);
-    const settle = (value: T | null) => {
-      clearTimeout(timer);
-      resolve(value);
-    };
-    promise.then(settle, () => settle(null));
-  });
-}
+type ProbeResult<T> = { status: "ok"; value: T } | { status: "timeout" } | { status: "error" };
 
-async function isConnectorReady(): Promise<boolean> {
-  const result = await withTimeout(
-    getConnectorReadiness(),
-    READINESS_PROBE_TIMEOUT_MS,
-  );
-  return result?.ready === true;
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<ProbeResult<T>> {
+  return new Promise((resolve) => {
+    const timer = setTimeout(() => resolve({ status: "timeout" }), ms);
+    const finish = (result: ProbeResult<T>) => {
+      clearTimeout(timer);
+      resolve(result);
+    };
+    promise.then(
+      (value) => finish({ status: "ok", value }),
+      () => finish({ status: "error" }),
+    );
+  });
 }
 
 /**
@@ -89,9 +86,10 @@ export function useRefetchWhenConnectorReady(
     };
     const probe = async () => {
       if (cancelled || readinessProbeExhausted(startedAt, Date.now())) return;
-      const ready = await isConnectorReady();
+      const result = await withTimeout(getConnectorReadiness(), READINESS_PROBE_TIMEOUT_MS);
       if (cancelled) return;
-      if (ready) await runRefetch();
+      if (result.status === "ok" && result.value.ready) await runRefetch();
+      if (result.status === "timeout") attempt = Number.MAX_SAFE_INTEGER;
       if (!cancelled) schedule();
     };
     const onTokenReady = () => {

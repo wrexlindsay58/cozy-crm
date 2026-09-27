@@ -1,0 +1,37 @@
+import type { TermYears, PayMode, MemberStatus, MemberOrigin, PlanFunding, MemberAgreement, CardOnFile, LedgerRow, MemberVisit, ContinueNotice, RenewalChoice, CancelRecord, PlanChange } from "./part-01";
+
+export type MembershipFile = {
+  id: string;
+  personId: string;
+  name: string;
+  address: string;
+  city: string;
+  office: string;
+  owner: string;
+  planId: string;
+  planName: string;
+  years: TermYears;
+  pay: PayMode;
+  termPrice: number;
+  continueMonthly: number;
+  visitsPerYear: number;
+  included: string[];
+  repairDiscount: number;
+  status: MemberStatus;
+  startedFrom: MemberOrigin;
+  funding: PlanFunding;
+  oppId?: string;
+  agreement?: MemberAgreement;
+  card?: CardOnFile;
+  ledger?: LedgerRow[];
+  planFee?: number;
+  visits?: MemberVisit[];
+  notice?: ContinueNotice;
+  renewal?: RenewalChoice;
+  cancel?: CancelRecord;
+  changes?: PlanChange[];
+  start: string;
+  end: string;
+  nextBill: string;
+  retryOn?: string;
+};

@@ -24,6 +24,8 @@ import {
  * 1. Every action is an icon plus a word. If the word would clip, drop the
  *    word and keep a tooltip.
  * 2. Under NAV_COLLAPSE_PX the left nav is an icon dock. Tooltips on the right.
+ *    1470 is the default logical width of a 13.6" Mac. The dock is already
+ *    collapsed there. Card rows stay on the wide layout until well below that.
  * 3. Tickets, tasks, and requests live on cards. No popup for comment, reply, status,
  *    or attach.
  * 4. Comments on tickets, tasks, requests, notes, and media nest in Internal.
@@ -33,7 +35,7 @@ import {
  *    Later stages keep this chrome and only change the work. Talk follows
  *    the house. Prior stages sit in expanders on the file, not in talk tabs.
  */
-export const NAV_COLLAPSE_PX = 1279;
+export const NAV_COLLAPSE_PX = 1470;
 export const TAP = 44;
 export const SHOP_ACTOR = "Wrex Lindsay";
 

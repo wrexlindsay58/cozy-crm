@@ -1,0 +1,103 @@
+import { accounts, leads, projects } from "@/lib/crm-data";
+import { cashLoan, defaultChecks, defaultPacket, defaultPost, defaultPre, emptyPermit, emptyRebate, emptyTest, type JobFile, type Stage } from "../types";
+import { atticBefore, prep_seedJobs, stampJob, withPrep, withAccept } from "./part-01";
+
+export function step_01(ctx: any): any {
+{ const { __bag0 } = prep_seedJobs(); ctx.__bag0 = __bag0; }
+ctx.__bag1 = {
+  scope: [
+        {
+          id: "SC-1",
+          label: "Attic R-49",
+          kind: "product",
+          categoryId: "attic",
+          amount: 8900,
+          qty: 1850,
+          notes: "Blow R-49. Baffles at the eaves. Hatch weatherstrip.",
+          quotedCost: 2100,
+          estHours: 6,
+          media: [{ id: "M-1", cat: "Before", name: "Hatch", url: atticBefore, kind: "photo" }],
+          owner: "",
+          promiseDone: false,
+          bom: [
+            { id: "B-1", name: "Cellulose bag", estQty: 42, usedQty: 0, unit: "bag", unitCost: 14, supplier: "Cameron Ashley", ordered: true },
+            { id: "B-2", name: "Baffle", estQty: 24, usedQty: 0, unit: "ea", unitCost: 3.2, supplier: "Cameron Ashley", ordered: true },
+          ],
+        },
+        {
+          id: "SC-2",
+          label: "HVAC replacement",
+          kind: "product",
+          categoryId: "hvac",
+          amount: 18600,
+          qty: 1,
+          notes: "4-ton split. Goodman. Old pad is cracked — new pad in adders.",
+          quotedCost: 9800,
+          estHours: 8,
+          media: [],
+          owner: "",
+          promiseDone: false,
+          surveyDone: true,
+          surveyFacts: { size: "4 ton", type: "Split", placement: "Side yard pad", clearance: "30\" sides, 60\" overhead" },
+          bom: [
+            { id: "B-3", name: "4-ton condenser", estQty: 1, usedQty: 0, unit: "ea", unitCost: 6200, supplier: "WinSupply", ordered: true, track: "unit" as const, orderQty: 1 },
+            { id: "B-4", name: "Coil", estQty: 1, usedQty: 0, unit: "ea", unitCost: 2100, supplier: "WinSupply", ordered: true, track: "unit" as const, orderQty: 1 },
+          ],
+        },
+        {
+          id: "SC-3",
+          label: "Ducts",
+          kind: "product",
+          categoryId: "ducts",
+          amount: 3750,
+          qty: 1,
+          notes: "Replace the supply trunk in the garage. Seal boots.",
+          quotedCost: 900,
+          estHours: 4,
+          media: [],
+          owner: "",
+          promiseDone: false,
+          plan: { status: "Released", approvedBy: "Office" },
+          surveyDone: false,
+          surveyRooms: [
+            { id: "R-1", name: "Garage", area: "400", registers: "2 supply, 1 return at the wall" },
+            { id: "R-2", name: "Hall", area: "80", registers: "1 supply at the hatch" },
+          ],
+          bom: [
+            { id: "B-5", name: '8" trunk 10\'', estQty: 4, usedQty: 0, unit: "ea", unitCost: 38, supplier: "WinSupply", ordered: false, track: "bulk" as const },
+            { id: "B-6", name: "Boot", estQty: 10, usedQty: 0, unit: "ea", unitCost: 9, supplier: "WinSupply", ordered: false, track: "bulk" as const },
+          ],
+        },
+        {
+          id: "SC-4",
+          label: "New pad",
+          kind: "adder",
+          categoryId: "hvac",
+          amount: 350,
+          qty: 1,
+          notes: "Old pad cracked.",
+          quotedCost: 85,
+          estHours: 0.5,
+          media: [],
+          owner: "",
+          promiseDone: false,
+          bom: [{ id: "B-7", name: "Pad", estQty: 1, usedQty: 0, unit: "ea", unitCost: 85, supplier: "WinSupply", ordered: false }],
+        },
+        {
+          id: "SC-5",
+          label: "Dumpster off the street",
+          kind: "promise",
+          categoryId: "attic",
+          amount: 0,
+          qty: 1,
+          notes: "HOA. Office calls dump.",
+          quotedCost: 0,
+          estHours: 0,
+          media: [],
+          owner: "Priya Shah",
+          promiseDone: false,
+          bom: [],
+        },
+      ],
+  };
+}

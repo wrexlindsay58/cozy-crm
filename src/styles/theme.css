@@ -1,0 +1,32 @@
+@theme {
+  --color-navy: #0b3a4d;
+  --color-navy-2: #0f4a62;
+  --color-navy-fg: #e8f1f4;
+  --color-ink: #16323f;
+  --color-muted: #3e5360;
+  --color-faint: #5c7380;
+  --color-line: #d7e0e5;
+  --color-line-strong: #b7c5cd;
+  --color-page: #e8eef1;
+  --color-card: #ffffff;
+  --color-stop: #b01428;
+  --color-stop-bg: #f8e6e8;
+  --color-watch: #a34c08;
+  --color-watch-bg: #f6eadc;
+  --color-go: #1a6e45;
+  --color-go-bg: #e3f2ea;
+  --color-info: #0b3a4d;
+  --color-info-bg: #e4eef8;
+  --color-idle: #8aa0ab;
+  --color-up: #1a6e45;
+  --color-up-bg: #e3f2ea;
+  --color-alert: #b01428;
+  --color-alert-bg: #f8e6e8;
+  --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  --text-2xs: 0.6875rem;
+  --radius-sm: 0.25rem;
+  --radius-md: 0.375rem;
+  --radius-lg: 0.25rem;
+  --radius-xl: 0.25rem;
+  --shadow-card: 0 0 0 1px rgba(11, 58, 77, 0.08);
+}

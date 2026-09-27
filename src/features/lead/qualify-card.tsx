@@ -28,8 +28,9 @@ function verdict(questions: { id: string; name: string }[], answers: Record<stri
 export function QualifyCard({ leadId }: { leadId: string }) {
   const lead = useLead(leadId);
   const { qualify } = useAdminSettings();
+  const questions = qualify ?? [];
   const answers = lead?.qualify ?? {};
-  const result = verdict(qualify, answers);
+  const result = verdict(questions, answers);
   if (!lead) return null;
   return (
     <section className="rounded-md border border-line bg-card p-4">
@@ -44,9 +45,9 @@ export function QualifyCard({ leadId }: { leadId: string }) {
           {result.label}
         </span>
       </div>
-      {qualify.length === 0 ? <p className="text-sm text-muted">Add questions in Settings → File sections.</p> : null}
+      {questions.length === 0 ? <p className="text-sm text-muted">Add questions in Settings → File sections.</p> : null}
       <div className="grid gap-x-6 gap-y-3 sm:grid-cols-2">
-        {qualify.map((q) => {
+        {questions.map((q) => {
           const options = picks(q.name);
           const on = answers[q.id] ?? "";
           return (

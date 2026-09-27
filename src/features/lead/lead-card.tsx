@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Pencil } from "lucide-react";
 import { DetailsForm } from "./details-form";
 import { ContactView } from "./contact-view";
-import { updateLead, type LeadDraft } from "@/features/ops/store";
+import { applyRemoteLeadDelete, applyRemoteLeadPatch, leadById, updateLead, type LeadDraft } from "@/features/ops/store";
+import { reconcileRecord, setLocalEditing } from "@/features/realtime/editing";
 import type { Lead } from "@/lib/crm-data";
 import { Tip } from "@/components/tip";
 import { cn } from "@/lib/cn";
@@ -15,6 +16,25 @@ export function LeadCard({
   locked?: boolean;
 }) {
   const [edit, setEdit] = useState(!locked);
+
+  useEffect(() => {
+    const on = !locked || edit;
+    if (!on) return;
+    setLocalEditing(lead.id, true, { ...lead });
+    return () => {
+      const flushed = setLocalEditing(lead.id, false);
+      if (!flushed?.pending || !flushed.base) return;
+      const current = leadById(lead.id);
+      if (!current) return;
+      if (flushed.pending.kind === "delete") {
+        const untouched = Object.keys(flushed.base).every((key) => Object.is(flushed.base?.[key], (current as Record<string, unknown>)[key]));
+        if (untouched) applyRemoteLeadDelete(lead.id);
+        return;
+      }
+      const next = reconcileRecord(flushed.base, { ...current }, flushed.pending.patch);
+      applyRemoteLeadPatch(lead.id, next);
+    };
+  }, [edit, lead.id, locked]);
 
   function save(d: LeadDraft) {
     updateLead(lead.id, d);

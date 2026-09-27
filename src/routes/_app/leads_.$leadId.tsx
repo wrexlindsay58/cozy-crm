@@ -71,7 +71,7 @@ function LeadFile() {
         }}
         sections={[
           { id: "contact", label: "Contact", done: Boolean(lead.name && lead.phone && lead.address), node: <LeadCard lead={lead} /> },
-          { id: "qualify", label: "Qualified", done: qualifyFilled(qualify, lead.qualify ?? {}), node: <QualifyCard leadId={lead.id} /> },
+          { id: "qualify", label: "Qualified", done: qualifyFilled(qualify ?? [], lead.qualify ?? {}), node: <QualifyCard leadId={lead.id} /> },
           {
             id: "book",
             label: "Book",

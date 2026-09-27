@@ -1,0 +1,39 @@
+# Cozy CRM — engineering rules
+
+Shop language. Pipeline is Lead → Assessment → Opportunity → Job → Account. Do not collapse stages. Design tokens and chrome live in `docs/DESIGN.md`. Domain recipes live in `docs/SKILLS.md`. How to change the tree lives in `docs/ARCHITECTURE.md`.
+
+## File size
+
+- No `.ts`, `.tsx`, `.js`, `.jsx`, `.mjs`, or `.css` file may exceed 150 lines.
+- Auto-generated `*.gen.ts` (including `src/routeTree.gen.ts`) is exempt.
+- Split into a co-located `*.parts/` folder (or a feature folder) and keep the public path as a barrel (`index.ts` / `index.tsx`, or the original file re-exporting the parts). Route files stay at their TanStack Router path; the route file itself is the barrel.
+- One concern per file. Do not grow a file back over the cap to avoid a new file.
+
+## Exports and isolation
+
+- A feature may import another feature only through that feature's barrel (`@/features/<name>`). No deep imports into `*.parts` or another feature's private files.
+- `src/lib` is shared. Features do not import from `src/routes`.
+- Name the public export. `export *` is only for a feature's own parts into that feature's barrel.
+- Do not add `any`. Existing `any` from the mechanical split is debt; new parameters get a real type. `unknown` at a boundary, then Zod.
+
+## Data, state, undo
+
+- Server data is TanStack Query. Keys come only from a factory in that feature (`leadKeys.detail(id)`), never an inline array at the call site. Parse the response with Zod before it enters the cache.
+- Shop UI state that is still a module store (`export let` + `useSyncExternalStore`) stays that way until a strangler step replaces it. New client stores use Zustand and expose `undo` and `redo`.
+- Destructive actions call `undoToast` (`src/lib/undo-toast.ts`): a 5 second Sonner toast with an Undo action that restores the snapshot. Remote undo helpers drop the matching history row, they do not wipe the log.
+- Optimistic writes update the store immediately, keep the previous snapshot, and roll back from the toast. Do not wait on the network to paint the result.
+
+## Realtime and AI
+
+- Realtime is `useRealtimeSync`. Payloads are SSE blocks or WebSocket messages parsed by `parseRealtimeEvent` (Zod). Drop anything that fails the schema.
+- If `isLocallyEditing(id)`, hold the remote event. On blur, `reconcileRecord` applies remote fields the user did not change. Never overwrite an uncommitted form.
+- AI output is SSE. `parseAIPayload` is the only parser. Tokens append; unknown frames are ignored. Abort with the stream's `AbortController` when the user leaves.
+
+## Keyboard and chrome
+
+- `Cmd/Ctrl+K` focuses search (`src/components/app-shell/use-shell.ts`). Lists move with `j` / `k` and arrow keys and open on Enter (`useRowKeys`). Do not steal keys while focus is in a field.
+- Tap targets stay 44px (`TAP` in `src/lib/chrome.ts`). Focus uses the `:focus-visible` navy ring. Indicators `go` / `watch` / `stop` are never fills for charts, cards, or bars.
+
+## Gate
+
+Pre-commit runs `tsc --noEmit`, then `node scripts/check-file-size.js` on staged files, then lint-staged. Do not skip the hook.

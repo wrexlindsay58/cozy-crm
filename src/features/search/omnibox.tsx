@@ -4,7 +4,7 @@ import { Search } from "lucide-react";
 import { useOps } from "@/features/ops/store";
 import { searchFiles } from "@/lib/search-files";
 
-export function Omnibox({ compact }: { compact?: boolean }) {
+export function Omnibox({ compact, inputId, screen, onPick }: { compact?: boolean; inputId?: string; screen?: boolean; onPick?: () => void }) {
   const { leads, actions } = useOps();
   const navigate = useNavigate();
   const [q, setQ] = useState("");
@@ -19,6 +19,7 @@ export function Omnibox({ compact }: { compact?: boolean }) {
   function go(href: string) {
     setOpen(false);
     setQ("");
+    onPick?.();
     void navigate({ to: href as never });
   }
 
@@ -26,6 +27,7 @@ export function Omnibox({ compact }: { compact?: boolean }) {
     <div className={compact ? "relative w-full" : "relative min-w-0 flex-1"}>
       <Search className="pointer-events-none absolute top-1/2 left-3 size-3.5 -translate-y-1/2 text-faint" />
       <input
+        id={inputId}
         value={q}
         onChange={(e) => setQ(e.target.value)}
         onFocus={() => q.trim().length >= 2 && setOpen(true)}

@@ -1,0 +1,4 @@
+npx tsc --noEmit
+node scripts/check-file-size.js
+npx lint-staged
+
