@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { money } from "@/lib/crm-data";
 import { cn } from "@/lib/cn";
-import { chargeCard, type ChargeResult } from "./charge.server";
+import { chargeCard, type ChargeResult } from "./charge";
 import { cardProblems, formatPan, type CardFields } from "./card";
 import { RAIL_LABEL, type PayRail } from "./rails";
 
