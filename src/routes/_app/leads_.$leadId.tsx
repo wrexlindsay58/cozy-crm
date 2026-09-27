@@ -1,8 +1,13 @@
+import { useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { assessmentForLead, startAssessment } from "@/features/assessment/store";
+import { assessmentForLead } from "@/features/assessment/store";
+import { advanceToAssessment } from "@/features/flow/advance";
+import { FlowRedirect } from "@/features/flow/redirect";
 import { BookWidget } from "@/features/lead/book-widget";
 import { LeadCard } from "@/features/lead/lead-card";
 import { QualifyCard, qualifyFilled } from "@/features/lead/qualify-card";
+import { StartMembership } from "@/features/membership/start-sheet";
+import { useMembershipFor } from "@/features/membership/store";
 import { RecordShell } from "@/features/record-shell/record-shell";
 import { FileSections, scrollFileSection } from "@/features/record-shell/file-sections";
 import { useAdminSettings } from "@/features/admin-settings/store";
@@ -20,10 +25,14 @@ function LeadFile() {
   const navigate = useNavigate();
   const { qualify } = useAdminSettings();
   const assessment = assessmentForLead(leadId);
+  const member = useMembershipFor(leadId);
+  const [planOpen, setPlanOpen] = useState(false);
   if (!lead) return <main className="p-6 text-sm text-muted">Lead not found.</main>;
   const opp = opportunities.find((o) => o.leadId === lead.id);
   const second = lead.secondaryName ? lead.secondaryName : "";
   return (
+    <>
+    <FlowRedirect id={lead.id} here="lead" />
     <RecordShell
       kind="lead"
       personId={lead.id}
@@ -37,12 +46,14 @@ function LeadFile() {
         [
           assessment ? { label: `Assessment ${assessment.id}`, href: `/assessments/${assessment.id}` } : null,
           opp ? { label: `Opp ${opp.id}`, href: `/opportunities/${opp.id}` } : null,
+          member ? { label: `${member.planName} · ${member.years} yr`, href: `/memberships/${member.id}` } : null,
         ].filter(Boolean) as { label: string; href: string }[]
       }
       acts={[
         { label: "Call" },
         { label: "Text", opens: "thread" },
         { label: "Book", onClick: () => scrollFileSection("book") },
+        { label: "Plan", onClick: () => setPlanOpen(true) },
         { label: "Create", menu: [{ label: "Ticket" }, { label: "Task" }, { label: "Request" }] },
       ]}
       history={history?.[lead.id] ?? []}
@@ -54,23 +65,7 @@ function LeadFile() {
         advance={{
           pipeline: "Assessment",
           onContinue: () => {
-            const next =
-              assessment ??
-              startAssessment({
-                leadId: lead.id,
-                name: lead.name,
-                address: lead.address,
-                closer: lead.closer,
-                property: {
-                  yearBuilt: lead.yearBuilt ?? "",
-                  sqft: lead.sqft ?? "",
-                  stories: lead.stories ?? "",
-                  hoa: lead.hoa === "Yes" ? "Yes" : lead.hoa ?? "",
-                  access: lead.access ?? "",
-                  utility: lead.utility ?? "",
-                  bothHome: lead.bothHome ? "Yes" : "",
-                },
-              });
+            const next = advanceToAssessment(lead);
             void navigate({ to: "/assessments/$assessmentId", params: { assessmentId: next.id } });
           },
         }}
@@ -85,22 +80,9 @@ function LeadFile() {
                 leadId={lead.id}
                 defaultCloser={lead.closer}
                 defaultKind="Sales"
+                pipeline="Lead"
                 onRan={() => {
-                  const next = startAssessment({
-                    leadId: lead.id,
-                    name: lead.name,
-                    address: lead.address,
-                    closer: lead.closer,
-                    property: {
-                      yearBuilt: lead.yearBuilt ?? "",
-                      sqft: lead.sqft ?? "",
-                      stories: lead.stories ?? "",
-                      hoa: lead.hoa === "Yes" ? "Yes" : lead.hoa ?? "",
-                      access: lead.access ?? "",
-                      utility: lead.utility ?? "",
-                      bothHome: lead.bothHome ? "Yes" : "",
-                    },
-                  });
+                  const next = advanceToAssessment(lead);
                   void navigate({ to: "/assessments/$assessmentId", params: { assessmentId: next.id } });
                 }}
               />
@@ -109,5 +91,17 @@ function LeadFile() {
         ]}
       />
     </RecordShell>
+    <StartMembership
+      open={planOpen}
+      onClose={() => setPlanOpen(false)}
+      personId={lead.id}
+      name={lead.name}
+      address={lead.address}
+      city={lead.city}
+      office={lead.office}
+      owner={lead.closer}
+      from="lead"
+    />
+    </>
   );
 }

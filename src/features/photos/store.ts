@@ -53,7 +53,7 @@ export function addPhoto(
   src?: string,
   kind: FileKind = "photo",
   name?: string,
-  extra?: { actionId?: string },
+  extra?: { actionId?: string; pipeline?: string; by?: string },
 ) {
   const label = caption.trim() || name || kindWord(kind);
   const row: Photo = {
@@ -65,6 +65,8 @@ export function addPhoto(
     kind,
     name,
     actionId: extra?.actionId,
+    pipeline: extra?.actionId ? "Actions" : extra?.pipeline,
+    by: extra?.by || actingName(),
   };
   putPhoto(personId, row);
   addHistory(personId, actingName(), `${kindWord(kind)} added. ${label}.`);

@@ -21,6 +21,7 @@ import { Route as AppDispatchRouteImport } from './routes/_app/dispatch'
 import { Route as AppInvoicesRouteImport } from './routes/_app/invoices'
 import { Route as AppLeaderboardRouteImport } from './routes/_app/leaderboard'
 import { Route as AppLeadsRouteImport } from './routes/_app/leads'
+import { Route as AppMembershipsRouteImport } from './routes/_app/memberships'
 import { Route as AppOpportunitiesRouteImport } from './routes/_app/opportunities'
 import { Route as AppPaperRouteImport } from './routes/_app/paper'
 import { Route as AppProjectsRouteImport } from './routes/_app/projects'
@@ -35,6 +36,7 @@ import { Route as ReportAssessmentIdRouteImport } from './routes/report.$assessm
 import { Route as AppAccountsAccountIdRouteImport } from './routes/_app/accounts_.$accountId'
 import { Route as AppAssessmentsAssessmentIdRouteImport } from './routes/_app/assessments_.$assessmentId'
 import { Route as AppLeadsLeadIdRouteImport } from './routes/_app/leads_.$leadId'
+import { Route as AppMembershipsMembershipIdRouteImport } from './routes/_app/memberships_.$membershipId'
 import { Route as AppOpportunitiesOppIdRouteImport } from './routes/_app/opportunities_.$oppId'
 import { Route as AppProjectsProjectIdRouteImport } from './routes/_app/projects_.$projectId'
 import { Route as AppReportsReportIdRouteImport } from './routes/_app/reports_.$reportId'
@@ -143,6 +145,11 @@ const AppLeadsRoute = AppLeadsRouteImport.update({
   path: '/leads',
   getParentRoute: () => AppRoute,
 } as any)
+const AppMembershipsRoute = AppMembershipsRouteImport.update({
+  id: '/memberships',
+  path: '/memberships',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppOpportunitiesRoute = AppOpportunitiesRouteImport.update({
   id: '/opportunities',
   path: '/opportunities',
@@ -214,6 +221,12 @@ const AppLeadsLeadIdRoute = AppLeadsLeadIdRouteImport.update({
   path: '/leads/$leadId',
   getParentRoute: () => AppRoute,
 } as any)
+const AppMembershipsMembershipIdRoute =
+  AppMembershipsMembershipIdRouteImport.update({
+    id: '/memberships_/$membershipId',
+    path: '/memberships/$membershipId',
+    getParentRoute: () => AppRoute,
+  } as any)
 const AppOpportunitiesOppIdRoute = AppOpportunitiesOppIdRouteImport.update({
   id: '/opportunities_/$oppId',
   path: '/opportunities/$oppId',
@@ -475,6 +488,7 @@ export interface FileRoutesByFullPath {
   '/invoices': typeof AppInvoicesRoute
   '/leaderboard': typeof AppLeaderboardRoute
   '/leads': typeof AppLeadsRoute
+  '/memberships': typeof AppMembershipsRoute
   '/opportunities': typeof AppOpportunitiesRoute
   '/paper': typeof AppPaperRoute
   '/projects': typeof AppProjectsRoute
@@ -489,6 +503,7 @@ export interface FileRoutesByFullPath {
   '/accounts/$accountId': typeof AppAccountsAccountIdRoute
   '/assessments/$assessmentId': typeof AppAssessmentsAssessmentIdRoute
   '/leads/$leadId': typeof AppLeadsLeadIdRoute
+  '/memberships/$membershipId': typeof AppMembershipsMembershipIdRoute
   '/opportunities/$oppId': typeof AppOpportunitiesOppIdRoute
   '/projects/$projectId': typeof AppProjectsProjectIdRoute
   '/reports/$reportId': typeof AppReportsReportIdRoute
@@ -549,6 +564,7 @@ export interface FileRoutesByTo {
   '/invoices': typeof AppInvoicesRoute
   '/leaderboard': typeof AppLeaderboardRoute
   '/leads': typeof AppLeadsRoute
+  '/memberships': typeof AppMembershipsRoute
   '/opportunities': typeof AppOpportunitiesRoute
   '/paper': typeof AppPaperRoute
   '/projects': typeof AppProjectsRoute
@@ -564,6 +580,7 @@ export interface FileRoutesByTo {
   '/accounts/$accountId': typeof AppAccountsAccountIdRoute
   '/assessments/$assessmentId': typeof AppAssessmentsAssessmentIdRoute
   '/leads/$leadId': typeof AppLeadsLeadIdRoute
+  '/memberships/$membershipId': typeof AppMembershipsMembershipIdRoute
   '/opportunities/$oppId': typeof AppOpportunitiesOppIdRoute
   '/projects/$projectId': typeof AppProjectsProjectIdRoute
   '/reports/$reportId': typeof AppReportsReportIdRoute
@@ -626,6 +643,7 @@ export interface FileRoutesById {
   '/_app/invoices': typeof AppInvoicesRoute
   '/_app/leaderboard': typeof AppLeaderboardRoute
   '/_app/leads': typeof AppLeadsRoute
+  '/_app/memberships': typeof AppMembershipsRoute
   '/_app/opportunities': typeof AppOpportunitiesRoute
   '/_app/paper': typeof AppPaperRoute
   '/_app/projects': typeof AppProjectsRoute
@@ -641,6 +659,7 @@ export interface FileRoutesById {
   '/_app/accounts_/$accountId': typeof AppAccountsAccountIdRoute
   '/_app/assessments_/$assessmentId': typeof AppAssessmentsAssessmentIdRoute
   '/_app/leads_/$leadId': typeof AppLeadsLeadIdRoute
+  '/_app/memberships_/$membershipId': typeof AppMembershipsMembershipIdRoute
   '/_app/opportunities_/$oppId': typeof AppOpportunitiesOppIdRoute
   '/_app/projects_/$projectId': typeof AppProjectsProjectIdRoute
   '/_app/reports_/$reportId': typeof AppReportsReportIdRoute
@@ -704,6 +723,7 @@ export interface FileRouteTypes {
     | '/invoices'
     | '/leaderboard'
     | '/leads'
+    | '/memberships'
     | '/opportunities'
     | '/paper'
     | '/projects'
@@ -718,6 +738,7 @@ export interface FileRouteTypes {
     | '/accounts/$accountId'
     | '/assessments/$assessmentId'
     | '/leads/$leadId'
+    | '/memberships/$membershipId'
     | '/opportunities/$oppId'
     | '/projects/$projectId'
     | '/reports/$reportId'
@@ -778,6 +799,7 @@ export interface FileRouteTypes {
     | '/invoices'
     | '/leaderboard'
     | '/leads'
+    | '/memberships'
     | '/opportunities'
     | '/paper'
     | '/projects'
@@ -793,6 +815,7 @@ export interface FileRouteTypes {
     | '/accounts/$accountId'
     | '/assessments/$assessmentId'
     | '/leads/$leadId'
+    | '/memberships/$membershipId'
     | '/opportunities/$oppId'
     | '/projects/$projectId'
     | '/reports/$reportId'
@@ -854,6 +877,7 @@ export interface FileRouteTypes {
     | '/_app/invoices'
     | '/_app/leaderboard'
     | '/_app/leads'
+    | '/_app/memberships'
     | '/_app/opportunities'
     | '/_app/paper'
     | '/_app/projects'
@@ -869,6 +893,7 @@ export interface FileRouteTypes {
     | '/_app/accounts_/$accountId'
     | '/_app/assessments_/$assessmentId'
     | '/_app/leads_/$leadId'
+    | '/_app/memberships_/$membershipId'
     | '/_app/opportunities_/$oppId'
     | '/_app/projects_/$projectId'
     | '/_app/reports_/$reportId'
@@ -1011,6 +1036,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppLeadsRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/memberships': {
+      id: '/_app/memberships'
+      path: '/memberships'
+      fullPath: '/memberships'
+      preLoaderRoute: typeof AppMembershipsRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/opportunities': {
       id: '/_app/opportunities'
       path: '/opportunities'
@@ -1107,6 +1139,13 @@ declare module '@tanstack/react-router' {
       path: '/leads/$leadId'
       fullPath: '/leads/$leadId'
       preLoaderRoute: typeof AppLeadsLeadIdRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/memberships_/$membershipId': {
+      id: '/_app/memberships_/$membershipId'
+      path: '/memberships/$membershipId'
+      fullPath: '/memberships/$membershipId'
+      preLoaderRoute: typeof AppMembershipsMembershipIdRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/opportunities_/$oppId': {
@@ -1459,6 +1498,7 @@ interface AppRouteChildren {
   AppInvoicesRoute: typeof AppInvoicesRoute
   AppLeaderboardRoute: typeof AppLeaderboardRoute
   AppLeadsRoute: typeof AppLeadsRoute
+  AppMembershipsRoute: typeof AppMembershipsRoute
   AppOpportunitiesRoute: typeof AppOpportunitiesRoute
   AppPaperRoute: typeof AppPaperRoute
   AppProjectsRoute: typeof AppProjectsRoute
@@ -1472,6 +1512,7 @@ interface AppRouteChildren {
   AppAccountsAccountIdRoute: typeof AppAccountsAccountIdRoute
   AppAssessmentsAssessmentIdRoute: typeof AppAssessmentsAssessmentIdRoute
   AppLeadsLeadIdRoute: typeof AppLeadsLeadIdRoute
+  AppMembershipsMembershipIdRoute: typeof AppMembershipsMembershipIdRoute
   AppOpportunitiesOppIdRoute: typeof AppOpportunitiesOppIdRoute
   AppProjectsProjectIdRoute: typeof AppProjectsProjectIdRoute
   AppReportsReportIdRoute: typeof AppReportsReportIdRoute
@@ -1533,6 +1574,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppInvoicesRoute: AppInvoicesRoute,
   AppLeaderboardRoute: AppLeaderboardRoute,
   AppLeadsRoute: AppLeadsRoute,
+  AppMembershipsRoute: AppMembershipsRoute,
   AppOpportunitiesRoute: AppOpportunitiesRoute,
   AppPaperRoute: AppPaperRoute,
   AppProjectsRoute: AppProjectsRoute,
@@ -1546,6 +1588,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppAccountsAccountIdRoute: AppAccountsAccountIdRoute,
   AppAssessmentsAssessmentIdRoute: AppAssessmentsAssessmentIdRoute,
   AppLeadsLeadIdRoute: AppLeadsLeadIdRoute,
+  AppMembershipsMembershipIdRoute: AppMembershipsMembershipIdRoute,
   AppOpportunitiesOppIdRoute: AppOpportunitiesOppIdRoute,
   AppProjectsProjectIdRoute: AppProjectsProjectIdRoute,
   AppReportsReportIdRoute: AppReportsReportIdRoute,

@@ -268,6 +268,7 @@ function Cell({
   sub,
   split,
   spark,
+  meta,
 }: {
   label: string;
   value: string;
@@ -279,6 +280,7 @@ function Cell({
   sub?: string;
   split?: Split[];
   spark?: ReactNode;
+  meta?: string;
 }) {
   const ringFill = ring ? Math.min(100, Math.max(0, trend.now)) : undefined;
   const graphic = ringFill != null || split || spark;
@@ -304,6 +306,7 @@ function Cell({
           <p className={cn("mt-1 text-[36px] leading-none font-bold tabular-nums max-md:text-[26px]", markClass(mark))}>{value}</p>
         </div>
       </Tip>
+      {meta ? <p className="mt-2 text-[12px] tabular-nums text-muted">{meta}</p> : null}
       <div className="mt-auto w-full pt-3">
         {sub ? <p className="text-[11px] font-semibold tabular-nums text-muted">{sub}</p> : <Pace trend={trend} pct={pct} />}
       </div>
@@ -499,9 +502,6 @@ export function TodayBoard() {
                   { id: "DFW", label: "Dallas" },
                 ]}
               />
-              <button type="button" onClick={() => setFeed(true)} className="h-9 rounded-md bg-navy px-3 text-[12px] font-bold text-card xl:hidden">
-                Feed
-              </button>
                 </>
               )}
             </span>
@@ -513,12 +513,15 @@ export function TodayBoard() {
         <SalesDashboard embedded filterSlot={salesSlot} />
       ) : (
       <>
-      <p className="shrink-0 border-b border-line bg-card px-4 py-2.5 text-center text-[15px] tabular-nums max-md:px-3 max-md:text-left max-md:text-[13px] max-md:leading-5">
+      <div className="flex shrink-0 items-center gap-2 border-b border-line bg-card px-4 py-2.5 max-md:px-3">
+      <p className="min-w-0 flex-1 text-center text-[15px] tabular-nums max-md:text-left max-md:text-[13px] max-md:leading-5">
         <span className="font-bold">{money(t.sold)} sold</span>
         <span className="text-muted"> · </span>
         <span className="font-bold">{t.closeRate}% close</span>
         <span className="text-muted"> · </span>
         <span className="font-bold">{t.left} runs left</span>
+        <span className="text-muted"> · </span>
+        <span className="font-bold">{t.members} memberships · {money(t.memberSold)}</span>
         {t.behindN ? (
           <>
             <span className="text-muted"> · </span>
@@ -526,11 +529,15 @@ export function TodayBoard() {
           </>
         ) : null}
       </p>
+      <button type="button" onClick={() => setFeed(true)} className="h-9 shrink-0 rounded-md bg-navy px-3 text-[12px] font-bold text-card xl:hidden">
+        Feed
+      </button>
+      </div>
 
       <div className="relative flex min-h-0 flex-1 flex-col xl:flex-row">
         <div className="min-h-0 min-w-0 flex-1 overflow-auto">
         <div className="space-y-3 bg-page p-3">
-          <section className="grid grid-cols-2 gap-px overflow-hidden rounded-md bg-line lg:grid-cols-4">
+          <section className="grid grid-cols-2 gap-px overflow-hidden rounded-md bg-line lg:grid-cols-5">
             <Cell
               label="Sales today"
               value={money(t.sold)}
@@ -561,6 +568,13 @@ export function TodayBoard() {
               mark={t.marks.deals}
               spark={<DealSpark pts={t.dealSpark} />}
               hint={`${t.soldN} closed`}
+            />
+            <Cell
+              label="Memberships"
+              value={String(t.members)}
+              trend={t.trends.members}
+              meta={money(t.memberSold)}
+              hint={`${t.members} sold · ${money(t.memberSold)}`}
             />
           </section>
 
@@ -651,15 +665,16 @@ export function TodayBoard() {
                 </li>
               </ul>
             </div>
-            <div className="flex items-end gap-2">
+            <div className="flex items-end gap-2 max-md:gap-1.5 max-md:overflow-x-auto max-md:pb-1">
               {t.flow.map((s) => {
                 const nowH = s.now ? Math.max(12, (s.now / flowMax) * 100) : 0;
                 const yestH = s.yest ? Math.max(12, (s.yest / flowMax) * 100) : 0;
                 const flip = s.key === "cancel";
                 const pip = { now: flip ? s.yest : s.now, yest: flip ? s.now : s.yest };
+                const word = s.label === "Appts." ? "Appts." : s.label.toLowerCase();
                 return (
-                  <div key={s.key} className="flex min-w-0 flex-1 flex-col items-center">
-                    <div className="flex h-28 w-full max-w-[5.625rem] items-end justify-center gap-1.5">
+                  <div key={s.key} className="flex min-w-0 flex-1 flex-col items-center max-md:w-16 max-md:shrink-0 max-md:flex-none">
+                    <div className="flex h-28 w-full max-w-[5.625rem] items-end justify-center gap-1.5 max-md:gap-1">
                       <Tip label={`Yesterday ${s.yest}`} on className="flex h-full w-[42%] cursor-pointer items-end">
                         <span className="block w-full rounded-sm bg-line-strong" style={{ height: `${yestH}%` }} />
                       </Tip>
@@ -667,12 +682,13 @@ export function TodayBoard() {
                         <span className="block w-full rounded-sm bg-navy" style={{ height: `${nowH}%` }} />
                       </Tip>
                     </div>
-                    <p className="mt-2 flex items-center gap-1">
+                    <p className="mt-2 flex items-center gap-1 max-md:flex-col max-md:gap-0.5">
                       <Pip now={pip.now} yest={pip.yest} />
-                      <span className="text-[11px] font-bold tracking-wide text-muted uppercase">{s.label}</span>
+                      <span className="text-[11px] font-bold tracking-wide text-muted uppercase max-md:text-[10px] max-md:tracking-normal">{s.label}</span>
                     </p>
-                    <p className="mt-0.5 text-[11px] tabular-nums text-muted">
-                      {s.now} {s.label === "Appts." ? "Appts." : s.label.toLowerCase()}
+                    <p className="mt-0.5 text-center text-[11px] whitespace-nowrap tabular-nums text-muted max-md:text-[10px]">
+                      <span className="max-md:hidden">{s.now} {word}</span>
+                      <span className="hidden max-md:inline">{s.now}</span>
                     </p>
                   </div>
                 );

@@ -555,6 +555,7 @@ export function ActionQueue({ selectedId }: { selectedId?: string }) {
                         leadId={house.lead.id}
                         defaultCloser={house.lead.closer}
                         defaultKind="Callback"
+                        pipeline="Actions"
                         flush
                         actionTitle={active.title}
                       />

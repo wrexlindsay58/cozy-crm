@@ -3,45 +3,66 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Empty, StatusPill } from "@/components/ui-bits";
 import { RecordTable } from "@/components/record-table";
 import { useAssessments } from "@/features/assessment/store";
+import { useDoors } from "@/features/flow/door";
+import { ContactName, countsFor, QuietFilter } from "@/features/lists/bits";
 import { ListPage } from "@/features/lists/list-page";
+import { sortRows, type Sort } from "@/features/lists/sort";
 
 export const Route = createFileRoute("/_app/assessments")({
   component: AssessmentsPage,
 });
 
-const VIEWS = ["All", "Open", "Complete"] as const;
-
 function AssessmentsPage() {
   const all = useAssessments();
-  const [view, setView] = useState<(typeof VIEWS)[number]>("All");
+  const doors = useDoors();
+  const [view, setView] = useState("All");
   const [query, setQuery] = useState("");
+  const [owner, setOwner] = useState("");
+  const [sort, setSort] = useState<Sort>({ key: "rank", dir: "asc" });
+  const pool = all.filter((r) => doors[r.leadId]?.place === "assessment");
+  const owners = [...new Set(pool.map((r) => r.closer))].sort();
+  const scoped = pool.filter((r) => !owner || r.closer === owner);
+  const cards = countsFor(scoped, [
+    { id: "Open", label: "Open", match: (r) => r.status === "Open" },
+    { id: "Ready", label: "Ready", tone: "watch", match: (r) => r.status === "Complete" },
+  ]);
   const rows = useMemo(() => {
     const needle = query.trim().toLowerCase();
-    return all.filter((r) => {
-      if (view !== "All" && r.status !== view) return false;
+    const filtered = scoped.filter((r) => {
+      if (view === "Open" && r.status !== "Open") return false;
+      if (view === "Ready" && r.status !== "Complete") return false;
       if (!needle) return true;
-      return [r.name, r.address, r.closer, r.id].join(" ").toLowerCase().includes(needle);
+      return [r.name, r.address, r.closer].join(" ").toLowerCase().includes(needle);
     });
-  }, [all, view, query]);
+    return sortRows(filtered, sort, (r, key) => {
+      if (key === "name") return r.name;
+      if (key === "status") return r.status;
+      if (key === "who") return r.closer;
+      return r.status === "Complete" ? 0 : 1;
+    });
+  }, [scoped, view, query, sort]);
 
   return (
     <ListPage
       title="Assessments"
       count={`${rows.length} houses`}
-      views={[...VIEWS]}
       view={view}
-      onView={(v) => setView(v as (typeof VIEWS)[number])}
+      onView={setView}
+      cards={cards}
+      filters={<QuietFilter label="All assessors" value={owner} options={owners} onChange={setOwner} />}
       search={query}
       onSearch={setQuery}
-      empty={rows.length === 0 ? <Empty>No assessments in {view}. Clear the filter.</Empty> : undefined}
+      empty={rows.length === 0 ? <Empty>Nothing in this queue.</Empty> : undefined}
     >
       <RecordTable
         rows={rows}
         href={(r) => `/assessments/${r.id}`}
+        sort={sort}
+        onSort={(key) => setSort((s) => (s.key === key ? { key, dir: s.dir === "asc" ? "desc" : "asc" } : { key, dir: "asc" }))}
         columns={[
-          { key: "name", label: "Name", render: (r) => r.name },
-          { key: "status", label: "Status", render: (r) => <StatusPill label={r.status} tone={r.status === "Complete" ? "up" : "navy"} /> },
-          { key: "address", label: "Next", hide: "md", render: (r) => r.address },
+          { key: "name", label: "Name", render: (r) => <ContactName name={r.name} place={r.address} /> },
+          { key: "status", label: "Status", render: (r) => <StatusPill label={r.status === "Complete" ? "Ready" : "Open"} tone={r.status === "Complete" ? "up" : "navy"} /> },
+          { key: "next", label: "Next", render: (r) => (r.status === "Complete" ? "Continue to opportunity" : "Finish the assessment") },
           { key: "who", label: "Who", hide: "md", render: (r) => r.closer },
         ]}
       />

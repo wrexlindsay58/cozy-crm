@@ -55,6 +55,10 @@ export const snapshot = {
   qcTechs: 3,
   surveysToday: 5,
   surveysYest: 3,
+  membersToday: 2,
+  membersYest: 1,
+  memberSoldToday: 1872,
+  memberSoldYest: 936,
 };
 
 export const dayGoals = {
@@ -74,6 +78,7 @@ export const dayGoals = {
   demand: 110,
   deals: 4,
   surveys: 6,
+  members: 3,
 };
 
 export const runs = {

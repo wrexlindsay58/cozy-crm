@@ -37,6 +37,7 @@ export function PhotoRail({
   actionIds,
   scope = "house",
   onScope,
+  pipeline = "Lead",
 }: {
   personId: string;
   photos?: Photo[];
@@ -46,6 +47,7 @@ export function PhotoRail({
   actionIds?: string[];
   scope?: "action" | "house";
   onScope?: (next: "action" | "house") => void;
+  pipeline?: string;
 }) {
   const live = usePhotos(personId);
   const all = live.length ? live : (seed ?? []);
@@ -75,7 +77,7 @@ export function PhotoRail({
           typeof reader.result === "string" ? reader.result : undefined,
           kind,
           file.name,
-          actionId && scope === "action" ? { actionId } : undefined,
+          actionId && scope === "action" ? { actionId, pipeline } : { pipeline },
         );
         setCaption("");
         setFileName("");
@@ -85,7 +87,7 @@ export function PhotoRail({
       return;
     }
     if (!caption.trim()) return;
-    addPhoto(personId, caption, undefined, "photo", undefined, actionId && scope === "action" ? { actionId } : undefined);
+    addPhoto(personId, caption, undefined, "photo", undefined, actionId && scope === "action" ? { actionId, pipeline } : { pipeline });
     setCaption("");
   }
 

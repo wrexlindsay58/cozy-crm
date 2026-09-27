@@ -147,6 +147,9 @@ function snap() {
 export function useOps() {
   return useSyncExternalStore(subscribe, snap, snap);
 }
+export function leadById(id: string) {
+  return leads.find((l) => l.id === id);
+}
 export function addHistory(personId: string, who: string, what: string) {
   const row = { at: new Date().toLocaleString(), who, what };
   history = { ...history, [personId]: [row, ...(history[personId] ?? [])] };
@@ -170,12 +173,14 @@ export function bookAppointment(input: {
   crew?: string;
   duration?: string;
   scope?: string;
+  pipeline?: string;
 }) {
   const lead = leads.find((l) => l.id === input.leadId);
   if (!lead) return;
+  const id = `AP-${80 + appointments.length}`;
   appointments = [
     {
-      id: `AP-${80 + appointments.length}`,
+      id,
       leadId: input.leadId,
       name: lead.name,
       day: input.day,
@@ -192,10 +197,12 @@ export function bookAppointment(input: {
       crew: input.crew,
       duration: input.duration,
       scope: input.scope,
+      pipeline: input.pipeline,
     } as Appointment,
     ...appointments,
   ];
   putFromAppointment({
+    id,
     leadId: input.leadId,
     name: lead.name,
     kind: input.kind,

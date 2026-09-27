@@ -416,6 +416,9 @@ export function patchLabor(jobId: string, id: string, row: Partial<LaborLine>) {
 export function removeLabor(jobId: string, id: string) {
   patch(jobId, (j) => ({ ...j, laborLines: (j.laborLines ?? []).filter((l) => l.id !== id) }), { nudge: false });
 }
+export function setJobAccount(jobId: string, accountId: string) {
+  patch(jobId, (j) => ({ ...j, accountId }), { nudge: false });
+}
 export function setStage(jobId: string, stage: Stage) {
   patch(jobId, (j) => {
     addHistory(j.personId, j.pm, `Stage → ${stage}.`);
@@ -788,7 +791,7 @@ export function addScopeMedia(jobId: string, scopeId: string, file: File, cat: M
   patch(jobId, (j) => {
     const line = j.scope.find((s) => s.id === scopeId);
     addHistory(j.personId, actingName(), `Media ${row.name} on ${line?.label ?? "job"}${row.caption ? `. ${row.caption}` : ""}.`);
-    putPhoto(j.personId, { id: row.id, personId: j.personId, caption: `${row.purpose || cat} · ${row.caption || row.name}`, tone: "info", src: url, kind: kindFromFile(file), name: row.name });
+    putPhoto(j.personId, { id: row.id, personId: j.personId, caption: `${row.purpose || cat} · ${row.caption || row.name}`, tone: "info", src: url, kind: kindFromFile(file), name: row.name, pipeline: "Job", by: actingName() });
     return { ...j, scope: j.scope.map((s) => (s.id === scopeId ? { ...s, media: [row, ...s.media] } : s)) };
   }, { nudge: false });
 }
@@ -1331,7 +1334,7 @@ export function addSurveyMedia(jobId: string, surveyId: string, file: File, extr
   const row: ScopeMedia = { id: `M-${Date.now()}`, cat: extra?.cat ?? "Other", name: extra?.name?.trim() || file.name, url, kind, caption: extra?.caption, purpose: extra?.purpose };
   patch(jobId, (j) => {
     addHistory(j.personId, j.pm, `Media ${row.name}${row.caption ? `. ${row.caption}` : ""}.`);
-    putPhoto(j.personId, { id: row.id, personId: j.personId, caption: `${row.purpose || row.cat} · ${row.caption || row.name}`, tone: "info", src: url, kind: kindFromFile(file), name: row.name });
+    putPhoto(j.personId, { id: row.id, personId: j.personId, caption: `${row.purpose || row.cat} · ${row.caption || row.name}`, tone: "info", src: url, kind: kindFromFile(file), name: row.name, pipeline: "Job", by: actingName() });
     if (j.scope.some((s) => s.id === surveyId)) {
       return { ...j, scope: j.scope.map((s) => (s.id === surveyId ? { ...s, media: [row, ...s.media] } : s)) };
     }

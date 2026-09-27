@@ -1,10 +1,12 @@
 import type { ReactNode } from "react";
 import { cn } from "@/lib/cn";
+import type { Sort } from "@/features/lists/sort";
 
 export type Col<T> = {
   key: string;
   label: string;
   hide?: "sm" | "md" | "lg";
+  align?: "right";
   render: (row: T) => ReactNode;
 };
 
@@ -12,10 +14,16 @@ export function RecordTable<T extends { id: string }>({
   rows,
   columns,
   href,
+  sort,
+  onSort,
+  action,
 }: {
   rows: T[];
   columns: Col<T>[];
   href: (row: T) => string;
+  sort?: Sort;
+  onSort?: (key: string) => void;
+  action?: (row: T) => ReactNode;
 }) {
   const cardCols = columns.filter((c) => c.hide !== "lg");
   return (
@@ -46,14 +54,23 @@ export function RecordTable<T extends { id: string }>({
                   className={cn(
                     "sticky top-0 z-10 border-b border-line bg-page px-3 py-2.5 text-[11px] font-bold tracking-wider text-muted uppercase",
                     i === 0 && "sticky left-0 z-20",
+                    c.align === "right" && "text-right",
                     c.hide === "sm" && "hidden sm:table-cell",
                     c.hide === "md" && "hidden md:table-cell",
                     c.hide === "lg" && "hidden lg:table-cell",
                   )}
                 >
-                  {c.label}
+                  {onSort ? (
+                    <button type="button" onClick={() => onSort(c.key)} className={cn("inline-flex items-center gap-1", c.align === "right" && "ml-auto")}>
+                      {c.label}
+                      {sort?.key === c.key ? <span>{sort.dir === "asc" ? "↑" : "↓"}</span> : null}
+                    </button>
+                  ) : (
+                    c.label
+                  )}
                 </th>
               ))}
+              {action ? <th className="sticky top-0 z-10 w-36 border-b border-line bg-page" /> : null}
             </tr>
           </thead>
           <tbody>
@@ -63,22 +80,23 @@ export function RecordTable<T extends { id: string }>({
                   <td
                     key={c.key}
                     className={cn(
-                      "border-b border-line bg-card px-3 py-0 group-hover:bg-page",
+                      "relative border-b border-line bg-card px-3 py-0 group-hover:bg-page",
                       i === 0 && "sticky left-0 z-[1]",
+                      c.align === "right" && "text-right",
                       c.hide === "sm" && "hidden sm:table-cell",
                       c.hide === "md" && "hidden md:table-cell",
                       c.hide === "lg" && "hidden lg:table-cell",
                     )}
                   >
-                    {i === 0 ? (
-                      <a href={href(row)} className="type-value flex min-h-11 items-center hover:text-navy">
-                        {c.render(row)}
-                      </a>
-                    ) : (
-                      <div className="flex min-h-11 items-center">{c.render(row)}</div>
-                    )}
+                    <a href={href(row)} className="absolute inset-0" aria-label={i === 0 ? "Open" : undefined} tabIndex={i === 0 ? 0 : -1} />
+                    <div className={cn("pointer-events-none relative flex min-h-11 items-center", c.align === "right" && "justify-end")}>{c.render(row)}</div>
                   </td>
                 ))}
+                {action ? (
+                  <td className="relative border-b border-line bg-card px-3 group-hover:bg-page">
+                    <div className="relative z-10 flex min-h-11 items-center justify-end opacity-0 group-hover:opacity-100 focus-within:opacity-100">{action(row)}</div>
+                  </td>
+                ) : null}
               </tr>
             ))}
           </tbody>

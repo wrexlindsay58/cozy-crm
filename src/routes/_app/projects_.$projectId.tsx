@@ -9,6 +9,9 @@ import { accounts, byId, money, opportunities } from "@/lib/crm-data";
 import { followersByPerson, photosByPerson } from "@/lib/file-data";
 import { placeLine } from "@/lib/place";
 import { assessmentForLead } from "@/features/assessment/store";
+import { StartMembership } from "@/features/membership/start-sheet";
+import { useMembershipFor } from "@/features/membership/store";
+import { FlowRedirect } from "@/features/flow/redirect";
 
 export const Route = createFileRoute("/_app/projects_/$projectId")({ component: JobFilePage });
 
@@ -17,6 +20,8 @@ function JobFilePage() {
   const job = useJob(projectId);
   const { tickets, history, leads } = useOps();
   const [focus, setFocus] = useState<"co" | "invoice" | null>(null);
+  const [planOpen, setPlanOpen] = useState(false);
+  const member = useMembershipFor(job?.leadId || job?.personId || "");
   if (!job) return <main className="p-6 text-sm text-muted">Job not found.</main>;
   const account = byId(accounts, job.accountId);
   const lead = leads.find((l) => l.id === job.leadId) ?? leads.find((l) => l.name === account?.name);
@@ -25,6 +30,8 @@ function JobFilePage() {
   const assess = lead ? assessmentForLead(lead.id) : undefined;
   const t = tally(job);
   return (
+    <>
+    <FlowRedirect id={personId} here="job" />
     <RecordShell
       kind="job"
       personId={personId}
@@ -43,12 +50,14 @@ function JobFilePage() {
           assess ? { label: `Assessment ${assess.id}`, href: `/assessments/${assess.id}` } : null,
           opp ? { label: `Opportunity ${opp.id}`, href: `/opportunities/${opp.id}` } : null,
           account ? { label: `Account ${account.id}`, href: `/accounts/${account.id}` } : null,
+          member ? { label: `${member.planName} · ${member.years} yr`, href: `/memberships/${member.id}` } : null,
         ].filter(Boolean) as { label: string; href: string }[]
       }
       acts={[
         { label: "Call" },
         { label: "Text", opens: "thread" },
         { label: "Book", onClick: () => scrollFileSection("book") },
+        { label: "Plan", onClick: () => setPlanOpen(true) },
         {
           label: "Create",
           menu: [
@@ -67,5 +76,17 @@ function JobFilePage() {
     >
       <JobWorkspace job={job} lead={lead} focus={focus} />
     </RecordShell>
+    <StartMembership
+      open={planOpen}
+      onClose={() => setPlanOpen(false)}
+      personId={personId}
+      name={lead?.name ?? job.name}
+      address={lead?.address ?? ""}
+      city={lead?.city ?? ""}
+      office={lead?.office ?? ""}
+      owner={job.pm}
+      from="job"
+    />
+    </>
   );
 }

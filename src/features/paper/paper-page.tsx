@@ -9,6 +9,7 @@ import { useOps } from "@/features/ops/store";
 import { useProposals } from "@/features/opportunity/store";
 import { canSeeCost, useStaff } from "@/features/staff/store";
 import { issueWo, receiveGoodLeapPay, receivePoAmount, recordPayment, sendPo, setInvoiceStatus, signCo, signWo, useJobs } from "@/features/job/store";
+import { PaymentTerminal } from "@/features/pay/terminal";
 import { sendMessage } from "@/features/thread/store";
 import { blockedJobs, buildPaper, byQueue, jobReady, uncollected, type PaperKind, type PaperRow, type PaperStack } from "./model";
 
@@ -442,15 +443,21 @@ function ChaseForm({ row, who, onDone, onClose }: { row: PaperRow; who: string; 
   const [amount, setAmount] = useState(String(row.amount ?? ""));
   const [how, setHow] = useState(pay ? "Card" : who);
   const [at, setAt] = useState(todayKey());
+  const [run, setRun] = useState(false);
   const owed = row.amount ?? 0;
   const entered = Number(amount);
   const partial = Number.isFinite(entered) && entered > 0 && entered < owed;
   return (
+    <>
     <form
       className="w-full rounded-md border border-line bg-card px-4 py-3"
       onSubmit={(e) => {
         e.preventDefault();
         if (!row.run || !Number.isFinite(entered) || entered <= 0) return;
+        if (row.run.type === "pay" && how === "Card") {
+          setRun(true);
+          return;
+        }
         if (row.run.type === "pay") recordPayment(row.run.jobId, row.run.invoiceId, entered, how, at);
         if (row.run.type === "receive-po") receivePoAmount(row.run.jobId, row.run.poId, entered, how);
         onDone();
@@ -481,10 +488,24 @@ function ChaseForm({ row, who, onDone, onClose }: { row: PaperRow; who: string; 
         </label>
       </div>
       <div className="mt-3 flex items-center gap-3">
-        <button type="submit" className="h-9 rounded-md bg-navy px-3 text-sm font-semibold text-card">{partial ? (pay ? "Record partial" : "Received short") : pay ? "Record payment" : "Mark received"}</button>
+        <button type="submit" className="h-9 rounded-md bg-navy px-3 text-sm font-semibold text-card">{partial ? (pay ? "Record partial" : "Received short") : how === "Card" ? "Run card" : pay ? "Record payment" : "Mark received"}</button>
         <button type="button" onClick={onClose} className="h-9 px-2 text-sm font-semibold text-muted">Cancel</button>
       </div>
     </form>
+      {run && row.run?.type === "pay" ? (
+        <PaymentTerminal
+          title="Agreement payment"
+          amount={entered}
+          purpose={`Job ${row.run.jobId} invoice ${row.run.invoiceId}`}
+          onClose={() => setRun(false)}
+          onPaid={(slip) => {
+            if (row.run?.type !== "pay") return;
+            recordPayment(row.run.jobId, row.run.invoiceId, entered, `${slip.brand || "Card"} ····${slip.last4} · ${slip.receipt}`, at);
+            onDone();
+          }}
+        />
+      ) : null}
+    </>
   );
 }
 

@@ -13,9 +13,10 @@ import { AgreementPanel, signedProposals } from "@/features/opportunity/agreemen
 import { OppSnap } from "@/features/opportunity/opp-snap";
 import { PayTiles } from "@/features/opportunity/pay-tiles";
 import { ProposalPanel } from "@/features/opportunity/proposal-panel";
-import { useProposal, useProposals } from "@/features/opportunity/store";
+import { useProposals } from "@/features/opportunity/store";
+import { advanceToAccount } from "@/features/flow/advance";
 import { FileSections } from "@/features/record-shell/file-sections";
-import { opportunities, accounts, type Lead } from "@/lib/crm-data";
+import { type Lead } from "@/lib/crm-data";
 
 const CHAP_LABEL: Record<Chapter, string> = {
   sold: "Acceptance",
@@ -30,11 +31,11 @@ const CHAP_LABEL: Record<Chapter, string> = {
 };
 
 export function JobWorkspace({ job, lead }: { job: JobFile; lead?: Lead; focus?: "co" | "invoice" | null }) {
-  const opp = opportunities.find((o) => o.leadId === lead?.id) ?? opportunities.find((o) => o.leadId === job.leadId) ?? opportunities.find((o) => o.product === job.product);
-  const proposal = useProposal(opp?.id ?? "");
-  const signed = signedProposals(lead?.id ?? job.leadId, useProposals());
+  const proposals = useProposals();
+  const person = lead?.id ?? job.leadId;
+  const proposal = Object.values(proposals).find((p) => p.personId === person);
+  const signed = signedProposals(person, proposals);
   const navigate = useNavigate();
-  const account = accounts.find((a) => a.id === job.accountId) ?? accounts.find((a) => a.name === (lead?.name ?? job.name));
   function sec(id: string, label: string, node: ReactNode, done = sectionDone(job, id)) {
     return { id, label, done, started: sectionStarted(job, id), doneAt: sectionDoneAt(job, id), node };
   }
@@ -45,7 +46,8 @@ export function JobWorkspace({ job, lead }: { job: JobFile; lead?: Lead; focus?:
       advance={{
         pipeline: "Account",
         onContinue: () => {
-          if (account) void navigate({ to: "/accounts/$accountId", params: { accountId: account.id } });
+          const next = advanceToAccount(job, lead);
+          void navigate({ to: "/accounts/$accountId", params: { accountId: next.id } });
         },
       }}
       sections={[
@@ -64,7 +66,7 @@ export function JobWorkspace({ job, lead }: { job: JobFile; lead?: Lead; focus?:
           if (c === "ready") return [sec("survey", "Site survey", <SurveyChapter job={job} lead={lead} />), chap];
           return [chap];
         }),
-        sec("book", "Book", lead ? <BookWidget leadId={lead.id} defaultCloser={job.closer} defaultKind="Install" /> : null),
+        sec("book", "Book", <BookWidget leadId={lead?.id || job.leadId || job.personId} defaultCloser={job.closer} defaultKind="Install" pipeline="Job" />),
       ]}
     />
   );

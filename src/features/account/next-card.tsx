@@ -1,7 +1,9 @@
 import { useState } from "react";
-import { setMembership, setWarranty, spawnLead, type AccountFile, type Membership } from "./store";
+import { Link } from "@tanstack/react-router";
+import { setWarranty, spawnLead, type AccountFile } from "./store";
 import { money } from "@/lib/crm-data";
 import { Bits } from "@/features/record-shell/file-sheet";
+import { priceLabel, useMembershipFor } from "@/features/membership/store";
 
 const field = "h-10 w-full rounded-md border border-line bg-card px-3 text-sm outline-none focus:border-navy";
 
@@ -56,100 +58,29 @@ function WarrantyCard({ file }: { file: AccountFile }) {
 }
 
 function MembershipCard({ file }: { file: AccountFile }) {
-  const [edit, setEdit] = useState(false);
-  const m = file.membership;
-  const [draft, setDraft] = useState<Membership>(
-    m ?? {
-      plan: "Comfort",
-      cadence: "Monthly",
-      amount: 29,
-      next: "",
-      method: "Card",
-      brand: "Visa",
-      last4: "",
-      exp: "",
-      bank: "",
-      routingLast4: "",
-      payments: [],
-    },
-  );
-
-  function save() {
-    setMembership(file.accountId, { ...draft, amount: Number(draft.amount) || 0 });
-    setEdit(false);
-  }
-
+  const member = useMembershipFor(file.leadId);
   return (
     <section className="rounded-md border border-line bg-card p-4">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <h2 className="type-section">Membership</h2>
-          <p className="type-meta mt-1">{m ? `${m.plan} · ${money(m.amount)} ${m.cadence}` : "No plan on this house."}</p>
-        </div>
-        <button type="button" onClick={() => setEdit((v) => !v)} className="text-[12px] font-semibold text-navy">
-          {edit ? "Close" : m ? "Edit" : "Add"}
-        </button>
-      </div>
-      {edit ? (
-        <div className="mt-3 grid gap-2 sm:grid-cols-2">
-          <input value={draft.plan} onChange={(e) => setDraft({ ...draft, plan: e.target.value })} placeholder="Plan" className={field} />
-          <input value={draft.cadence} onChange={(e) => setDraft({ ...draft, cadence: e.target.value })} placeholder="Monthly or yearly" className={field} />
-          <input value={String(draft.amount)} onChange={(e) => setDraft({ ...draft, amount: Number(e.target.value) || 0 })} placeholder="Amount" className={field} />
-          <input value={draft.next} onChange={(e) => setDraft({ ...draft, next: e.target.value })} placeholder="Next charge" className={field} />
-          <select value={draft.method} onChange={(e) => setDraft({ ...draft, method: e.target.value as Membership["method"] })} className={field}>
-            <option>Card</option>
-            <option>ACH</option>
-          </select>
-          {draft.method === "Card" ? (
-            <>
-              <input value={draft.brand} onChange={(e) => setDraft({ ...draft, brand: e.target.value })} placeholder="Visa" className={field} />
-              <input value={draft.last4} onChange={(e) => setDraft({ ...draft, last4: e.target.value })} placeholder="Last 4" className={field} />
-              <input value={draft.exp} onChange={(e) => setDraft({ ...draft, exp: e.target.value })} placeholder="Exp" className={field} />
-            </>
-          ) : (
-            <>
-              <input value={draft.bank} onChange={(e) => setDraft({ ...draft, bank: e.target.value })} placeholder="Bank" className={field} />
-              <input value={draft.last4} onChange={(e) => setDraft({ ...draft, last4: e.target.value })} placeholder="Account last 4" className={field} />
-              <input value={draft.routingLast4} onChange={(e) => setDraft({ ...draft, routingLast4: e.target.value })} placeholder="Routing last 4" className={field} />
-            </>
-          )}
-          <div className="flex gap-2 sm:col-span-2">
-            <button type="button" onClick={save} className="h-10 rounded-md bg-navy px-3 text-sm font-semibold text-card">
-              Save
-            </button>
-            {m ? (
-              <button
-                type="button"
-                onClick={() => {
-                  setMembership(file.accountId, null);
-                  setEdit(false);
-                }}
-                className="h-10 rounded-md border border-line px-3 text-sm font-semibold"
-              >
-                Remove
-              </button>
-            ) : null}
-          </div>
-        </div>
-      ) : m ? (
+      <h2 className="type-section">Membership</h2>
+      {member ? (
         <>
-          <dl className="mt-3 grid gap-3 sm:grid-cols-2">
-            <Fact label="Next charge" value={m.next || "Not set"} />
-            <Fact label="Method" value={m.method} />
-            <Fact label="Account" value={m.method === "Card" ? `${m.brand || "Card"} ${m.last4}` : `${m.bank || "ACH"} ${m.last4}`} />
-            <Fact label="Expires" value={m.exp} />
-          </dl>
-          <h3 className="mt-4 text-[13px] font-semibold">Payments</h3>
-          {m.payments.length === 0 ? <p className="mt-1 text-sm text-muted">No charges yet.</p> : null}
-          <ul className="mt-2 space-y-1.5">
-            {m.payments.map((p) => (
-              <li key={p.id}>
-                <Bits items={[{ label: "When", value: p.at }, { label: "Method", value: p.method }, { label: "Amount", value: money(p.amount) }, { label: "Status", value: p.status }]} />
-              </li>
-            ))}
-          </ul>
+          <p className="type-meta mt-1">
+            {member.planName} · {member.years} years · {member.status}
+          </p>
+          <Bits
+            items={[
+              { label: "Term price", value: priceLabel(member, money) },
+              { label: "After the term", value: `${money(member.continueMonthly)}/mo` },
+              { label: "Through", value: member.end },
+            ]}
+          />
+          <Link to="/memberships/$membershipId" params={{ membershipId: member.id }} className="mt-3 inline-flex h-11 items-center text-sm font-semibold text-navy">
+            Open the membership
+          </Link>
         </>
-      ) : null}
+      ) : (
+        <p className="type-meta mt-1">No plan on this house. Use Plan in the header. It stays on this account.</p>
+      )}
     </section>
   );
 }

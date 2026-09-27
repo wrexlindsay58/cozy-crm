@@ -7,6 +7,7 @@ import { useBrand } from "@/features/brand/store";
 import { picksOn, scopeLines } from "./proposal-copy";
 import { PriceLines } from "./sold-summary";
 import { MatchedPay } from "./pay-tiles";
+import { PlanNumbers } from "@/features/membership/plan-offer";
 import { cn } from "@/lib/cn";
 
 export function ProposalDoc({ proposal }: { proposal: Proposal }) {
@@ -109,6 +110,12 @@ export function ProposalDoc({ proposal }: { proposal: Proposal }) {
           );
         })}
       </section>
+
+      {proposal.memberOffer ? (
+        <section className="border-b border-line px-5 py-4 md:px-7">
+          <PlanNumbers proposal={proposal} />
+        </section>
+      ) : null}
 
       <section className="border-b border-line px-5 py-4 md:px-7">
         <h3 className="text-[11px] font-bold tracking-wide text-muted uppercase">How you pay</h3>

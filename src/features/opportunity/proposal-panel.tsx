@@ -11,6 +11,7 @@ import { assessmentForLead, useAssessments } from "@/features/assessment/store";
 import { reportAccess } from "@/features/assessment/figures";
 import { placeLine } from "@/lib/place";
 import { SignDialog } from "./sign-ceremony";
+import { PlanNumbers } from "@/features/membership/plan-offer";
 
 export function ProposalPanel({ proposal }: { proposal: Proposal }) {
   const navigate = useNavigate();
@@ -163,6 +164,7 @@ export function ProposalPanel({ proposal }: { proposal: Proposal }) {
           );
         })}
       </ul>
+      {proposal.memberOffer ? <div className="mt-4"><PlanNumbers proposal={proposal} /></div> : null}
       {proposal.matchHighFee && proposal.payOffers.length ? <p className="type-meta mt-4">Payments matched to the {feeCeiling(proposal)}% fee.</p> : null}
 
       {!ready ? (

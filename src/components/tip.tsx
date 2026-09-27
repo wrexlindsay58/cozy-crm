@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { cn } from "@/lib/cn";
 import { placeFloat, type FloatSide } from "@/lib/place-float";
@@ -19,6 +19,12 @@ export function Tip({
   children: ReactNode;
 }) {
   const [box, setBox] = useState<DOMRect | null>(null);
+  useEffect(() => {
+    if (!box) return;
+    const close = () => setBox(null);
+    window.addEventListener("scroll", close, true);
+    return () => window.removeEventListener("scroll", close, true);
+  }, [box]);
   if (!on) return children;
   const w = wide
     ? Math.min(400, Math.max(220, Math.min(label.length * 8 + 32, 400)))
@@ -37,7 +43,9 @@ export function Tip({
       onFocus={(e) => show(e.currentTarget)}
       onBlur={() => setBox(null)}
       onPointerDown={(e) => {
-        if (window.matchMedia("(hover: none)").matches) show(e.currentTarget);
+        if (!window.matchMedia("(hover: none)").matches) return;
+        const el = e.currentTarget;
+        setBox((open) => (open ? null : el.getBoundingClientRect()));
       }}
     >
       {children}

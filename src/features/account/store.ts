@@ -1,9 +1,11 @@
 import { useSyncExternalStore } from "react";
-import { addHistory, createLead, createTicket } from "@/features/ops/store";
+import { addHistory, createLead, createTicket, leadById } from "@/features/ops/store";
 import { putFromAppointment } from "@/features/book/store";
 import { photosByPerson, type Photo } from "@/lib/file-data";
 import { actingName } from "@/features/staff/store";
-import { accounts, leads, type Activity } from "@/lib/crm-data";
+import { accounts, leads, type Account, type Activity } from "@/lib/crm-data";
+import { enterFlow } from "@/features/flow/door";
+import { putPhoto } from "@/features/photos/store";
 
 export const VISIT_KINDS = ["Service", "QC", "Warranty", "Go-back"] as const;
 export type VisitKind = (typeof VISIT_KINDS)[number];
@@ -154,6 +156,7 @@ function seedFiles() {
 }
 
 let files: Record<string, AccountFile> = seedFiles();
+let extraAccounts: Account[] = [];
 let photoRows: Photo[] = [...(photosByPerson["A-198"] ?? [])];
 const listeners = new Set<() => void>();
 function emit() {
@@ -174,6 +177,36 @@ export function useAccount(accountId: string) {
 }
 export function useAccountFiles() {
   return useSyncExternalStore(subscribe, () => files, () => files);
+}
+export function useAccountRows() {
+  useAccountFiles();
+  return [...accounts, ...extraAccounts];
+}
+export function openAccountForJob(input: { leadId: string; name: string; city: string; owner: string; amount: number; existingId?: string }) {
+  const found =
+    [...accounts, ...extraAccounts].find((a) => a.id === input.existingId) ??
+    [...accounts, ...extraAccounts].find((a) => a.name === input.name);
+  if (found) return found;
+  const row: Account = {
+    id: `A-${320 + extraAccounts.length}`,
+    name: input.name,
+    type: "New",
+    city: input.city,
+    owner: input.owner,
+    jobs: 1,
+    lifetime: input.amount,
+    last: "Today",
+  };
+  extraAccounts = [...extraAccounts, row];
+  patch(row.id, {
+    ...blank(row.id),
+    accountId: row.id,
+    leadId: input.leadId,
+    name: input.name,
+    city: input.city,
+    owner: input.owner,
+  });
+  return row;
 }
 export function useAccountPhotos(accountId: string) {
   useSyncExternalStore(subscribe, () => photoRows, () => photoRows);
@@ -280,19 +313,34 @@ export function addReferral(accountId: string, name: string, phone: string) {
 }
 export function addPhoto(accountId: string, caption: string) {
   const trimmed = caption.trim();
-  if (!trimmed) return false;
-  const row: Photo = { id: `PH-${10 + photoRows.length}`, personId: accountId, caption: trimmed, tone: "info" };
-  photoRows = [row, ...photoRows];
   const file = files[accountId];
-  if (file) patch(accountId, { ...file, photos: [row, ...file.photos] });
-  addHistory(accountId, actingName(), `Photo: ${trimmed}.`);
+  if (!trimmed || !file) return false;
+  const row: Photo = { id: `PH-${10 + photoRows.length}`, personId: file.leadId || accountId, caption: trimmed, tone: "info", pipeline: "Account", by: actingName() };
+  photoRows = [row, ...photoRows];
+  patch(accountId, { ...file, photos: [row, ...file.photos] });
+  putPhoto(file.leadId || accountId, row);
+  addHistory(file.leadId || accountId, actingName(), `Photo: ${trimmed}.`);
   return true;
 }
 export function spawnLead(accountId: string, product: string) {
   const file = files[accountId];
   if (!file) return null;
-  const lead = createLead({ name: file.name, phone: "(480) 555-0121", city: file.city, source: "Account", product, closer: file.owner });
-  if (lead) patch(accountId, { ...file, childLeads: [{ id: lead.id, name: product }, ...file.childLeads] });
-  addHistory(file.leadId, actingName(), `New job started from this account · ${product}.`);
+  const source = leadById(file.leadId) ?? leads.find((l) => l.id === file.leadId);
+  const lead = createLead({
+    name: file.name,
+    phone: source?.phone || "(480) 555-0100",
+    email: source?.email,
+    address: source?.address,
+    city: source?.city || file.city,
+    source: "Account",
+    product,
+    closer: file.owner,
+    office: source?.office,
+  });
+  if (lead) {
+    enterFlow(lead.id, "lead", lead.id);
+    patch(accountId, { ...file, childLeads: [{ id: lead.id, name: product }, ...file.childLeads] });
+  }
+  addHistory(file.leadId, actingName(), `New job started from this account · ${product}. New file ${lead?.id ?? ""}.`);
   return lead;
 }

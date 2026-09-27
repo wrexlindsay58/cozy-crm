@@ -6,6 +6,7 @@ import {
   Calendar,
   ClipboardList,
   FolderKanban,
+  BadgeCheck,
   FileText,
   HardHat,
   House,
@@ -49,6 +50,7 @@ const PIPELINE = [
   { icon: House, label: "Assessments", to: "/assessments" },
   { icon: Star, label: "Opportunities", to: "/opportunities" },
   { icon: Briefcase, label: "Jobs", to: "/projects" },
+  { icon: BadgeCheck, label: "Memberships", to: "/memberships" },
   { icon: FolderKanban, label: "Accounts", to: "/accounts" },
 ] as const;
 

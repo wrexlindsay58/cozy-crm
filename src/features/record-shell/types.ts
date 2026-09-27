@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import type { Activity, Ticket, Tone } from "@/lib/crm-data";
 import type { PersonRef, Photo } from "@/lib/file-data";
 
-export type RecordKind = "lead" | "assessment" | "opportunity" | "job" | "account" | "action" | ActionKind;
+export type RecordKind = "lead" | "assessment" | "opportunity" | "job" | "account" | "membership" | "action" | ActionKind;
 
 export type RecordAct = {
   label: string;

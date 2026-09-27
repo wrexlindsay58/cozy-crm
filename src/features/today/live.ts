@@ -225,6 +225,7 @@ export function buildToday(opts: {
     { key: "run", label: "Runs", now: passed.length, yest: yestPassed.length },
     { key: "deal", label: "Deals", now: soldN, yest: yestSoldEv.length },
     { key: "job", label: "Jobs", now: prod.length, yest: yestProd.length },
+    { key: "member", label: "Members", now: snapshot.membersToday, yest: snapshot.membersYest },
     { key: "cancel", label: "Cancels", now: cancelled, yest: snapshot.cancelledYest },
   ];
 
@@ -369,12 +370,15 @@ export function buildToday(opts: {
     demand: { now: demandPct, yest: 0, goal: dayGoals.demand },
     deals: { now: soldN, yest: yestSoldEv.length, goal: dayGoals.deals },
     surveys: { now: snapshot.surveysToday, yest: snapshot.surveysYest, goal: dayGoals.surveys },
+    members: { now: snapshot.membersToday, yest: snapshot.membersYest, goal: dayGoals.members },
   };
 
   return {
     sold,
     soldN,
     ticket,
+    members: snapshot.membersToday,
+    memberSold: snapshot.memberSoldToday,
     yesterday,
     closeRate,
     decided,

@@ -150,6 +150,8 @@ for (const p of hale.packets) {
       src: ph.src,
       kind: ph.kind,
       name: ph.name,
+      pipeline: "Assessment",
+      by: hale.closer,
     });
   }
 }
@@ -256,6 +258,8 @@ export function addPacketPhoto(id: string, packet: string, caption: string, file
       src: photo.src,
       kind: photo.kind,
       name: photo.name,
+      pipeline: "Assessment",
+      by: actingName(),
     });
     addHistory(row.leadId, actingName(), `${category} file: ${photo.caption}.`);
     emit();
@@ -269,13 +273,13 @@ export function addPacketPhoto(id: string, packet: string, caption: string, file
   apply();
   return true;
 }
-export function completeAssessment(id: string) {
+export function completeAssessment(id: string, oppId?: string) {
   const cur = rows[id];
   if (!cur || cur.status === "Complete") return cur;
-  const oppId = cur.leadId === "L-4819" ? "O-1182" : `O-${1100 + Object.keys(rows).length}`;
+  const nextOpp = oppId || (cur.leadId === "L-4819" ? "O-1182" : cur.oppId);
   const credit = cur.reportPaid ? " Report fee of $149 was paid. Credit it on the job if they buy." : "";
-  rows = { ...rows, [id]: { ...cur, status: "Complete", oppId } };
-  addHistory(cur.leadId, actingName(), `Assessment complete. Opportunity ${oppId} opened.${credit}`);
+  rows = { ...rows, [id]: { ...cur, status: "Complete", oppId: nextOpp } };
+  addHistory(cur.leadId, actingName(), `Assessment complete. Opportunity ${nextOpp ?? "opened"}. ${credit}`.trim());
   emit();
   return rows[id];
 }

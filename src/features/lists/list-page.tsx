@@ -1,5 +1,7 @@
 import type { ReactNode } from "react";
 import { BackLink, FilterChip, PageTitle } from "@/components/ui-bits";
+import { cn } from "@/lib/cn";
+import type { CountCard } from "./bits";
 
 export function ListPage({
   title,
@@ -8,9 +10,11 @@ export function ListPage({
   views,
   view,
   onView,
+  cards,
+  filters,
   search,
   onSearch,
-  searchPlaceholder = "Name, phone, address, id",
+  searchPlaceholder = "Name, phone, address",
   empty,
   back,
   children,
@@ -21,6 +25,8 @@ export function ListPage({
   views?: string[];
   view?: string;
   onView?: (v: string) => void;
+  cards?: CountCard[];
+  filters?: ReactNode;
   search?: string;
   onSearch?: (q: string) => void;
   searchPlaceholder?: string;
@@ -42,14 +48,11 @@ export function ListPage({
               className="h-11 min-h-11 w-full min-w-40 shrink-0 rounded-md border border-line bg-card px-3 text-sm outline-none focus:border-navy sm:w-64"
             />
           ) : null}
-          {views?.length ? (
+          {filters}
+          {!cards && views?.length ? (
             <label className="w-full md:hidden">
               <span className="sr-only">View</span>
-              <select
-                value={view}
-                onChange={(e) => onView?.(e.target.value)}
-                className="h-11 w-full rounded-md border border-line bg-card px-3 text-sm"
-              >
+              <select value={view} onChange={(e) => onView?.(e.target.value)} className="h-11 w-full rounded-md border border-line bg-card px-3 text-sm">
                 {views.map((v) => (
                   <option key={v} value={v}>
                     {v}
@@ -58,14 +61,34 @@ export function ListPage({
               </select>
             </label>
           ) : null}
-          <div className="hidden flex-nowrap items-center gap-2 md:flex">
-            {views?.map((v) => (
-              <FilterChip key={v} active={view === v} onClick={() => onView?.(v)}>
-                {v}
-              </FilterChip>
-            ))}
-          </div>
+          {!cards ? (
+            <div className="hidden flex-nowrap items-center gap-2 md:flex">
+              {views?.map((v) => (
+                <FilterChip key={v} active={view === v} onClick={() => onView?.(v)}>
+                  {v}
+                </FilterChip>
+              ))}
+            </div>
+          ) : null}
         </div>
+        {cards ? (
+          <div className="mt-2 flex flex-nowrap items-center gap-1.5 overflow-x-auto">
+            {cards.map((c) => {
+              const on = view === c.id;
+              return (
+                <button
+                  key={c.id}
+                  type="button"
+                  onClick={() => onView?.(c.id)}
+                  className={cn("flex h-9 shrink-0 items-center gap-1.5 rounded-md border bg-card px-2", on ? "border-navy" : "border-line")}
+                >
+                  <span className={cn("text-sm font-semibold tabular-nums", c.tone === "alert" ? "text-alert" : c.tone === "watch" ? "text-watch" : "text-navy")}>{c.count}</span>
+                  <span className="text-[11px] font-medium text-muted">{c.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        ) : null}
       </div>
       <div className="min-h-0 min-w-0 flex-1 overflow-auto">{empty ? <div className="p-4">{empty}</div> : children}</div>
     </main>

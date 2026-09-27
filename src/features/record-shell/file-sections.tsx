@@ -62,6 +62,7 @@ const ICONS: Record<string, LucideIcon> = {
   options: LayoutList,
   pay: CreditCard,
   proposal: FileText,
+  plan: BadgeCheck,
   report: ClipboardCheck,
   agreement: FileSignature,
   stage: ListOrdered,

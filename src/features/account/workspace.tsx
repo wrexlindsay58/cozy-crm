@@ -13,8 +13,10 @@ import { useJobs } from "@/features/job/store";
 import { canSeeCost } from "@/features/staff/store";
 import type { JobFile } from "@/features/job/types";
 import { LeadCard } from "@/features/lead/lead-card";
+import { BookWidget } from "@/features/lead/book-widget";
 import { useLead } from "@/features/ops/store";
 import { FileSections } from "@/features/record-shell/file-sections";
+import { AccountMembership } from "./membership-pane";
 import { AgreementPanel, signedProposals } from "@/features/opportunity/agreement-panel";
 import { OppSnap } from "@/features/opportunity/opp-snap";
 import { PayTiles } from "@/features/opportunity/pay-tiles";
@@ -55,10 +57,12 @@ export function AccountWorkspace({
         ]),
         ...signed.map((proposal) => ({ id: `agreement-${proposal.oppId}`, label: "Agreement", node: <AgreementPanel proposal={proposal} fileOnly /> })),
         { id: "jobs", label: "Jobs", node: <JobTabs file={file} jobs={jobs} pane="job" /> },
+        { id: "membership", label: "Membership", node: <AccountMembership leadId={file.leadId} /> },
         { id: "pnl", label: "P&L", node: <JobTabs file={file} jobs={jobs} pane="pnl" /> },
         { id: "follow", label: "Follow-up", node: <NextCard file={file} /> },
         { id: "service", label: "Service", node: <ServiceCard file={file} /> },
         { id: "reviews", label: "Reviews", node: <VoiceCard file={file} /> },
+        { id: "book", label: "Book", node: <BookWidget leadId={file.leadId} defaultCloser={lead?.closer || file.owner} defaultKind="Service" pipeline="Account" /> },
         {
           id: "records",
           label: "Records",

@@ -1,9 +1,9 @@
 import type { ReactNode } from "react";
 import { cn } from "@/lib/cn";
 
-export function FileBlock({ title, hint, aside, children }: { title: string; hint?: string; aside?: ReactNode; children: ReactNode }) {
+export function FileBlock({ title, hint, aside, fill, children }: { title: string; hint?: string; aside?: ReactNode; fill?: boolean; children: ReactNode }) {
   return (
-    <section className="rounded-md border border-line bg-card">
+    <section className={cn("rounded-md border border-line bg-card", fill && "flex h-full min-h-[calc(100dvh-11rem)] flex-col")}>
       <header className="flex items-start justify-between gap-3 border-b border-line px-4 py-3">
         <div className="min-w-0">
           <h2 className="type-section">{title}</h2>
@@ -11,7 +11,7 @@ export function FileBlock({ title, hint, aside, children }: { title: string; hin
         </div>
         {aside}
       </header>
-      <div className="space-y-4 px-4 py-3">{children}</div>
+      <div className={cn(fill ? "flex min-h-0 flex-1 flex-col" : "space-y-4 px-4 py-3")}>{children}</div>
     </section>
   );
 }

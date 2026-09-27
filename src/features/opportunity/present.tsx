@@ -8,7 +8,7 @@ import { usePhotos } from "@/features/photos/store";
 import { brandVars, useBrand } from "@/features/brand/store";
 import { money } from "@/lib/crm-data";
 import { placeLine } from "@/lib/place";
-import { addPayOffer, applyGoodLeap, financeMonthly, lineAmount, offerPlans, optionTotal, payAmount, payLabel, requestDeposit, sendProposal, setPayPick, type Proposal } from "./store";
+import { addPayOffer, applyGoodLeap, bundledDue, financeMonthly, lineAmount, offerPlans, optionTotal, payAmount, payLabel, requestDeposit, sendProposal, setPayPick, signMemberPlan, type Proposal } from "./store";
 import { SignCeremony } from "./sign-ceremony";
 import { useMoneySettings } from "@/features/money-settings/store";
 import { PresentOption } from "./present-option";
@@ -42,6 +42,8 @@ export function Present({ proposal, mode = "customer", scope = "both" }: { propo
   const [copied, setCopied] = useState("");
   const [showAllOpts, setShowAllOpts] = useState(false);
   const [editing, setEditing] = useState(false);
+  const [planSigner, setPlanSigner] = useState("");
+  const [planMiss, setPlanMiss] = useState(false);
   const staff = mode === "present";
   const opt = proposal.options.find((o) => o.id === picked) ?? proposal.options[0];
   const total = opt ? optionTotal(opt) : 0;
@@ -54,6 +56,8 @@ export function Present({ proposal, mode = "customer", scope = "both" }: { propo
   const plans = payOffer ? offerPlans(payOffer) : [];
   const plan = plans.find((p) => p.months === term && p.apr === proposal.payPick?.apr) ?? plans[0];
   const payNow = payOffer ? payAmount(proposal, total, payOffer, payOffer.kind === "finance" ? plan : undefined) : total;
+  const bundle = payOffer ? bundledDue(proposal, total, payOffer, payOffer.kind === "finance" ? plan : undefined) : null;
+  const shownDue = bundle?.ride ? bundle.due : payNow;
   const products = uniqueProducts(proposal);
   const hero = photos.find((p) => p.src)?.src ?? SHOT.house;
 
@@ -223,6 +227,39 @@ export function Present({ proposal, mode = "customer", scope = "both" }: { propo
                 />
               ))}
           </div>
+          {proposal.memberOffer ? (
+            <div className="mt-8 bg-white p-6">
+              <p className="p-sub text-[11px] text-[var(--p-gray)]">Membership</p>
+              <h3 className="p-head mt-2 text-3xl text-[var(--p-navy)]">{proposal.memberOffer.planName}</h3>
+              <p className="mt-2 text-sm">
+                {proposal.memberOffer.years} years · {proposal.memberOffer.pay === "prepaid" ? money(proposal.memberOffer.termPrice) : `${money(proposal.memberOffer.termPrice)}/mo`}. This is not part of an option. After the term, {money(proposal.memberOffer.continueMonthly)}/mo until you cancel.
+              </p>
+              {proposal.memberOffer.accepted ? (
+                <p className="mt-3 text-sm font-semibold">Signed by {proposal.memberOffer.signerName}.</p>
+              ) : (
+                <form
+                  className="mt-4 flex flex-wrap items-end gap-2"
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    if (!planSigner.trim()) {
+                      setPlanMiss(true);
+                      return;
+                    }
+                    signMemberPlan(proposal.oppId, planSigner, brand.name);
+                  }}
+                >
+                  <label className="text-sm">
+                    <span className="p-sub text-[11px] text-[var(--p-gray)]">Signer</span>
+                    <input value={planSigner} onChange={(e) => setPlanSigner(e.target.value)} className="mt-1 block h-11 border border-[var(--p-trim)] px-3" />
+                  </label>
+                  <button type="submit" className="h-11 bg-[var(--p-navy)] px-4 text-sm font-semibold text-white">
+                    Accept the membership
+                  </button>
+                  {planMiss && !planSigner.trim() ? <p className="w-full text-sm">The name is required.</p> : null}
+                </form>
+              )}
+            </div>
+          ) : null}
           <div className="mt-8 flex flex-wrap items-center gap-3">
             {picked && proposal.options.length > 1 ? (
               <button type="button" className="h-12 border border-[var(--p-trim)] bg-white px-5 text-sm font-semibold text-[var(--p-navy)]" onClick={() => setShowAllOpts((v) => !v)}>
@@ -241,11 +278,17 @@ export function Present({ proposal, mode = "customer", scope = "both" }: { propo
           <div className="flex flex-col justify-between bg-[var(--p-navy)] p-6 text-white md:p-12">
             <p className="p-sub text-[11px] text-white/60">{opt?.name}</p>
             <div>
-              <p className="p-sub text-[11px] text-white/60">{payOffer?.kind === "finance" ? "Monthly" : "Investment"}</p>
+              <p className="p-sub text-[11px] text-white/60">{bundle?.ride ? (proposal.memberOffer?.funding === "loan" ? "Financed" : "Due") : payOffer?.kind === "finance" ? "Monthly" : "Investment"}</p>
               <p className="p-head mt-2 text-6xl md:text-8xl">
-                {payOffer?.kind === "finance" && plan ? money(financeMonthly(payNow, plan.apr, plan.months)) : money(payNow)}
+                {payOffer?.kind === "finance" && plan ? money(financeMonthly(shownDue, plan.apr, plan.months)) : money(shownDue)}
                 {payOffer?.kind === "finance" ? <span className="text-3xl">/mo</span> : null}
               </p>
+              {proposal.memberOffer ? (
+                <p className="mt-4 text-sm text-white/80">
+                  Install {money(bundle?.install ?? total)}
+                  {bundle?.ride ? ` · Plan ${money(bundle.plan)} · Fee on the plan ${money(bundle.planFee)}` : proposal.memberOffer.pay === "billed" ? ` · Plan ${money(proposal.memberOffer.termPrice)}/mo on the membership` : ` · Plan ${money(proposal.memberOffer.termPrice)} on the membership`}
+                </p>
+              ) : null}
             </div>
             <p className="text-sm text-white/70">Set on the file. You can still switch.</p>
           </div>
@@ -268,12 +311,14 @@ export function Present({ proposal, mode = "customer", scope = "both" }: { propo
             <div className="mt-4 grid gap-2">
               {proposal.payOffers.map((offer) => {
                 const on = payOffer?.id === offer.id;
+                const first = offerPlans(offer)[0];
+                const row = bundledDue(proposal, total, offer, offer.kind === "finance" ? first : undefined);
+                const rowDue = row.ride ? row.due : payAmount(proposal, total, offer, offer.kind === "finance" ? first : undefined);
                 return (
                   <button
                     key={offer.id}
                     type="button"
                     onClick={() => {
-                      const first = offerPlans(offer)[0];
                       setPayPick(proposal.oppId, offer.id, first?.months, first?.apr);
                     }}
                     className={cn("bg-white px-5 py-4 text-left", on ? "outline outline-2 outline-[var(--p-navy)]" : "border border-[var(--p-trim)]")}
@@ -281,8 +326,8 @@ export function Present({ proposal, mode = "customer", scope = "both" }: { propo
                     <p className="p-sub text-[11px] text-[var(--p-gray)]">{payLabel(offer)}</p>
                     <p className="p-head mt-1 text-3xl text-[var(--p-navy)]">
                       {offer.kind === "finance"
-                        ? `${money(financeMonthly(payAmount(proposal, total, offer, offerPlans(offer)[0]), offerPlans(offer)[0]?.apr ?? 0, offerPlans(offer)[0]?.months ?? term))}/mo`
-                        : money(payAmount(proposal, total, offer))}
+                        ? `${money(financeMonthly(rowDue, first?.apr ?? 0, first?.months ?? term))}/mo`
+                        : money(rowDue)}
                     </p>
                   </button>
                 );

@@ -4,6 +4,7 @@ import { createAction } from "@/features/ops/store";
 import { useLead } from "@/features/ops/store";
 import { actingName, canOverrideFee, feeApprover } from "@/features/staff/store";
 import { money } from "@/lib/crm-data";
+import { CardCharge } from "@/features/pay/terminal";
 import { REPORT_FEE, reportAccess } from "./figures";
 import { markReportPaid, sendAssessmentReport, setReportIntent, waiveReportFee } from "./store";
 import type { Assessment } from "./types";
@@ -146,42 +147,21 @@ export function ReportFeeCard({ file }: { file: Assessment }) {
 
 function ReportCheckout({ file, onClose }: { file: Assessment; onClose: () => void }) {
   const [method, setMethod] = useState<"Card" | "Cash" | "Check">("Card");
-  const [brand, setBrand] = useState("Visa");
-  const [last4, setLast4] = useState("");
-  const [name, setName] = useState(file.name);
   const [checkNo, setCheckNo] = useState("");
   const [error, setError] = useState("");
-  const digits = last4.replace(/\D/g, "").slice(0, 4);
-  const ready = method === "Cash" || (method === "Check" && checkNo.trim().length > 0) || (method === "Card" && digits.length === 4 && name.trim().length > 1);
 
-  function charge() {
-    if (!ready) {
-      setError(method === "Card" ? "Enter the name and the last four from the terminal slip." : "Enter the check number.");
-      return;
-    }
-    const receipt = `RC-${file.id.replace(/\D/g, "")}-${Date.now().toString().slice(-4)}`;
-    markReportPaid(file.id, {
-      method,
-      brand: method === "Card" ? brand : "",
-      last4: method === "Card" ? digits : method === "Check" ? checkNo.trim() : "",
-      receipt,
-    });
+  function paid(method: "Card" | "Cash" | "Check", last4: string, brand: string, receipt: string) {
+    markReportPaid(file.id, { method, brand, last4, receipt });
     onClose();
   }
 
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-navy/40 p-4" role="dialog" aria-label="Charge the report">
-      <form
-        className="w-full max-w-md border border-line bg-card p-5 shadow-card"
-        onSubmit={(e) => {
-          e.preventDefault();
-          charge();
-        }}
-      >
+    <div className="fixed inset-0 z-50 grid place-items-center overflow-auto bg-navy/40 p-4" role="dialog" aria-label="Charge the report">
+      <div className="w-full max-w-md border border-line bg-card p-5 shadow-card">
         <p className="text-[11px] font-bold tracking-[0.14em] text-navy uppercase">Payment</p>
         <h3 className="mt-1 text-lg font-semibold">Home performance report</h3>
         <p className="mt-1 text-2xl font-semibold text-navy">{money(REPORT_FEE)}</p>
-        <p className="mt-1 text-sm text-muted">{file.name}. This comes off the job if they buy. The full card number is not stored.</p>
+        <p className="mt-1 text-sm text-muted">{file.name}. This comes off the job if they buy.</p>
         <div className="mt-4 flex gap-1">
           {(["Card", "Cash", "Check"] as const).map((item) => (
             <button
@@ -195,46 +175,60 @@ function ReportCheckout({ file, onClose }: { file: Assessment; onClose: () => vo
           ))}
         </div>
         {method === "Card" ? (
-          <div className="mt-4 space-y-3">
-            <label className="block text-sm">
-              <span className="text-[13px] font-semibold">Name on card</span>
-              <input value={name} onChange={(e) => setName(e.target.value)} className={`mt-1 ${field}`} />
-            </label>
-            <div className="grid grid-cols-2 gap-3">
-              <label className="block text-sm">
-                <span className="text-[13px] font-semibold">Card</span>
-                <select value={brand} onChange={(e) => setBrand(e.target.value)} className={`mt-1 ${field}`}>
-                  <option>Visa</option>
-                  <option>Mastercard</option>
-                  <option>Amex</option>
-                  <option>Discover</option>
-                </select>
-              </label>
-              <label className="block text-sm">
-                <span className="text-[13px] font-semibold">Last four</span>
-                <input value={digits} onChange={(e) => setLast4(e.target.value)} inputMode="numeric" placeholder="From the slip" className={`mt-1 ${field} ${error && digits.length < 4 ? "border-alert" : ""}`} />
-              </label>
-            </div>
-            <p className="text-[12px] text-muted">Run the card on the terminal, then enter the last four from the slip.</p>
+          <div className="mt-4">
+            <CardCharge
+              amount={REPORT_FEE}
+              purpose={`Home performance report ${file.id}`}
+              onCancel={onClose}
+              onPaid={(slip) => paid("Card", slip.last4 || "", slip.brand || "Card", slip.receipt || "")}
+            />
           </div>
         ) : null}
         {method === "Check" ? (
-          <label className="mt-4 block text-sm">
-            <span className="text-[13px] font-semibold">Check number</span>
-            <input value={checkNo} onChange={(e) => setCheckNo(e.target.value)} className={`mt-1 ${field} ${error && !checkNo.trim() ? "border-alert" : ""}`} />
-          </label>
+          <form
+            className="mt-4"
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (!checkNo.trim()) {
+                setError("Enter the check number.");
+                return;
+              }
+              paid("Check", checkNo.trim(), "", `RC-${file.id.replace(/\D/g, "")}-${Date.now().toString().slice(-4)}`);
+            }}
+          >
+            <label className="block text-sm">
+              <span className="text-[13px] font-semibold">Check number</span>
+              <input value={checkNo} onChange={(e) => setCheckNo(e.target.value)} className={`mt-1 ${field} ${error && !checkNo.trim() ? "border-alert" : ""}`} />
+            </label>
+            {error ? <p className="mt-3 text-sm text-alert">{error}</p> : null}
+            <div className="mt-4 flex justify-end gap-2">
+              <button type="button" className="h-10 px-3 text-sm font-semibold text-muted" onClick={onClose}>
+                Cancel
+              </button>
+              <button type="submit" className="h-10 rounded-md bg-navy px-4 text-sm font-semibold text-card">
+                Take check
+              </button>
+            </div>
+          </form>
         ) : null}
-        {method === "Cash" ? <p className="mt-4 text-sm text-muted">Cash is counted in the drawer against this receipt.</p> : null}
-        {error ? <p className="mt-3 text-sm text-alert">{error}</p> : null}
-        <div className="mt-5 flex justify-end gap-2">
-          <button type="button" className="h-10 px-3 text-sm font-semibold text-muted" onClick={onClose}>
-            Cancel
-          </button>
-          <button type="submit" className="h-10 rounded-md bg-navy px-4 text-sm font-semibold text-card">
-            Charge {money(REPORT_FEE)}
-          </button>
-        </div>
-      </form>
+        {method === "Cash" ? (
+          <div className="mt-4">
+            <p className="text-sm text-muted">Cash is counted in the drawer against this receipt.</p>
+            <div className="mt-4 flex justify-end gap-2">
+              <button type="button" className="h-10 px-3 text-sm font-semibold text-muted" onClick={onClose}>
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="h-10 rounded-md bg-navy px-4 text-sm font-semibold text-card"
+                onClick={() => paid("Cash", "", "", `RC-${file.id.replace(/\D/g, "")}-${Date.now().toString().slice(-4)}`)}
+              >
+                Take cash
+              </button>
+            </div>
+          </div>
+        ) : null}
+      </div>
     </div>
   );
 }

@@ -2,6 +2,9 @@ import { ChevronDown, Plus } from "lucide-react";
 import { useMemo, useState, type ReactNode } from "react";
 import { bookAppointment, DISPOSITIONS, setDisposition, useOps } from "@/features/ops/store";
 import { namesIn, useStaff } from "@/features/staff/store";
+import { useBook } from "@/features/book/store";
+import { useRoster } from "@/features/book/roster";
+import type { BookEvent } from "@/features/book/types";
 import { stageWash, toneForStatus } from "@/lib/lead-status";
 import type { Appointment, EventKind } from "@/lib/crm-data";
 import { Float } from "@/components/float";
@@ -30,6 +33,37 @@ const EVENTS: {
   { id: "Callback", assign: ["Closer", "Setter", "Owner"], crew: false, scope: false, length: "30m", hint: "Why we're calling back." },
 ];
 
+const PIPES = ["Lead", "Assessment", "Opportunity", "Job", "Account", "Membership", "Actions"];
+
+function pipeFromKind(kind: string) {
+  if (kind === "Assessment") return "Assessment";
+  if (kind === "Site survey" || kind === "Install" || kind === "Go-back") return "Job";
+  if (kind === "Service" || kind === "Warranty") return "Account";
+  if (kind === "Membership") return "Membership";
+  return "Lead";
+}
+
+function pipeOfEvent(e: BookEvent) {
+  if (e.source === "visit" || e.type === "Membership") return "Membership";
+  if (e.source === "job" || e.type === "Install" || e.type === "Pre-install" || e.type === "Test-out" || e.type === "Punch") return "Job";
+  if (e.type === "Assessment") return "Assessment";
+  if (e.type === "Service" || e.type === "Warranty" || e.type === "Go-back") return "Account";
+  return "Lead";
+}
+
+function whenOf(iso: string) {
+  const day = iso.slice(0, 10);
+  const [hRaw, mRaw] = iso.slice(11, 16).split(":");
+  const h = Number(hRaw);
+  const m = Number(mRaw);
+  if (!day || Number.isNaN(h)) return iso;
+  const dt = new Date(`${day}T12:00:00`);
+  const label = dt.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  const hr = h % 12 || 12;
+  const min = m ? `:${String(m).padStart(2, "0")}` : "";
+  return `${label} ${hr}${min}${h < 12 ? "a" : "p"}`;
+}
+
 const selectClass =
   "mt-1 h-11 w-full appearance-none rounded-md border border-line bg-card px-3 pr-10 text-sm outline-none focus:border-navy";
 
@@ -37,6 +71,7 @@ export function BookWidget({
   leadId,
   defaultCloser,
   defaultKind = "Sales",
+  pipeline,
   flush,
   actionTitle,
   onRan,
@@ -44,13 +79,17 @@ export function BookWidget({
   leadId: string;
   defaultCloser: string;
   defaultKind?: EventKind;
+  pipeline?: string;
   flush?: boolean;
   actionTitle?: string;
   onRan?: () => void;
 }) {
   const { actorName: setBy } = useStaff();
   const { appointments, leads, history } = useOps();
+  const book = useBook();
+  const roster = useRoster();
   const lead = leads.find((l) => l.id === leadId);
+  const pipe = pipeline || pipeFromKind(defaultKind);
   const [open, setOpen] = useState(false);
   const [kind, setKind] = useState<EventKind>(defaultKind);
   const def = EVENTS.find((e) => e.id === kind) ?? EVENTS[0];
@@ -106,6 +145,7 @@ export function BookWidget({
               crew: def.crew ? crew : undefined,
               duration: length,
               scope: def.scope ? scope : undefined,
+              pipeline: pipe,
             });
             setSaved(`${kind} · Sep ${day} ${hour} · ${assignee}`);
             setOpen(false);
@@ -213,40 +253,79 @@ export function BookWidget({
       ) : null}
 
       <h3 className="sr-only">Events</h3>
-      {mine.length === 0 ? <p className="mt-2 text-sm text-muted">Nothing scheduled yet.</p> : null}
-      {(["Sales", "Assessment", "Install", "Service", "Warranty", "Go-back", "Callback"] as const).map((kind) => {
-        const rows = mine.filter((a) => (a.kind ?? "Sales") === kind);
-        if (!rows.length) return null;
-        return (
-          <div key={kind} className="mt-3">
-            <p className="mb-1.5 text-[11px] font-bold tracking-wide text-muted uppercase">{kind}</p>
-            <ul className="space-y-2">
-              {rows.map((a) => (
-          <li key={a.id} className="rounded-md border border-line px-3 py-2 text-sm">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="font-semibold">
-                {a.kind ?? "Sales"} · Sep {a.day} {a.time}
-                {a.duration ? ` · ${a.duration}` : ""}
-              </span>
-              <ApptDisp appt={a} onRan={onRan} />
-            </div>
-            <p className="mt-1 text-[11px] text-muted">
-              {a.closer}
-              {a.crew ? ` · ${a.crew}` : ""}
-              {a.setBy ? ` · set by ${a.setBy}` : a.setter ? ` · set by ${a.setter}` : ""}
-            </p>
-            {a.notes ? <p className="mt-1">{a.notes}</p> : null}
-            {a.scope ? <p className="mt-1 text-[11px] text-muted">{a.scope}</p> : null}
-          </li>
-              ))}
-            </ul>
-          </div>
-        );
-      })}
+      {mine.length === 0 && book.every((e) => e.personId !== leadId) ? <p className="mt-2 text-sm text-muted">Nothing scheduled yet.</p> : null}
+      <BookRecord mine={mine} extras={book.filter((e) => e.personId === leadId)} roster={roster} onRan={onRan} />
       {history?.[leadId]?.length ? (
         <p className="mt-3 text-[11px] text-muted">File history stays on History. Last: {history[leadId][0]?.what}</p>
       ) : null}
     </section>
+  );
+}
+
+function BookRecord({
+  mine,
+  extras,
+  roster,
+  onRan,
+}: {
+  mine: Appointment[];
+  extras: BookEvent[];
+  roster: { id: string; name: string }[];
+  onRan?: () => void;
+}) {
+  const known = new Set(mine.map((a) => a.id));
+  const nameOf = (id: string) => roster.find((r) => r.id === id)?.name ?? "";
+  const rows = [
+    ...mine.map((a) => ({
+      id: a.id,
+      pipeline: a.pipeline || pipeFromKind(a.kind ?? "Sales"),
+      heading: `${a.kind ?? "Sales"} · Sep ${a.day} ${a.time}${a.duration ? ` · ${a.duration}` : ""}`,
+      appt: a as Appointment | undefined,
+      statusText: a.status,
+      who: [a.closer, a.crew].filter(Boolean).join(" · "),
+      setBy: a.setBy || a.setter,
+      notes: a.notes ?? "",
+      scope: a.scope ?? "",
+    })),
+    ...extras
+      .filter((e) => !known.has(e.id) && !known.has(e.sourceId))
+      .map((e) => ({
+        id: e.id,
+        pipeline: pipeOfEvent(e),
+        heading: `${e.type} · ${whenOf(e.start)}`,
+        appt: undefined as Appointment | undefined,
+        statusText: e.status,
+        who: [nameOf(e.assigneeId), nameOf(e.techId), nameOf(e.crewId), nameOf(e.resourceId)].filter((v, i, all) => v && all.indexOf(v) === i).join(" · "),
+        setBy: e.setBy,
+        notes: e.notes,
+        scope: e.scope,
+      })),
+  ];
+  const keys = [...PIPES.filter((p) => rows.some((r) => r.pipeline === p)), ...new Set(rows.map((r) => r.pipeline).filter((p) => !PIPES.includes(p)))];
+  return (
+    <>
+      {keys.map((key) => (
+        <div key={key} className="mt-3">
+          <p className="mb-1.5 text-[11px] font-bold tracking-wide text-muted uppercase">{key}</p>
+          <ul className="space-y-2">
+            {rows
+              .filter((r) => r.pipeline === key)
+              .map((r) => (
+                <li key={r.id} className="rounded-md border border-line px-3 py-2 text-sm">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="font-semibold">{r.heading}</span>
+                    {r.appt ? <ApptDisp appt={r.appt} onRan={onRan} /> : <span className="text-[10px] font-bold tracking-wide text-muted uppercase">{r.statusText}</span>}
+                  </div>
+                  <p className="mt-1 text-[11px] text-muted">Who went · {r.who || "Unassigned"}</p>
+                  {r.setBy ? <p className="text-[11px] text-muted">Set by · {r.setBy}</p> : null}
+                  {r.notes ? <p className="mt-1">{r.notes}</p> : null}
+                  {r.scope ? <p className="mt-1 text-[11px] text-muted">{r.scope}</p> : null}
+                </li>
+              ))}
+          </ul>
+        </div>
+      ))}
+    </>
   );
 }
 

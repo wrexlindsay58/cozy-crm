@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "@tanstack/react-router";
 import { ChevronDown } from "lucide-react";
 import { ActBar } from "@/components/act-bar";
 import { BackLink } from "@/components/ui-bits";
@@ -15,6 +16,7 @@ const KIND_LABEL: Record<RecordKind, string> = {
   opportunity: "Opportunity",
   job: "Job",
   account: "Account",
+  membership: "Membership",
   action: "Action",
   ticket: "Ticket",
   task: "Task",
@@ -27,6 +29,7 @@ const KIND_BACK: Record<RecordKind, { to: string; label: string }> = {
   opportunity: { to: "/opportunities", label: "Opportunities" },
   job: { to: "/projects", label: "Jobs" },
   account: { to: "/accounts", label: "Accounts" },
+  membership: { to: "/memberships", label: "Memberships" },
   action: { to: "/tickets", label: "Actions" },
   ticket: { to: "/tickets", label: "Actions" },
   task: { to: "/tickets", label: "Actions" },
@@ -158,9 +161,9 @@ export function TitleRow({
       <p className="text-[11px] font-bold tracking-[0.14em] text-muted uppercase">
         {KIND_LABEL[kind]}
         {related?.map((r) => (
-          <a key={r.href} href={r.href} className="ml-2 font-semibold tracking-normal text-navy normal-case">
+          <Link key={r.href} to={r.href} className="ml-2 font-semibold tracking-normal text-navy normal-case">
             {r.label}
-          </a>
+          </Link>
         ))}
       </p>
 

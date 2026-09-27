@@ -7,7 +7,9 @@ import { PACKAGES, type PackageId } from "./packages";
 import { activePayMethods, getDealerFeePct, payMethod, type FinancePlan } from "@/features/money-settings/store";
 import { actingName, canOverrideFee, feeApprover } from "@/features/staff/store";
 import { createAction, deleteAction, patchAction } from "@/features/ops/store";
-import { money, opportunities, leads } from "@/lib/crm-data";
+import { money, opportunities, leads, type Opportunity } from "@/lib/crm-data";
+import { acceptMembership, membershipFor, placeOffer, setPlanFee } from "@/features/membership/store";
+import type { MemberOffer } from "@/features/membership/types";
 import { sendMessage } from "@/features/thread/store";
 import { agreementDocument, agreementPage, fingerprint } from "./agreement";
 import { getBrand } from "@/features/brand/store";
@@ -72,6 +74,7 @@ export type Proposal = {
   matchHighFee?: boolean;
   agreement?: Agreement;
   agreements?: Agreement[];
+  memberOffer?: MemberOffer;
 };
 
 export type SignEvent = {
@@ -275,6 +278,96 @@ export function payAmount(proposal: Proposal, total: number, offer: PayOffer, pl
   return Math.round(total * (1 + fee / 100));
 }
 
+export function bundledDue(proposal: Proposal, install: number, offer: PayOffer, plan?: { months: number; apr: number }) {
+  const member = proposal.memberOffer;
+  const ride = Boolean(member && member.pay === "prepaid" && (member.funding === "job" || member.funding === "loan"));
+  const installDue = payAmount(proposal, install, offer, plan);
+  const planDue = ride && member ? payAmount(proposal, member.termPrice, offer, plan) : 0;
+  return {
+    ride,
+    install,
+    installDue,
+    plan: ride && member ? member.termPrice : 0,
+    planDue,
+    due: installDue + planDue,
+    installFee: installDue - install,
+    planFee: planDue - (ride && member ? member.termPrice : 0),
+  };
+}
+
+export function setMemberOffer(oppId: string, offer: MemberOffer | null) {
+  const p = proposals[oppId];
+  if (!p || p.memberOffer?.accepted) return;
+  const next = { ...p, memberOffer: offer ?? undefined };
+  proposals = { ...proposals, [oppId]: next };
+  emit();
+  if (!offer) return;
+  const lead = leads.find((l) => l.id === p.personId);
+  if (!lead) return;
+  const pay = next.payOffers.find((o) => o.id === next.payPick?.offerId) ?? next.payOffers[0];
+  const finance = pay?.kind === "finance" ? (offerPlans(pay).find((row) => row.months === next.payPick?.term && row.apr === next.payPick?.apr) ?? offerPlans(pay)[0]) : undefined;
+  const fee = pay ? bundledDue(next, 0, pay, finance).planFee : 0;
+  placeOffer({
+    personId: lead.id,
+    name: lead.name,
+    address: lead.address,
+    city: lead.city,
+    office: lead.office,
+    owner: p.closer,
+    oppId,
+    planId: offer.planId,
+    planName: offer.planName,
+    years: offer.years,
+    pay: offer.pay,
+    termPrice: offer.termPrice,
+    continueMonthly: offer.continueMonthly,
+    visitsPerYear: offer.visitsPerYear,
+    funding: offer.pay === "billed" ? "membership" : offer.funding,
+  });
+  setPlanFee(lead.id, fee);
+}
+
+export function signMemberPlan(oppId: string, signer: string, company: string) {
+  const p = proposals[oppId];
+  const offer = p?.memberOffer;
+  if (!p || !offer || offer.accepted) return false;
+  const lead = leads.find((l) => l.id === p.personId);
+  if (!lead || !signer.trim()) return false;
+  const existing = membershipFor(p.personId);
+  const signed = existing
+    ? acceptMembership(existing.id, signer.trim(), company)
+    : placeOffer({
+        personId: lead.id,
+        name: lead.name,
+        address: lead.address,
+        city: lead.city,
+        office: lead.office,
+        owner: p.closer,
+        oppId,
+        planId: offer.planId,
+        planName: offer.planName,
+        years: offer.years,
+        pay: offer.pay,
+        termPrice: offer.termPrice,
+        continueMonthly: offer.continueMonthly,
+        visitsPerYear: offer.visitsPerYear,
+        funding: offer.pay === "billed" ? "membership" : offer.funding,
+        sign: { signer: signer.trim(), company },
+      });
+  if (!signed || signed === "locked") return false;
+  proposals = { ...proposals, [oppId]: { ...p, memberOffer: { ...offer, accepted: true, signerName: signer.trim() } } };
+  if (!existing) addHistory(p.personId, actingName(), `Signed the ${offer.planName} membership, ${offer.years} years. Separate from the install.`);
+  emit();
+  return true;
+}
+
+export function noteMemberSigned(oppId: string, signer: string) {
+  const p = proposals[oppId];
+  if (!p?.memberOffer || p.memberOffer.accepted) return;
+  proposals = { ...proposals, [oppId]: { ...p, memberOffer: { ...p.memberOffer, accepted: true, signerName: signer } } };
+  emit();
+}
+
 export function setMatchHighFee(oppId: string, on: boolean) {
   const p = proposals[oppId];
   if (!p) return;
@@ -327,6 +420,19 @@ function seedFor(oppId: string, personId: string, closer: string, product: strin
     proposalStatus: won ? "Sent" : "Draft",
     signStatus: won ? "Signed" : "—",
     documents: [],
+    memberOffer:
+      personId === "L-4819"
+        ? {
+            planId: "comfort",
+            planName: "Comfort",
+            years: 5,
+            pay: "prepaid",
+            termPrice: 1500,
+            continueMonthly: 39,
+            visitsPerYear: 2,
+            funding: "loan",
+          }
+        : undefined,
   };
 }
 
@@ -407,6 +513,7 @@ function attachSigned(p: Proposal): Proposal {
 let proposals: Record<string, Proposal> = Object.fromEntries(
   opportunities.map((o) => [o.id, attachSigned(seedFor(o.id, o.leadId, o.closer, o.product, o.stage))]),
 );
+let extraOpps: Opportunity[] = [];
 const listeners = new Set<() => void>();
 function emit() {
   listeners.forEach((l) => l());
@@ -426,6 +533,37 @@ export function useProposals() {
 }
 export function useProposal(oppId: string) {
   return useProposals()[oppId];
+}
+export function useOpportunityList() {
+  useProposals();
+  return [...opportunities, ...extraOpps];
+}
+export function ensureOpportunity(lead: { id: string; name: string; product: string; value: number; closer: string; office: string }): Opportunity {
+  const found = [...opportunities, ...extraOpps].find((o) => o.leadId === lead.id);
+  if (found) {
+    if (!proposals[found.id]) {
+      proposals = { ...proposals, [found.id]: seedFor(found.id, lead.id, lead.closer, lead.product || "Scope", found.stage) };
+      emit();
+    }
+    return found;
+  }
+  const row: Opportunity = {
+    id: `O-${1200 + extraOpps.length}`,
+    leadId: lead.id,
+    name: lead.name,
+    product: lead.product || "Scope",
+    stage: "Proposal out",
+    tone: "navy",
+    amount: lead.value,
+    closer: lead.closer,
+    office: lead.office,
+    updated: "Today",
+    closeBy: "Open",
+  };
+  extraOpps = [...extraOpps, row];
+  proposals = { ...proposals, [row.id]: seedFor(row.id, lead.id, lead.closer, row.product, row.stage) };
+  emit();
+  return row;
 }
 export function dealerFee(total: number) {
   return Math.round(total * (getDealerFeePct() / 100));

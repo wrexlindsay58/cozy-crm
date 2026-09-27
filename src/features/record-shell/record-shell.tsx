@@ -22,6 +22,16 @@ import { cn } from "@/lib/cn";
 export type { ConvLane } from "./lanes";
 export { LANES } from "./lanes";
 
+function pipeName(kind: RecordShellProps["kind"]) {
+  if (kind === "assessment") return "Assessment";
+  if (kind === "opportunity") return "Opportunity";
+  if (kind === "job") return "Job";
+  if (kind === "account") return "Account";
+  if (kind === "membership") return "Membership";
+  if (kind === "action" || kind === "ticket" || kind === "task" || kind === "request") return "Actions";
+  return "Lead";
+}
+
 function dndChip(dnd?: string[]) {
   if (!dnd?.length) return;
   if (dnd.length === 3) return "DND all";
@@ -120,7 +130,7 @@ export function RecordShell(props: RecordShellProps) {
           <FilePane
             foot={
               <>
-                <FileMedia personId={props.personId} photos={props.photos} />
+                <FileMedia personId={props.personId} photos={props.photos} pipeline={pipeName(props.kind)} />
                 <button
                   type="button"
                   className="mt-3 flex h-11 w-full items-center justify-center rounded-md border border-line text-sm font-semibold text-navy lg:hidden"
@@ -188,6 +198,7 @@ export function RecordShell(props: RecordShellProps) {
                 personId={props.personId}
                 photos={props.photos}
                 flush
+                pipeline={pipeName(props.kind)}
                 actionId={props.actionId}
                 actionKind={props.actionKind}
                 actionIds={props.actionId ? [props.actionId, ...descendantsOf(props.actionId)] : undefined}
@@ -204,6 +215,7 @@ export function RecordShell(props: RecordShellProps) {
                     defaultCloser={lead.closer}
                     defaultKind={props.actionId ? "Callback" : "Sales"}
                     flush
+                    pipeline={pipeName(props.kind)}
                     actionTitle={props.actionTitle}
                   />
                 </div>

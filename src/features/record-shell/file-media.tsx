@@ -6,9 +6,10 @@ import { FileLightbox } from "./file-lightbox";
 import type { Photo } from "@/lib/file-data";
 import { Tip } from "@/components/tip";
 
-const ORDER = ["Contact", "Assessment", "Opportunity", "Job", "Actions", "Other"];
+const ORDER = ["Lead", "Assessment", "Opportunity", "Job", "Account", "Membership", "Actions", "Other"];
 
 function groupOf(p: Photo) {
+  if (p.pipeline) return p.pipeline;
   if (p.actionId) return "Actions";
   const head = p.caption.split(" · ")[0]?.trim() ?? "";
   const h = head.toLowerCase();
@@ -16,7 +17,7 @@ function groupOf(p: Photo) {
   if (/proposal|option|goodleap|agreement/.test(h)) return "Opportunity";
   if (/install|crew|job|punch/.test(h)) return "Job";
   if (head && head !== p.caption) return "Assessment";
-  return "Contact";
+  return "Lead";
 }
 
 function subOf(p: Photo) {
@@ -24,9 +25,10 @@ function subOf(p: Photo) {
   return parts.length > 1 ? parts[0] : "";
 }
 
-export function FileMedia({ personId, photos: seed }: { personId: string; photos?: Photo[] }) {
+export function FileMedia({ personId, photos: seed, pipeline = "Lead" }: { personId: string; photos?: Photo[]; pipeline?: string }) {
   const live = usePhotos(personId);
-  const photos = live.length ? live : (seed ?? []);
+  const photos = [...live];
+  for (const row of seed ?? []) if (!photos.some((p) => p.id === row.id)) photos.push(row);
   const [look, setLook] = useState<number | null>(null);
   const [addOn, setAddOn] = useState(false);
   const groups = new Map<string, Photo[]>();
@@ -34,7 +36,7 @@ export function FileMedia({ personId, photos: seed }: { personId: string; photos
     const g = groupOf(p);
     groups.set(g, [...(groups.get(g) ?? []), p]);
   }
-  const keys = ORDER.filter((k) => groups.has(k));
+  const keys = [...ORDER.filter((k) => groups.has(k)), ...[...groups.keys()].filter((k) => !ORDER.includes(k))];
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between gap-2">
@@ -54,7 +56,7 @@ export function FileMedia({ personId, photos: seed }: { personId: string; photos
         <MediaAdd
           onAdd={(file, meta) => {
             const url = URL.createObjectURL(file);
-            addPhoto(personId, `${meta.tag} · ${meta.caption}`, url, kindFromFile(file), meta.name);
+            addPhoto(personId, `${meta.tag} · ${meta.caption}`, url, kindFromFile(file), meta.name, { pipeline });
             setAddOn(false);
           }}
         />
@@ -84,7 +86,8 @@ export function FileMedia({ personId, photos: seed }: { personId: string; photos
                           ) : (
                             <div className="grid h-24 place-items-center bg-line text-[11px] font-semibold text-muted">{ph.kind ?? "file"}</div>
                           )}
-                          <p className="truncate px-2 py-1.5 text-[11px] font-medium">{ph.name || ph.caption}</p>
+                          <p className="truncate px-2 pt-1.5 text-[11px] font-medium">{ph.name || ph.caption}</p>
+                          <p className="truncate px-2 pb-1.5 text-[10px] text-muted">{ph.by || "Unassigned"}</p>
                         </button>
                       </li>
                     );

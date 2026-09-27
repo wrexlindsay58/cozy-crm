@@ -8,14 +8,14 @@ import { Float } from "@/components/float";
 import { addOption, type Proposal } from "./store";
 import { PACKAGES } from "./packages";
 import { OptionCard } from "./option-card";
+import { PlanOffer } from "@/features/membership/plan-offer";
 import { PayTiles } from "./pay-tiles";
 import { ProposalPanel } from "./proposal-panel";
 import { AgreementPanel } from "./agreement-panel";
 import { AssessSnap } from "./assess-snap";
 import { FileSections } from "@/features/record-shell/file-sections";
-import { openSoldJob, useJobs } from "@/features/job/store";
-import { optionTotal } from "./store";
-import { accounts } from "@/lib/crm-data";
+import { useJobs } from "@/features/job/store";
+import { advanceToJob } from "@/features/flow/advance";
 
 export function OppWorkspace({ proposal }: { proposal: Proposal }) {
   const { leads } = useOps();
@@ -26,23 +26,13 @@ export function OppWorkspace({ proposal }: { proposal: Proposal }) {
   const navigate = useNavigate();
   useJobs();
   const signed = proposal.agreement?.status === "Signed" || proposal.agreements?.some((a) => a.status === "Signed");
-  const sold = proposal.options.find((opt) => opt.id === proposal.accepted);
   return (
     <FileSections
       start="options"
       advance={{
         pipeline: "Job",
         onContinue: () => {
-          const account = accounts.find((a) => a.name === lead?.name);
-          const job = openSoldJob({
-            leadId: proposal.personId,
-            personId: proposal.personId,
-            name: lead?.name ?? "Job",
-            product: lead?.product || proposal.products[0] || "Sold scope",
-            closer: proposal.closer,
-            sold: sold ? optionTotal(sold) : 0,
-            accountId: account?.id,
-          });
+          const job = advanceToJob(proposal, lead);
           void navigate({ to: "/projects/$projectId", params: { projectId: job.jobId } });
         },
       }}
@@ -109,6 +99,7 @@ export function OppWorkspace({ proposal }: { proposal: Proposal }) {
           ),
         },
         { id: "pay", label: "Payment", done: Boolean(proposal.pay), node: <PayTiles proposal={proposal} /> },
+        { id: "plan", label: "Plan", done: Boolean(proposal.memberOffer), node: <PlanOffer proposal={proposal} /> },
         { id: "proposal", label: "Proposal", done: Boolean(proposal.accepted), node: <ProposalPanel proposal={proposal} /> },
         {
           id: "agreement",
@@ -116,7 +107,7 @@ export function OppWorkspace({ proposal }: { proposal: Proposal }) {
           done: Boolean(signed),
           node: signed ? <AgreementPanel proposal={proposal} /> : <p className="rounded-md border border-line bg-card p-4 text-sm text-muted">Accept an option, then sign the agreement.</p>,
         },
-        { id: "book", label: "Book", node: <BookWidget leadId={proposal.personId} defaultCloser={proposal.closer} defaultKind="Callback" /> },
+        { id: "book", label: "Book", node: <BookWidget leadId={proposal.personId} defaultCloser={proposal.closer} defaultKind="Callback" pipeline="Opportunity" /> },
       ]}
     />
   );

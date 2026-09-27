@@ -15,6 +15,7 @@ import {
   payInvoice,
   patchCommission,
   patchLabor,
+  recordPayment,
   removeCommission,
   removeCostHit,
   removeLabor,
@@ -39,6 +40,8 @@ import { Float } from "@/components/float";
 import { stageWash } from "@/lib/lead-status";
 import { sectionDone } from "./done";
 import { bomJobCost } from "./types";
+import { membershipFor, useMembershipFor } from "@/features/membership/store";
+import { PaymentTerminal } from "@/features/pay/terminal";
 
 const PAY = ["Draft", "Sent", "Partial", "Paid", "Past due", "NSF", "Card declined", "Void", "Refunded"] as const;
 const LOAN: LoanFile["status"][] = ["None", "Received", "Docs needed", "Cancelled", "NTP", "Complete", "Funded"];
@@ -53,6 +56,12 @@ function marginGrade(rate: number) {
   if (rate >= 0.35) return { label: "Good", note: "Margin is where it should be", wash: "bg-info-bg text-navy" };
   if (rate >= 0.25) return { label: "Warning", note: "Lower than it should be", wash: "bg-watch-bg text-watch" };
   return { label: "Bad", note: "This job takes a gut punch", wash: "bg-alert-bg text-alert" };
+}
+
+function heldPlan(job: JobFile) {
+  const member = membershipFor(job.personId);
+  if (!member || member.pay !== "prepaid" || (member.funding !== "job" && member.funding !== "loan")) return null;
+  return member;
 }
 
 function downloadPnl(job: JobFile) {
@@ -76,6 +85,11 @@ function downloadPnl(job: JobFile) {
     ["Left to collect", String(t.collect)],
     [t.overUnder >= 0 ? "Overbilled" : "Underbilled", String(Math.abs(t.overUnder))],
   ];
+  const held = heldPlan(job);
+  if (held) {
+    lines.push(["Collected with this job, not job revenue", String(held.termPrice)]);
+    if (held.planFee) lines.push(["Fee on the plan, not a job cost", String(held.planFee)]);
+  }
   const blob = new Blob([lines.map((r) => r.join(",")).join("\n")], { type: "text/csv" });
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
@@ -226,6 +240,7 @@ export function MoneyBlock({ job }: { job: JobFile }) {
 }
 
 function InvoiceList({ job, party }: { job: JobFile; party: "customer" | "pay" }) {
+  const [chargeId, setChargeId] = useState<string | null>(null);
   const rows = job.invoices.filter((i) => (party === "pay" ? isPayBill(i) : !isPayBill(i)));
   if (!rows.length) return <p className="text-sm text-muted">{party === "pay" ? "None yet. Commission and piece rate post here." : "No customer invoices."}</p>;
   return (
@@ -266,10 +281,26 @@ function InvoiceList({ job, party }: { job: JobFile; party: "customer" | "pay" }
                 ))}
               </ul>
             ) : null}
-            {i.status !== "Paid" ? (
+            {i.status !== "Paid" && party === "customer" ? (
+              <button type="button" className="mt-2 text-xs font-semibold text-navy" onClick={() => setChargeId(i.id)}>
+                Run card
+              </button>
+            ) : i.status !== "Paid" ? (
               <button type="button" className="mt-2 text-xs font-semibold text-navy" onClick={() => payInvoice(job.jobId, i.id, job.loan.vendor)}>
                 Record payment
               </button>
+            ) : null}
+            {chargeId === i.id ? (
+              <PaymentTerminal
+                title={`${i.kind} on the agreement`}
+                amount={Math.max(0, i.amount - i.paid)}
+                purpose={`Job ${job.jobId} ${i.kind} ${i.id}`}
+                onClose={() => setChargeId(null)}
+                onPaid={(slip) => {
+                  recordPayment(job.jobId, i.id, Math.max(0, i.amount - i.paid), `${slip.brand || "Card"} ····${slip.last4} · ${slip.receipt}`, "Now");
+                  setChargeId(null);
+                }}
+              />
             ) : null}
           </li>
         );
@@ -495,6 +526,8 @@ function CommRow({
 
 function PnLSheet({ job, readOnly = false }: { job: JobFile; readOnly?: boolean }) {
   const t = tally(job);
+  const member = useMembershipFor(job.personId);
+  const held = member && member.pay === "prepaid" && (member.funding === "job" || member.funding === "loan") ? member : null;
   const of = t.revenue;
   const products = job.scope.filter((s) => s.kind === "product");
   const adders = job.scope.filter((s) => s.kind === "adder");
@@ -610,6 +643,17 @@ function PnLSheet({ job, readOnly = false }: { job: JobFile; readOnly?: boolean 
           </p>
         </div>
       </div>
+
+      {held ? (
+        <div className="mt-2 rounded-md border border-line p-3">
+          <p className="text-[11px] font-bold tracking-wide text-muted uppercase">Collected with this job, not job revenue</p>
+          <p className="mt-1 text-lg font-extrabold tabular-nums">{money(held.termPrice)}</p>
+          <p className="mt-0.5 text-[11px] text-muted">
+            {held.funding === "loan" ? "Included in the loan." : "Collected on the job agreement."} Not in the contract, not in left to collect, and not in the commission.
+            {held.planFee ? ` Fee on the plan ${money(held.planFee)} stays on the membership.` : ""}
+          </p>
+        </div>
+      ) : null}
 
       <TrueDiscountHits job={job} readOnly={readOnly} />
     </div>

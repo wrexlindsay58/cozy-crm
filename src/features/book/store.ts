@@ -93,6 +93,11 @@ export function patchBook(id: string, row: Partial<BookEvent>) {
   emit();
   return events.find((e) => e.id === id);
 }
+export function removeBook(id: string) {
+  if (!events.some((e) => e.id === id)) return;
+  events = events.filter((e) => e.id !== id);
+  emit();
+}
 export function moveBook(id: string, start: string, end: string, resourceId: string) {
   const cur = events.find((e) => e.id === id);
   if (!cur) return;
@@ -154,6 +159,8 @@ export function createBook(input: {
   products?: BookEvent["products"];
   scope?: string;
   jobId?: string;
+  source?: BookEvent["source"];
+  sourceId?: string;
 }) {
   const crewId = input.crewId ?? "";
   const techId = input.techId ?? "";
@@ -181,12 +188,12 @@ export function createBook(input: {
     leadSource: input.leadSource ?? "",
     products: input.products ?? [],
     internal: Boolean(input.internal) || Boolean(input.blank) || familyOf(input.type) === "shop",
-    woSigned: familyOf(input.type) !== "production",
+    woSigned: input.type === "Membership" || familyOf(input.type) !== "production",
     hold: false,
     blank: Boolean(input.blank),
     links: input.links ?? [],
-    source: input.personId && !input.blank ? "appointment" : "shop",
-    sourceId: "",
+    source: input.source ?? (input.personId && !input.blank ? "appointment" : "shop"),
+    sourceId: input.sourceId ?? "",
   };
   events = [row, ...events];
   emit();

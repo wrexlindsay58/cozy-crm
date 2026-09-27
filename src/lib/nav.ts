@@ -26,6 +26,7 @@ export const NAV: NavGroup[] = [
       { label: "Assessments", to: "/assessments" },
       { label: "Opportunities", to: "/opportunities" },
       { label: "Jobs", to: "/projects" },
+      { label: "Memberships", to: "/memberships" },
       { label: "Accounts", to: "/accounts" },
     ],
   },

@@ -140,7 +140,7 @@ function QcFollowUp({ job, id }: { job: JobFile; id: string }) {
   return (
     <div className="mt-3 space-y-2 border-t border-line pt-3">
       <p className="text-[12px] font-semibold text-alert">Failed. Ticket opened{fix?.ticketId ? ` · ${fix.ticketId}` : ""}. Book the fix. This fail stays on the record.</p>
-      {job.leadId ? <BookWidget leadId={job.leadId} defaultCloser={job.pm} defaultKind="Go-back" /> : <p className="text-[12px] text-muted">The go-back is on the book. It needs a day.</p>}
+      {job.leadId ? <BookWidget leadId={job.leadId} defaultCloser={job.pm} defaultKind="Go-back" pipeline="Job" /> : <p className="text-[12px] text-muted">The go-back is on the book. It needs a day.</p>}
     </div>
   );
 }

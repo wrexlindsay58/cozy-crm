@@ -1,4 +1,5 @@
 import { accounts, leads, opportunities, projects, tickets } from "@/lib/crm-data";
+import { listMemberships } from "@/features/membership/store";
 import type { Lead } from "@/lib/crm-data";
 
 export type FileHit = { href: string; name: string; kind: string; detail: string };
@@ -33,6 +34,11 @@ export function searchFiles(
   for (const a of accounts) {
     if (hay([a.name, a.id, a.city, a.owner]).includes(needle)) {
       hits.push({ href: `/accounts/${a.id}`, name: a.name, kind: "Account", detail: a.city });
+    }
+  }
+  for (const m of listMemberships()) {
+    if (hay([m.name, m.id, m.planName, m.city, m.owner]).includes(needle)) {
+      hits.push({ href: `/memberships/${m.id}`, name: m.name, kind: "Membership", detail: `${m.planName} · ${m.years} yr` });
     }
   }
   const actionRows =

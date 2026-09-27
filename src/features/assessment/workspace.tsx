@@ -1,8 +1,8 @@
 import { LeadCard } from "@/features/lead/lead-card";
 import { BookWidget } from "@/features/lead/book-widget";
 import { useOps } from "@/features/ops/store";
+import { advanceToOpportunity } from "@/features/flow/advance";
 import { FileSections } from "@/features/record-shell/file-sections";
-import { completeAssessment } from "./store";
 import { PacketCard } from "./packets";
 import { PropertyCard } from "./property";
 import { useAssessCategories } from "./categories";
@@ -22,8 +22,9 @@ export function AssessmentWorkspace({ file }: { file: File }) {
       advance={{
         pipeline: "Opportunity",
         onContinue: () => {
-          const next = completeAssessment(file.id);
-          if (next?.oppId) void navigate({ to: "/opportunities/$oppId", params: { oppId: next.oppId } });
+          if (!lead) return;
+          const opp = advanceToOpportunity(lead, file.id);
+          void navigate({ to: "/opportunities/$oppId", params: { oppId: opp.id } });
         },
       }}
       sections={[
@@ -58,10 +59,9 @@ export function AssessmentWorkspace({ file }: { file: File }) {
         {
           id: "book",
           label: "Book",
-          node: <BookWidget leadId={file.leadId} defaultCloser={file.closer} defaultKind="Assessment" />,
+          node: <BookWidget leadId={file.leadId} defaultCloser={file.closer} defaultKind="Assessment" pipeline="Assessment" />,
         },
       ]}
     />
   );
 }
-export { completeAssessment };

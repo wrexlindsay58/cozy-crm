@@ -11,6 +11,7 @@ import {
   boards,
   discounts,
   markets,
+  memberSales,
   officeFill,
   payMix,
   ranges,
@@ -350,6 +351,7 @@ export function SalesDashboard({ embedded = false, filterSlot = null }: { embedd
   const priorPaid = Math.round(t.priorSold * 0.112);
   const commPct = avgComm(disc.truePct);
   const priorCommPct = avgComm(disc.priorTrue);
+  const mem = memberSales(t);
   const products = t.products.map((p) => {
     const qty = Math.max(1, Math.round(p.amount / Math.max(t.avg, 1)));
     return { ...p, qty };
@@ -486,6 +488,8 @@ export function SalesDashboard({ embedded = false, filterSlot = null }: { embedd
         <span className="font-bold">{t.close}% close</span>
         <span className="text-muted"> · </span>
         <span className="font-bold">{t.deals.toLocaleString()} deals</span>
+        <span className="text-muted"> · </span>
+        <span className="font-bold">{mem.members.toLocaleString()} memberships · {money(mem.total)}</span>
         {unbooked ? (
           <>
             <span className="text-muted"> · </span>
@@ -580,6 +584,41 @@ export function SalesDashboard({ embedded = false, filterSlot = null }: { embedd
           </p>
           <p className="mt-1 h-4 text-[12px] text-muted">{disc.pct}% sold discount</p>
           <TargetBar now={t.avg} target={15000} />
+        </div>
+      </section>
+
+      <section className="grid grid-cols-2 gap-px overflow-hidden rounded-md bg-line lg:grid-cols-3">
+        <div className="bg-card px-4 py-3">
+          <p className="flex items-center gap-1.5 text-[11px] font-bold tracking-wide text-muted uppercase">
+            Memberships
+            <Pip now={mem.members} yest={mem.priorMembers} />
+          </p>
+          <p className={cn("mt-1 text-[28px] font-bold tabular-nums", numClass(mem.members, mem.priorMembers))}>{mem.members.toLocaleString()}</p>
+          <p className="mt-1 text-[12px] text-muted">
+            <Delta now={mem.members} was={mem.priorMembers} /> vs {t.vs}
+          </p>
+        </div>
+        <div className="bg-card px-4 py-3">
+          <p className="flex items-center gap-1.5 text-[11px] font-bold tracking-wide text-muted uppercase">
+            Membership sold
+            <Pip now={mem.total} yest={mem.priorTotal} />
+          </p>
+          <p className={cn("mt-1 text-[28px] font-bold tabular-nums", numClass(mem.total, mem.priorTotal))}>{money(mem.total)}</p>
+          <p className="mt-1 text-[12px] text-muted">
+            <Delta now={mem.total} was={mem.priorTotal} /> vs {t.vs}
+          </p>
+        </div>
+        <div className="col-span-2 bg-card px-4 py-3 lg:col-span-1">
+          <Tip label="Memberships sold with a job, divided by jobs" on>
+            <p className="flex items-center gap-1.5 text-[11px] font-bold tracking-wide text-muted uppercase">
+              Job attachment
+              <Pip now={mem.rate} yest={mem.priorRate} />
+            </p>
+          </Tip>
+          <p className={cn("mt-1 text-[28px] font-bold tabular-nums", numClass(mem.rate, mem.priorRate))}>{mem.rate}%</p>
+          <p className="mt-1 text-[12px] text-muted">
+            {mem.attached.toLocaleString()} of {mem.jobs.toLocaleString()} jobs
+          </p>
         </div>
       </section>
 

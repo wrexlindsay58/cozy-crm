@@ -2,90 +2,118 @@ import { useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { Empty, StatusPill } from "@/components/ui-bits";
 import { RecordTable } from "@/components/record-table";
-import { ListPage } from "@/features/lists/list-page";
-import { jobTone, STAGES, tally, useJobs, type JobFile } from "@/features/job/store";
+import { jobTone, tally, useJobs, type JobFile } from "@/features/job/store";
 import { useOps } from "@/features/ops/store";
+import { useDoors } from "@/features/flow/door";
+import { ContactName, countsFor, QuietFilter } from "@/features/lists/bits";
+import { ListPage } from "@/features/lists/list-page";
+import { sortRows, type Sort } from "@/features/lists/sort";
 import { money, accounts, type Lead } from "@/lib/crm-data";
 
 export const Route = createFileRoute("/_app/projects")({
   component: JobsPage,
 });
 
-const VIEWS = ["All", ...STAGES, "Holds"] as const;
+type JobRow = JobFile & { id: string; lead?: Lead; account?: (typeof accounts)[number]; q: string; rank: number; next: string };
 
-type JobRow = JobFile & { id: string; lead?: Lead; account?: (typeof accounts)[number] };
+function queueOf(j: JobFile) {
+  if (j.holds.length) return "Held";
+  if (j.stage === "Sold") return "Acceptance";
+  if (j.stage === "Permit" || j.stage === "Materials") return "Prep";
+  if (j.stage === "Invoiced") return "Ready to close";
+  if (j.stage === "Scheduled" || j.stage === "In progress" || j.stage === "Test-out" || j.stage === "Punch") return "On the board";
+  return "On the board";
+}
+
+function nextOf(j: JobFile) {
+  if (j.holds.length) return `${j.holds.map((h) => h.kind).join(", ")} hold`;
+  if (j.stage === "Sold") return "Accept the scope";
+  if (j.stage === "Materials" || j.stage === "Permit") return "Finish prep";
+  if (j.stage === "Invoiced") return "Close the job";
+  return j.window ? `Install · ${j.window}` : "Set the install";
+}
+
+const RANK: Record<string, number> = { Held: 0, "Ready to close": 1, Acceptance: 2, Prep: 3, "On the board": 4 };
 
 function JobsPage() {
   const jobs = useJobs();
   const { leads } = useOps();
-  const [view, setView] = useState<(typeof VIEWS)[number]>("All");
+  const doors = useDoors();
+  const [view, setView] = useState("All");
   const [query, setQuery] = useState("");
+  const [office, setOffice] = useState("");
+  const [owner, setOwner] = useState("");
+  const [sort, setSort] = useState<Sort>({ key: "rank", dir: "asc" });
 
-  const rows = useMemo(() => {
-    const needle = query.trim().toLowerCase();
+  const pool = useMemo(() => {
     return Object.values(jobs)
       .map((j) => {
         const lead = leads.find((l) => l.id === j.leadId) ?? leads.find((l) => l.id === j.personId) ?? leads.find((l) => l.name === accounts.find((a) => a.id === j.accountId)?.name);
         const account = accounts.find((a) => a.id === j.accountId);
-        return { ...j, id: j.jobId, lead, account } satisfies JobRow;
+        const q = queueOf(j);
+        return { ...j, id: j.jobId, lead, account, q, rank: RANK[q] ?? 5, next: nextOf(j) } satisfies JobRow;
       })
       .filter((j) => {
-        if (view === "Holds") {
-          if (!j.holds.length) return false;
-        } else if (view !== "All" && j.stage !== view) {
-          return false;
-        }
-        if (!needle) return true;
-        return [j.lead?.name, j.account?.name, j.name, j.product, j.pm, j.closer, j.crew, j.jobId, j.lead?.address, j.lead?.city, j.lead?.office, j.window, j.stage, j.holds.map((h) => `${h.kind} ${h.note}`).join(" ")].join(" ").toLowerCase().includes(needle);
+        const flowId = j.leadId || j.personId || j.accountId;
+        const door = doors[flowId] ?? doors[j.accountId];
+        return door?.place === "job" && door.id === j.jobId;
       });
-  }, [jobs, leads, view, query]);
-
+  }, [jobs, leads, doors]);
+  const offices = [...new Set(pool.map((j) => j.lead?.office).filter(Boolean) as string[])].sort();
+  const owners = [...new Set(pool.map((j) => j.pm).filter(Boolean))].sort();
+  const scoped = pool.filter((j) => (!office || j.lead?.office === office) && (!owner || j.pm === owner));
+  const cards = countsFor(scoped, [
+    { id: "Acceptance", label: "Acceptance", match: (j) => j.q === "Acceptance" },
+    { id: "Prep", label: "Prep", match: (j) => j.q === "Prep" },
+    { id: "On the board", label: "On the board", match: (j) => j.q === "On the board" },
+    { id: "Held", label: "Held", tone: "alert", match: (j) => j.q === "Held" },
+    { id: "Ready to close", label: "Ready to close", tone: "watch", match: (j) => j.q === "Ready to close" },
+  ]);
+  const rows = useMemo(() => {
+    const needle = query.trim().toLowerCase();
+    const filtered = scoped.filter((j) => {
+      if (view !== "All" && j.q !== view) return false;
+      if (!needle) return true;
+      return [j.lead?.name, j.account?.name, j.name, j.product, j.pm, j.lead?.address, j.lead?.city].join(" ").toLowerCase().includes(needle);
+    });
+    return sortRows(filtered, sort, (j, key) => {
+      if (key === "name") return j.lead?.name ?? j.account?.name ?? j.name;
+      if (key === "status") return j.q;
+      if (key === "who") return j.pm;
+      if (key === "amount") return tally(j).revenue;
+      return j.rank;
+    });
+  }, [scoped, view, query, sort]);
   const booked = rows.reduce((s, r) => s + tally(r).revenue, 0);
 
   return (
     <ListPage
       title="Jobs"
       count={`${rows.length} · ${money(booked)}`}
-      views={[...VIEWS]}
       view={view}
-      onView={(v) => setView(v as (typeof VIEWS)[number])}
+      onView={setView}
+      cards={cards}
+      filters={
+        <>
+          <QuietFilter label="All offices" value={office} options={offices} onChange={setOffice} />
+          <QuietFilter label="All PMs" value={owner} options={owners} onChange={setOwner} />
+        </>
+      }
       search={query}
       onSearch={setQuery}
-      searchPlaceholder="Name, address, crew, stage"
-      empty={rows.length === 0 ? <Empty>No jobs in {view}. Clear the filter.</Empty> : undefined}
+      empty={rows.length === 0 ? <Empty>Nothing in this queue.</Empty> : undefined}
     >
       <RecordTable
         rows={rows}
         href={(r) => `/projects/${r.jobId}`}
+        sort={sort}
+        onSort={(key) => setSort((s) => (s.key === key ? { key, dir: s.dir === "asc" ? "desc" : "asc" } : { key, dir: "asc" }))}
         columns={[
-          {
-            key: "name",
-            label: "Name",
-            render: (r) => (
-              <span>
-                <span className="font-semibold">{r.lead?.name ?? r.account?.name ?? r.name}</span>
-                {r.lead?.address ? <span className="mt-0.5 block text-[12px] font-normal text-muted">{r.lead.address}</span> : r.product ? <span className="mt-0.5 block text-[12px] font-normal text-muted">{r.product}</span> : null}
-              </span>
-            ),
-          },
-          {
-            key: "stage",
-            label: "Stage",
-            render: (r) => <StatusPill label={r.holds.length ? `${r.stage} · ${r.holds.map((h) => h.kind).join(", ")}` : r.stage} tone={jobTone(r)} />,
-          },
-          {
-            key: "next",
-            label: "Next",
-            hide: "md",
-            render: (r) => {
-              const next = r.events.find((a) => a.status !== "Done") ?? r.events[0];
-              return <span className="text-muted">{next ? `${next.process} ${next.day}` : r.window}</span>;
-            },
-          },
+          { key: "name", label: "Name", render: (r) => <ContactName name={r.lead?.name ?? r.account?.name ?? r.name} second={r.lead?.secondaryName} place={r.lead?.address || r.product} /> },
+          { key: "status", label: "Status", render: (r) => <StatusPill label={r.holds.length ? `${r.stage} · ${r.holds.map((h) => h.kind).join(", ")}` : r.stage} tone={jobTone(r)} /> },
+          { key: "next", label: "Next", render: (r) => r.next },
           { key: "who", label: "Who", hide: "md", render: (r) => r.pm },
-          { key: "crew", label: "Crew", hide: "lg", render: (r) => <span className="text-muted">{r.assignments.length > 1 ? `${r.assignments.length} crews` : r.crew || "—"}</span> },
-          { key: "office", label: "Office", hide: "lg", render: (r) => r.lead?.office ?? "—" },
-          { key: "amount", label: "$", render: (r) => <span className="font-semibold tabular-nums">{money(tally(r).revenue)}</span> },
+          { key: "amount", label: "Contract", align: "right", render: (r) => <span className="font-semibold tabular-nums">{money(tally(r).revenue)}</span> },
         ]}
       />
     </ListPage>

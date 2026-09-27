@@ -46,7 +46,7 @@ export function SurveyChapter({ job, lead }: { job: JobFile; lead?: Lead }) {
   const extras = job.surveys ?? [];
   return (
     <div className="space-y-3">
-      {lead ? <BookWidget leadId={lead.id} defaultCloser={job.pm} defaultKind="Site survey" /> : null}
+      {lead ? <BookWidget leadId={lead.id} defaultCloser={job.pm} defaultKind="Site survey" pipeline="Job" /> : null}
       {job.permit.number || products.some((s) => profileById(s.categoryId)?.needsPermit) ? (
         <JobCard kicker="Permit" title={job.permit.number || "Not pulled"} done={job.permit.result === "Pass"}>
           <FillRow>

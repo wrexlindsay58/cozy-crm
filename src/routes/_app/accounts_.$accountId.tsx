@@ -1,11 +1,15 @@
+import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { AccountWorkspace } from "@/features/account/workspace";
-import { useAccount, useAccountPhotos } from "@/features/account/store";
+import { useAccount, useAccountPhotos, useAccountRows } from "@/features/account/store";
+import { FlowRedirect } from "@/features/flow/redirect";
+import { StartMembership } from "@/features/membership/start-sheet";
+import { useMembershipFor } from "@/features/membership/store";
 import { scrollFileSection } from "@/features/record-shell/file-sections";
 import { RecordShell } from "@/features/record-shell/record-shell";
 import { useJobs } from "@/features/job/store";
 import { useOps } from "@/features/ops/store";
-import { accounts, byId, leads, money } from "@/lib/crm-data";
+import { leads, money } from "@/lib/crm-data";
 import { followersByPerson } from "@/lib/file-data";
 import { placeLine } from "@/lib/place";
 
@@ -13,17 +17,21 @@ export const Route = createFileRoute("/_app/accounts_/$accountId")({ component: 
 
 function AccountPage() {
   const { accountId } = Route.useParams();
-  const account = byId(accounts, accountId);
+  const account = useAccountRows().find((a) => a.id === accountId);
   const file = useAccount(accountId);
   const photos = useAccountPhotos(accountId);
   const { history, actions, appointments } = useOps();
   const jobs = Object.values(useJobs()).filter((j) => j.accountId === accountId);
+  const [planOpen, setPlanOpen] = useState(false);
+  const member = useMembershipFor(file.leadId);
   if (!account) return <main className="p-6 text-sm text-muted">Account not found.</main>;
   const lead = leads.find((l) => l.id === file.leadId) ?? leads.find((l) => l.name === account.name);
   const personId = lead?.id ?? file.leadId;
   const jobIds = new Set(jobs.map((j) => j.jobId));
   const mine = (actions ?? []).filter((a) => a.personId === personId || a.personId === account.id || jobIds.has(a.personId));
   return (
+    <>
+    <FlowRedirect id={personId} here="account" />
     <RecordShell
       kind="account"
       personId={personId}
@@ -33,12 +41,16 @@ function AccountPage() {
       moneyLabel={money(account.lifetime)}
       owner={{ name: account.owner, role: "Owner" }}
       followers={followersByPerson[personId] ?? followersByPerson[account.id] ?? []}
-      related={jobs.map((j) => ({ label: j.window.split("·")[0]?.trim() || "Job", href: `/projects/${j.jobId}` }))}
+      related={[
+        ...jobs.map((j) => ({ label: j.window.split("·")[0]?.trim() || "Job", href: `/projects/${j.jobId}` })),
+        ...(member ? [{ label: `${member.planName} · ${member.years} yr`, href: `/memberships/${member.id}` }] : []),
+      ]}
       acts={[
         { label: "Call" },
         { label: "Text", opens: "thread" },
         { label: "Book service", onClick: () => scrollFileSection("service") },
         { label: "New job", onClick: () => scrollFileSection("follow") },
+        { label: "Plan", onClick: () => setPlanOpen(true) },
         { label: "Review", onClick: () => scrollFileSection("reviews") },
         { label: "Create", menu: [{ label: "Ticket" }, { label: "Task" }, { label: "Request" }] },
       ]}
@@ -48,5 +60,17 @@ function AccountPage() {
     >
       <AccountWorkspace file={file} actions={mine} history={[...(history?.[personId] ?? []), ...(history?.[accountId] ?? [])]} photos={photos.length ? photos : file.photos} appointments={appointments ?? []} />
     </RecordShell>
+    <StartMembership
+      open={planOpen}
+      onClose={() => setPlanOpen(false)}
+      personId={personId}
+      name={lead?.name ?? account.name}
+      address={lead?.address ?? ""}
+      city={lead?.city ?? account.city}
+      office={lead?.office ?? ""}
+      owner={account.owner}
+      from="account"
+    />
+    </>
   );
 }
