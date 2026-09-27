@@ -64,6 +64,8 @@ export function Cell({
   split,
   spark,
   meta,
+  big,
+  className,
 }: {
   label: ReactNode;
   value: string;
@@ -76,18 +78,20 @@ export function Cell({
   split?: Split[];
   spark?: ReactNode;
   meta?: string;
+  big?: boolean;
+  className?: string;
 }) {
   const ringFill = ring ? Math.min(100, Math.max(0, trend.now)) : undefined;
   return (
-    <div className="grid h-full grid-rows-[auto_1fr_auto] bg-card px-5 py-6 max-md:px-3 max-md:py-4">
+    <div className={cn("grid h-full grid-rows-[auto_1fr_auto] bg-card px-5 py-6 max-md:px-3 max-md:py-4", className)}>
       <p className="flex items-center gap-1.5 whitespace-nowrap text-[11px] font-bold tracking-wide text-muted uppercase">
         {label}
         <TrendMark trend={trend} />
       </p>
-      <div className="flex items-center justify-between gap-2">
+      <div className={cn("flex items-center justify-between gap-2", big && "max-md:mt-2")}>
         <div className="relative min-w-0">
           <Tip label={hint} on className="flex w-full">
-            <p className={cn("type-hero whitespace-nowrap", markClass(mark))}>{value}</p>
+            <p className={cn("type-hero whitespace-nowrap", big && "type-hero-lg", markClass(mark))}>{value}</p>
           </Tip>
           {meta ? <p className="absolute top-full left-0 mt-2 whitespace-nowrap text-[12px] tabular-nums text-muted">{meta}</p> : null}
         </div>
@@ -95,7 +99,7 @@ export function Cell({
         {split && ringFill == null ? <MiniDonut rows={split} /> : null}
         {spark && ringFill == null && !split ? <span className="shrink-0">{spark}</span> : null}
       </div>
-      <div className="pt-4">
+      <div className={cn("pt-4", big && "max-md:pt-2")}>
         {sub ? <p className="whitespace-nowrap text-[11px] font-semibold tabular-nums text-muted">{sub}</p> : <Pace trend={trend} pct={pct} />}
       </div>
     </div>

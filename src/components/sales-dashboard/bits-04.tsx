@@ -1,13 +1,13 @@
 import { MixView, RankBy } from "./bits-01";
 import { money } from "@/lib/crm-data";
 
-export const RANK_ITEMS: { id: RankBy; label: string }[] = [
+export const RANK_ITEMS: { id: RankBy; label: string; hint?: string }[] = [
   { id: "overall", label: "Overall" },
   { id: "sold", label: "Sold $" },
   { id: "qty", label: "Quantity" },
   { id: "close", label: "Close" },
-  { id: "nsa", label: "NRA" },
-  { id: "avg", label: "Avg ticket" },
+  { id: "nsa", label: "NRA", hint: "Net revenue per appointment" },
+  { id: "avg", label: "Avg ticket", hint: "Average ticket" },
 ];
 
 export const CLOSE_RATE: Record<string, number> = {

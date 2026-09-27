@@ -1,4 +1,5 @@
 import { cn } from "@/lib/cn";
+import { X } from "lucide-react";
 import { toggleReact, countReplies, mapLine, TABS, Face } from "./part-01";
 import { ChatBlock, ReactBar } from "./part-02";
 import { ShopFeedView } from "./part-03";
@@ -11,7 +12,7 @@ export function ShopFeedView2(props: { bag: { open: any; onOpen: any; onClose: a
         <button
           type="button"
           onClick={onOpen}
-          className="absolute right-4 bottom-4 z-10 h-11 rounded-md bg-navy px-4 text-[12px] font-bold text-card shadow-md xl:hidden"
+          className="absolute right-4 bottom-4 z-10 hidden h-11 rounded-md bg-navy px-4 text-[12px] font-bold text-card shadow-md md:inline-block xl:hidden"
         >
           Feed
         </button>
@@ -21,9 +22,14 @@ export function ShopFeedView2(props: { bag: { open: any; onOpen: any; onClose: a
         className={cn(
           "min-h-0 w-[clamp(298px,calc(298px+(100vw-1280px)*0.125),418px)] shrink-0 flex-col border-line bg-card text-[12px]",
           "xl:relative xl:flex xl:border-l",
-          open ? "absolute inset-y-0 right-0 z-30 flex border-l shadow-lg" : "hidden",
+          open ? "absolute inset-y-0 right-0 z-30 flex border-l shadow-lg max-md:fixed max-md:inset-0 max-md:z-50 max-md:w-full max-md:max-w-none max-md:border-0 max-md:shadow-none" : "hidden",
         )}
       >
+        <div className="flex shrink-0 items-center justify-end border-b border-line px-1 md:hidden">
+          <button type="button" onClick={onClose} className="grid size-10 place-items-center text-ink" aria-label="Close feed">
+            <X className="size-5" />
+          </button>
+        </div>
         <div className="flex shrink-0 border-b border-line">
           {TABS.map((t) => (
             <button
@@ -39,7 +45,7 @@ export function ShopFeedView2(props: { bag: { open: any; onOpen: any; onClose: a
               {t.label}
             </button>
           ))}
-          <button type="button" onClick={onClose} className="px-3 text-[12px] font-bold text-muted xl:hidden" aria-label="Close feed">
+          <button type="button" onClick={onClose} className="hidden px-3 text-[12px] font-bold text-muted md:inline xl:hidden" aria-label="Close feed">
             Close
           </button>
         </div>

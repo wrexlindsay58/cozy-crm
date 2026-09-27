@@ -88,7 +88,7 @@ export function RecordShell(props: RecordShellProps) {
   const talkLane = lane === "customer" || lane === "internal" || lane === "notes";
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
+    <div className="pipe flex min-h-0 flex-1 flex-col">
       <div className={cn(mobileTalk && "max-lg:hidden")}>
         <TitleRow
           kind={props.kind}

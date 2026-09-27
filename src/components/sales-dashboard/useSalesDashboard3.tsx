@@ -59,9 +59,10 @@ const filters = (
           </span>
         </Tip>
       ) : null}
-      <BookPick value={market} onChange={setMarket} items={[...markets]} />
-      <BookPick value={person} onChange={setPerson} items={people} />
-      <div className="ml-auto flex shrink-0 rounded-md bg-page p-0.5">
+      <BookPick value={market} onChange={setMarket} items={markets.map((m) => ({ id: m.id, label: m.label, short: m.id === "all" ? "Markets" : m.label, hint: m.id === "all" ? "All markets" : undefined }))} className="max-md:w-full max-md:max-w-none max-md:flex-1 max-md:justify-between" />
+      <BookPick value={person} onChange={setPerson} items={people.map((p) => ({ ...p, short: p.id === "all" ? "People" : p.label, hint: p.id === "all" ? "All people" : undefined }))} className="max-md:w-full max-md:max-w-none max-md:flex-1 max-md:justify-between" />
+      <BookPick plain value={range} onChange={setRange} items={[...ranges]} className="max-md:w-full max-md:max-w-none max-md:flex-1 max-md:justify-between md:hidden" />
+      <div className="ml-auto hidden shrink-0 rounded-md bg-page p-0.5 md:flex">
         {ranges.map((r) => (
           <button
             key={r.id}

@@ -18,8 +18,8 @@ export function VSalesDashboard07({ bag }: { bag: ReturnType<typeof useSalesDash
             </div>
             <MixTabs value={payView} onChange={setPayView} />
           </div>
-          <div className="flex flex-1 items-center gap-5">
-            <div className="relative size-44 shrink-0 sm:size-52">
+          <div className="flex flex-1 flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:gap-5">
+            <div className="relative mx-auto size-36 shrink-0 sm:mx-0 sm:size-44 md:size-52">
               <PopPie
                 data={pay}
                 dataKey={payView === "dollars" ? "amount" : "qty"}

@@ -34,7 +34,7 @@ export function VSalesDashboard06({ bag }: { bag: ReturnType<typeof useSalesDash
                   </span>
                   <span className="flex shrink-0 items-baseline justify-end gap-4 tabular-nums">
                     <span className="text-right font-bold">{mixLabel(productView, p.amount, p.qty)}</span>
-                    <span className="w-10 text-right font-normal text-muted">
+                    <span className="hidden w-10 text-right font-normal text-muted md:inline">
                       {productView === "qty"
                         ? `${t.deals ? Math.round((p.qty / t.deals) * 100) : 0}%`
                         : `${t.sold ? Math.round((p.amount / t.sold) * 100) : 0}%`}

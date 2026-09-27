@@ -5,6 +5,7 @@ import { useSalesDashboard3 } from "./useSalesDashboard3";
 import { cn } from "@/lib/cn";
 import { money } from "@/lib/crm-data";
 import { BookPick } from "@/features/book/pick";
+import { Tip } from "@/components/tip";
 
 export function VSalesDashboard09({ bag }: { bag: ReturnType<typeof useSalesDashboard3> }) {
   const { board, closerShown, rankBy, setCloserShown, setPerson, setRankBy } = bag;
@@ -56,7 +57,14 @@ export function VSalesDashboard09({ bag }: { bag: ReturnType<typeof useSalesDash
                     <p className="font-semibold">{p.name}</p>
                     <MixTrack pct={(barNow / barMax) * 100} />
                     <p className="mt-0.5 text-[11px] text-muted">
-                      {p.count} sold · {p.close}% close · NRA {money(p.nsa)} · {money(p.avg)} avg
+                      {p.count} sold · {p.close}% close ·{" "}
+                      <Tip label="Net revenue per appointment" on>
+                        <span>NRA</span>
+                      </Tip>{" "}
+                      {money(p.nsa)} · {money(p.avg)}{" "}
+                      <Tip label="Average ticket" on>
+                        <span>avg</span>
+                      </Tip>
                     </p>
                   </div>
                   <b className={cn("tabular-nums", p.amount === 0 && "text-stop")}>{shown}</b>

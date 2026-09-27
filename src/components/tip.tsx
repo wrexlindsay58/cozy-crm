@@ -44,6 +44,7 @@ export function Tip({
       onBlur={() => setBox(null)}
       onPointerDown={(e) => {
         if (!window.matchMedia("(hover: none)").matches) return;
+        if (e.currentTarget.parentElement?.closest("button")) return;
         const el = e.currentTarget;
         setBox((open) => (open ? null : el.getBoundingClientRect()));
       }}

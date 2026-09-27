@@ -42,7 +42,15 @@ export function VTodayBoard05({ bag }: { bag: ReturnType<typeof useTodayBoard> }
                     </div>
                     <p className="mt-2 flex items-center gap-1 max-md:flex-col max-md:gap-0.5">
                       <Pip now={pip.now} yest={pip.yest} />
-                      <span className="whitespace-nowrap text-[11px] font-bold tracking-wide text-muted uppercase max-md:text-[10px] max-md:tracking-normal">{s.label}</span>
+                      <span className="whitespace-nowrap text-[11px] font-bold tracking-wide text-muted uppercase max-md:text-[10px] max-md:tracking-normal">
+                        {s.label === "Appts." ? (
+                          <Tip label="Appointments" on>
+                            <span>Appts.</span>
+                          </Tip>
+                        ) : (
+                          s.label
+                        )}
+                      </span>
                     </p>
                     <p className="mt-0.5 text-center text-[11px] whitespace-nowrap tabular-nums text-muted max-md:text-[10px]">
                       <span className="max-md:hidden">{s.now} {word}</span>
@@ -68,7 +76,7 @@ export function VTodayBoard05({ bag }: { bag: ReturnType<typeof useTodayBoard> }
               </p>
             </div>
             <GoalLine now={t.field.demandPct} goal={t.trends.demand.goal} hint={`Now ${t.field.demandPct}% · goal ${t.trends.demand.goal}%`} />
-            <ul className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <ul className="mt-4 grid grid-cols-2 gap-x-3 gap-y-3 lg:grid-cols-4">
               <li>
                 <Tip label="Contract value still on today's production book" on>
                   <p>

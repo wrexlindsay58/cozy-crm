@@ -1,12 +1,12 @@
 import type { Bar, MixRow, Person, RangeId, SalesBoard, Split } from "./types";
 
-export const ranges: { id: RangeId; label: string }[] = [
-  { id: "ltd", label: "LTD" },
-  { id: "ytd", label: "YTD" },
-  { id: "qtd", label: "QTD" },
-  { id: "mtd", label: "MTD" },
-  { id: "wtd", label: "WTD" },
-  { id: "day", label: "Day" },
+export const ranges: { id: RangeId; label: string; hint: string }[] = [
+  { id: "ltd", label: "LTD", hint: "Life to date" },
+  { id: "ytd", label: "YTD", hint: "Year to date" },
+  { id: "qtd", label: "QTD", hint: "Quarter to date" },
+  { id: "mtd", label: "MTD", hint: "Month to date" },
+  { id: "wtd", label: "WTD", hint: "Week to date" },
+  { id: "day", label: "Day", hint: "Today" },
 ];
 
 export const officeFill: Record<string, string> = {

@@ -1,6 +1,7 @@
 import { Cell } from "./bits-03";
 import { useTodayBoard } from "./useTodayBoard";
 import { money } from "@/lib/crm-data";
+import { Tip } from "@/components/tip";
 
 export function VTodayBoard03({ bag }: { bag: ReturnType<typeof useTodayBoard> }) {
   const { t } = bag;
@@ -8,6 +9,8 @@ export function VTodayBoard03({ bag }: { bag: ReturnType<typeof useTodayBoard> }
     <>
 <section className="grid grid-cols-2 gap-px overflow-hidden rounded-md bg-line lg:grid-cols-5">
             <Cell
+              className="max-md:col-span-2"
+              big
               label="Sold $"
               value={money(t.sold)}
               trend={t.trends.sales}
@@ -17,7 +20,9 @@ export function VTodayBoard03({ bag }: { bag: ReturnType<typeof useTodayBoard> }
             <Cell
               label={
                 <>
-                  <span className="min-[1471px]:hidden">Close %</span>
+                  <Tip label="Close rate" on>
+                    <span className="min-[1471px]:hidden">Close %</span>
+                  </Tip>
                   <span className="hidden min-[1471px]:inline">Close rate</span>
                 </>
               }
@@ -29,7 +34,11 @@ export function VTodayBoard03({ bag }: { bag: ReturnType<typeof useTodayBoard> }
               hint={`${t.soldN} of ${t.decided} decided`}
             />
             <Cell
-              label="Avg ticket"
+              label={
+                <Tip label="Average ticket" on>
+                  <span>Avg ticket</span>
+                </Tip>
+              }
               value={money(t.ticket)}
               trend={t.trends.ticket}
               mark={t.marks.ticket}

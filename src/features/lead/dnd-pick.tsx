@@ -53,10 +53,11 @@ export function DndPick({
   const allOn = (lead.dnd ?? []).length === 3;
   const hot = (lead.dnd ?? []).length > 0;
   const words = `DND ${dndLabel(lead)}`;
+  const tip = hot ? `Do not disturb · ${dndLabel(lead)}` : "Do not disturb is off";
 
   return (
     <>
-      <Tip label={words} on={Boolean(compact)}>
+      <Tip label={tip} on>
         <button
           type="button"
           aria-label={words}

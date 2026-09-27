@@ -63,3 +63,44 @@
   line-height: 1;
   font-variant-numeric: tabular-nums;
 }
+
+@media (max-width: 767px) {
+  .type-hero-lg {
+    font-size: 44px;
+  }
+
+  .type-sold {
+    font-size: 40px;
+    line-height: 1;
+    letter-spacing: -0.03em;
+  }
+
+  .pipe :is(button, a).h-11,
+  .pipe :is(button, a).h-10,
+  .pipe div.h-11 {
+    height: 2.25rem;
+  }
+
+  .pipe :is(button, a).w-11,
+  .pipe :is(button, a).min-w-11,
+  .pipe :is(button, a).size-11 {
+    width: 2.25rem;
+    min-width: 2.25rem;
+    height: 2.25rem;
+  }
+
+  .pipe :is(button, a).w-8,
+  .pipe :is(button, a).min-w-8 {
+    width: 1.75rem;
+    min-width: 1.75rem;
+  }
+
+  .pipe input[type="file"].h-11 {
+    height: 2.25rem;
+  }
+
+  .pipe input[type="file"].h-11::file-selector-button,
+  .pipe .file\:h-11::file-selector-button {
+    height: 2.25rem;
+  }
+}

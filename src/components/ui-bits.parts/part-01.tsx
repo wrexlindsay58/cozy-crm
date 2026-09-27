@@ -75,7 +75,7 @@ export function PageTitle({
         {title}
         {count ? <span className="type-meta ml-2 font-normal">{count}</span> : null}
       </h1>
-      <div className="flex min-w-0 flex-1 items-center gap-2 overflow-x-auto">{actions}</div>
+      <div className="flex min-w-0 flex-1 items-center gap-2 overflow-x-auto max-md:flex-wrap max-md:overflow-visible">{actions}</div>
       <p className="hidden shrink-0 text-[13px] text-muted tabular-nums md:block">{clockLabel()}</p>
     </div>
   );
