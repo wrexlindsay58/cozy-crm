@@ -51,7 +51,7 @@ export function StatusPill({ label, tone }: { label: string; tone: Tone | "watch
 
 export function BackLink({ to, label }: { to: string; label: string }) {
   return (
-    <Link to={to} className="inline-flex h-10 items-center gap-0.5 text-sm font-semibold text-navy md:hidden">
+    <Link to={to} className="inline-flex h-8 shrink-0 items-center gap-0.5 text-[13px] font-semibold text-navy md:hidden">
       <ChevronLeft className="size-4" />
       {label}
     </Link>

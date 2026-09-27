@@ -1,4 +1,4 @@
-import { Layers, Check } from "lucide-react";
+import { Layers, Check, ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { Tip } from "@/components/tip";
 import { ICONS, paneEl, write_paneEl } from "./part-01";
@@ -42,14 +42,16 @@ export function FileSectionsView(props: { bag: { items: any; go: any; current: a
           <div id={`sec-${current?.id}`}>{current?.node}</div>
         </div>
 
-        <div className="flex shrink-0 items-center justify-between gap-2 border-t border-line bg-card px-2 py-1.5">
+        <div className="flex shrink-0 items-center justify-between gap-2 border-t border-line bg-card px-1 py-0.5 md:px-2 md:py-1.5">
           <button
             type="button"
             disabled={!prev}
+            aria-label="Back"
             onClick={() => prev && go(prev.id)}
-            className={cn("h-9 px-2 text-sm font-semibold", prev ? "text-navy" : "text-muted")}
+            className={cn("grid size-8 place-items-center md:h-9 md:w-auto md:px-2", prev ? "text-navy" : "text-muted")}
           >
-            Back
+            <ChevronLeft className="size-5 md:hidden" />
+            <span className="hidden text-sm font-semibold md:inline">Back</span>
           </button>
           {current?.id === "book" || current?.id === "media" ? (
             <span />
@@ -59,7 +61,7 @@ export function FileSectionsView(props: { bag: { items: any; go: any; current: a
                 type="button"
                 disabled={!ready}
                 onClick={advance.onContinue}
-                className={cn("h-9 rounded-md px-3 text-sm font-semibold", ready ? "bg-navy text-card" : "bg-page text-muted")}
+                className={cn("h-8 rounded-md px-3 text-sm font-semibold md:h-9", ready ? "bg-navy text-card" : "bg-page text-muted")}
               >
                 Continue to {advance.pipeline}
               </button>
@@ -70,15 +72,16 @@ export function FileSectionsView(props: { bag: { items: any; go: any; current: a
               disabled={current.action.ready === false}
               onClick={current.action.onClick}
               className={cn(
-                "h-9 rounded-md px-3 text-sm font-semibold",
+                "h-8 rounded-md px-3 text-sm font-semibold md:h-9",
                 current.action.ready === false ? "bg-page text-muted" : "bg-navy text-card",
               )}
             >
               {current.action.label}
             </button>
           ) : next ? (
-            <button type="button" onClick={() => go(next.id)} className="h-9 rounded-md bg-navy px-3 text-sm font-semibold text-card">
-              Next
+            <button type="button" aria-label="Next" onClick={() => go(next.id)} className="grid size-8 place-items-center rounded-md bg-navy text-card md:h-9 md:w-auto md:px-3">
+              <ChevronRight className="size-5 md:hidden" />
+              <span className="hidden text-sm font-semibold md:inline">Next</span>
             </button>
           ) : (
             <span className="h-9 px-2 text-sm text-muted">End</span>

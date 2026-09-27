@@ -41,7 +41,9 @@ export function JobSticky({ job }: { job: JobFile }) {
           Cancelled{job.cancelWhy ? ` · ${job.cancelWhy}` : ""}{job.cancelledAt ? ` · ${job.cancelledAt}` : ""}
         </p>
       ) : null}
-      <StageBar job={job} compact />
+      <div className="hidden md:block">
+        <StageBar job={job} compact />
+      </div>
       <HoldsBar job={job} />
     </div>
   );
@@ -55,7 +57,7 @@ export function StageBar({ job, compact = false }: { job: JobFile; compact?: boo
         <p className="text-[11px] font-bold tracking-wide text-muted uppercase">Job workflow</p>
         <p className="truncate text-[10px] font-semibold text-muted">{job.stage}</p>
       </div>
-      <ol className="mt-1.5 flex w-full min-w-0 items-center">
+      <ol className="mt-1.5 flex w-full min-w-0 items-center max-md:gap-1.5 max-md:overflow-x-auto">
         {FLOW.map((s, idx) => {
           const tone = sectionTone(job, s.id);
           const Icon = s.Icon;
@@ -69,14 +71,14 @@ export function StageBar({ job, compact = false }: { job: JobFile; compact?: boo
             .filter(Boolean)
             .join(" · ");
           return (
-            <li key={s.id} className="flex min-w-0 flex-1 items-center">
-              <Tip label={tip} on className="w-full min-w-0">
+            <li key={s.id} className="flex flex-none items-center md:min-w-0 md:flex-1">
+              <Tip label={tip} on className="md:w-full md:min-w-0">
                 <button
                   type="button"
                   aria-label={tip}
                   onClick={() => scrollFileSection(s.id)}
                   className={cn(
-                    "relative flex h-9 w-full min-w-0 items-center justify-center rounded-md",
+                    "relative flex h-11 w-11 items-center justify-center rounded-md md:h-9 md:w-full md:min-w-0",
                     next ? "bg-navy text-card" : tone === "idle" ? "text-muted" : "text-navy",
                   )}
                 >
@@ -87,7 +89,7 @@ export function StageBar({ job, compact = false }: { job: JobFile; compact?: boo
                 </button>
               </Tip>
               {idx < FLOW.length - 1 ? (
-                <span className={cn("mx-0.5 h-px w-1.5 shrink-0 sm:w-2.5", tone === "done" || tone === "open" ? "bg-navy/40" : "bg-line")} />
+                <span className={cn("mx-0.5 hidden h-px w-2.5 shrink-0 md:block", tone === "done" || tone === "open" ? "bg-navy/40" : "bg-line")} />
               ) : null}
             </li>
           );
@@ -105,7 +107,7 @@ export function HoldsBar({ job }: { job: JobFile }) {
         <p className="text-[11px] font-bold tracking-wide text-muted uppercase">Holds</p>
         <p className="text-[10px] font-semibold text-muted">{holdCount ? `${holdCount} on` : "None"}</p>
       </div>
-      <div className="mt-1.5 flex min-w-0 flex-nowrap gap-1">
+      <div className="mt-1.5 flex min-w-0 gap-1.5 overflow-x-auto md:gap-1">
         {HOLDS.map((h) => {
           const row = job.holds.find((x) => x.kind === h);
           return (
@@ -115,7 +117,7 @@ export function HoldsBar({ job }: { job: JobFile }) {
               title={h}
               onClick={() => toggleHold(job.jobId, h as Hold)}
               className={cn(
-                "h-8 min-w-0 flex-1 truncate rounded-md px-1 text-[11px] font-semibold capitalize",
+                "h-8 shrink-0 whitespace-nowrap rounded-md px-2.5 text-[11px] font-semibold capitalize md:min-w-0 md:flex-1 md:truncate md:px-1",
                 row ? "bg-alert/15 text-alert" : "border border-line text-muted",
               )}
             >

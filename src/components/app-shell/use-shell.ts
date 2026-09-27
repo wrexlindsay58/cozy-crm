@@ -86,11 +86,6 @@ export function useShell(dock: Dock) {
     toggle();
   }
 
-  function openSearch() {
-    setMobileSearch(true);
-    requestAnimationFrame(() => document.getElementById("cozy-search-mobile")?.focus());
-  }
-
   return {
     shut,
     pathname,
@@ -102,6 +97,5 @@ export function useShell(dock: Dock) {
     mobileSearch,
     setMobileSearch,
     onMenu,
-    openSearch,
   };
 }

@@ -3,7 +3,7 @@ import { sendMessage } from "@/features/thread/store";
 import type { WorkStatus } from "@/lib/chrome";
 import { actingName } from "@/features/staff/store";
 import type { ActionKind, ShopAction } from "@/features/action/types";
-import { leads, actions, emit, type Task, write_actions, write_leads } from "./part-01";
+import { leads, actions, emit, personDnd, type Task, write_actions, write_leads, write_personDnd } from "./part-01";
 import { useOps, addHistory, createAction } from "./part-02";
 
 export function createTask(input: { personId: string; title: string; owner: string; due: string; ticketId?: string; description?: string }) {
@@ -112,21 +112,20 @@ export function dndOn(lead: { dnd?: DndChannel[] } | undefined, channel: DndChan
   return d.includes(channel);
 }
 
+export function dndFor(id: string) {
+  return leads.find((l) => l.id === id)?.dnd ?? personDnd[id] ?? [];
+}
+
 export function setLeadDnd(id: string, next: DndChannel[]) {
-  write_leads(leads.map((l) => (l.id === id ? { ...l, dnd: next } : l)));
+  if (leads.some((l) => l.id === id)) write_leads(leads.map((l) => (l.id === id ? { ...l, dnd: next } : l)));
+  else write_personDnd({ ...personDnd, [id]: next });
   const label = next.length === 3 ? "all" : next.length === 0 ? "off" : next.join(", ");
   addHistory(id, actingName(), `DND ${label}.`);
 }
 
 export function toggleLeadDnd(id: string, which: DndChannel | "all") {
-  const lead = leads.find((l) => l.id === id);
-  const cur = lead?.dnd ?? [];
-  let next: DndChannel[] = cur;
-  if (which === "all") {
-    next = cur.length === 3 ? [] : ["text", "call", "email"];
-  } else {
-    next = cur.includes(which) ? cur.filter((c) => c !== which) : [...cur, which];
-  }
+  const cur = dndFor(id);
+  const next = which === "all" ? (cur.length === 3 ? [] : (["text", "call", "email"] as DndChannel[])) : cur.includes(which) ? cur.filter((c) => c !== which) : [...cur, which];
   setLeadDnd(id, next);
 }
 

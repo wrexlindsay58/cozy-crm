@@ -36,7 +36,7 @@ export function AppShell({ children, dock }: { children: ReactNode; dock: Dock }
           {children}
         </div>
       </div>
-      <MobileBar pathname={shell.pathname} onSearch={shell.openSearch} />
+      <MobileBar pathname={shell.pathname} />
       <AIStreamView />
     </div>
   );

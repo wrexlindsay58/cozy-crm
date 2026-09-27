@@ -1,6 +1,5 @@
 import type { ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
-import { cn } from "@/lib/cn";
 import type { Col } from "@/components/record-table/types";
 
 export function CardList<T extends { id: string }>({
@@ -30,10 +29,7 @@ export function CardList<T extends { id: string }>({
           key={row.id}
           data-row-active={rowIndex === index ? "" : undefined}
           data-editing-user={presence[row.id] || undefined}
-          className={cn(
-            "flex flex-col gap-1 px-4 py-2 [content-visibility:auto] [contain-intrinsic-size:auto_7.5rem]",
-            rowIndex === index && "bg-page ring-2 ring-navy ring-inset",
-          )}
+          className="flex flex-col gap-1 px-4 py-2 [content-visibility:auto] [contain-intrinsic-size:auto_7.5rem]"
         >
           {name ? (
             <Link to={href(row)} preload="intent" className="type-group flex min-h-11 items-center">

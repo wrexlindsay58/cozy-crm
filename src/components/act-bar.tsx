@@ -19,7 +19,7 @@ export function ActBar({ items, iconsOnly: forceIcons, className }: { items: Act
   const { barRef, measureRef, iconsOnly: fitIcons } = useFit();
   const iconsOnly = forceIcons ?? fitIcons;
   return (
-    <div className="relative min-w-0">
+    <div className="relative min-w-0 max-w-full md:w-auto md:max-w-none md:flex-none">
       {forceIcons ? null : (
         <div ref={measureRef} className="pointer-events-none invisible absolute flex gap-1.5 whitespace-nowrap" aria-hidden>
           {items.map((item) => (
@@ -29,7 +29,7 @@ export function ActBar({ items, iconsOnly: forceIcons, className }: { items: Act
           ))}
         </div>
       )}
-      <div ref={barRef} className={cn("flex flex-wrap justify-end gap-1.5 max-md:flex-nowrap max-md:justify-start", className)}>
+      <div ref={barRef} className={cn("flex w-max max-w-full flex-nowrap items-center gap-1.5 overflow-x-auto md:max-w-none md:overflow-visible", className)}>
         {items.map((item) => (
           <ActBtn key={item.label} item={item} iconsOnly={iconsOnly} />
         ))}
@@ -97,18 +97,18 @@ export function ActBtn({
     control = (
       <div
         className={cn(
-          "inline-flex h-11 overflow-hidden rounded-md",
+          "inline-flex h-11 shrink-0 overflow-hidden rounded-md",
           navy ? "bg-navy text-card" : "border border-line bg-card",
         )}
       >
-        <button type="button" aria-label={item.label} className="grid w-11 place-items-center" onClick={item.onClick}>
+        <button type="button" aria-label={item.label} className="grid w-11 min-w-11 shrink-0 place-items-center" onClick={item.onClick}>
           {inner}
         </button>
         <span className={cn("w-px self-stretch", navy ? "bg-card/20" : "bg-line")} />
         <button
           type="button"
           aria-label={`${item.label} from`}
-          className="grid w-8 place-items-center"
+          className="grid w-8 min-w-8 shrink-0 place-items-center"
           onClick={(e) => openAt(e.currentTarget)}
         >
           <ChevronDown className="size-3.5 opacity-80" />
@@ -141,7 +141,7 @@ export function ActBtn({
     );
   }
   return (
-    <Tip label={item.label} on={iconsOnly} side="bottom">
+    <Tip label={item.label} on={iconsOnly} side="bottom" className="shrink-0">
       {control}
     </Tip>
   );

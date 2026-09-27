@@ -21,11 +21,11 @@ export const KIND_LABEL: Record<RecordKind, string> = {
 
 export const KIND_BACK: Record<RecordKind, { to: string; label: string }> = {
   lead: { to: "/leads", label: "Leads" },
-  assessment: { to: "/assessments", label: "Assessments" },
-  opportunity: { to: "/opportunities", label: "Opportunities" },
+  assessment: { to: "/assessments", label: "Assess" },
+  opportunity: { to: "/opportunities", label: "Opps" },
   job: { to: "/projects", label: "Jobs" },
   account: { to: "/accounts", label: "Accounts" },
-  membership: { to: "/memberships", label: "Memberships" },
+  membership: { to: "/memberships", label: "Members" },
   action: { to: "/tickets", label: "Actions" },
   ticket: { to: "/tickets", label: "Actions" },
   task: { to: "/tickets", label: "Actions" },

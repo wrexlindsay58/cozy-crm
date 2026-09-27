@@ -65,8 +65,10 @@ export const GROUPS: { label: string; items: NavItem[] }[] = [
 
 export const BOTTOM_NAV = [
   { to: "/leads", label: "Leads", icon: Users },
+  { to: "/assessments", label: "Assess", icon: House },
+  { to: "/opportunities", label: "Opps", icon: Star },
   { to: "/projects", label: "Jobs", icon: Briefcase },
-  { to: "/memberships", label: "Memberships", icon: BadgeCheck },
+  { to: "/memberships", label: "Members", icon: BadgeCheck },
   { to: "/accounts", label: "Accounts", icon: FolderKanban },
 ] as const;
 

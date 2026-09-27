@@ -69,7 +69,7 @@ export function DesktopTable<T extends { id: string }>({
                     key={c.key}
                     className={cn(
                       "min-w-0 border-b border-line bg-card px-3 py-0 group-hover:bg-page",
-                      rowIndex === index && "bg-page",
+                      rowIndex === index && "xl:bg-page",
                       rowEdge(rowIndex === index, edge),
                       i === 0 && "sticky left-0 z-[1]",
                       c.align === "right" && "text-right",
@@ -87,7 +87,7 @@ export function DesktopTable<T extends { id: string }>({
                 );
               })}
               {action ? (
-                <td className={cn("border-b border-line bg-card px-3 group-hover:bg-page", rowIndex === index && "bg-page", rowEdge(rowIndex === index, "last"))}>
+                <td className={cn("border-b border-line bg-card px-3 group-hover:bg-page", rowIndex === index && "xl:bg-page", rowEdge(rowIndex === index, "last"))}>
                   <div className="flex min-h-11 items-center justify-end">{action(row)}</div>
                 </td>
               ) : null}

@@ -65,31 +65,29 @@ export function PeopleRowView(props: { bag: { pick: any; setPick: any; people: a
 export function PeopleRowView2(props: { bag: { owner: any; list: any; peopleActs: any } }) {
   const { owner, list, peopleActs } = props.bag;
   return (
-    <div className="flex flex-col gap-2 md:hidden">
-        <div className="flex items-start gap-6">
-          <div className="shrink-0">
-            <p className="text-[10px] font-bold tracking-wide text-muted uppercase">Owner</p>
-            <Tip label={owner.name} on>
-              <span className="mt-0.5 inline-flex shrink-0" aria-label={`Owner ${owner.name}`}>
-                <Initials name={owner.name} />
+    <div className="flex items-start gap-4 md:hidden">
+      <div className="shrink-0">
+        <p className="text-[10px] font-bold tracking-wide text-muted uppercase">Owner</p>
+        <Tip label={owner.name} on>
+          <span className="mt-0.5 inline-flex shrink-0" aria-label={`Owner ${owner.name}`}>
+            <Initials name={owner.name} />
+          </span>
+        </Tip>
+      </div>
+      <div className="min-w-0 shrink">
+        <p className="text-[10px] font-bold tracking-wide text-muted uppercase">Followers</p>
+        <div className="mt-0.5 flex min-w-0 items-center gap-1.5 overflow-x-auto">
+          {list.length === 0 ? <p className="text-sm text-muted">None</p> : null}
+          {list.map((f: any) => (
+            <Tip key={f.name} label={f.name} on>
+              <span className="shrink-0" aria-label={f.name}>
+                <Initials name={f.name} />
               </span>
             </Tip>
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="text-[10px] font-bold tracking-wide text-muted uppercase">Followers</p>
-            <div className="mt-0.5 flex min-w-0 items-center justify-end gap-1.5 overflow-x-auto">
-              {list.length === 0 ? <p className="text-sm text-muted">None</p> : null}
-              {list.map((f: any) => (
-                <Tip key={f.name} label={f.name} on>
-                  <span className="shrink-0" aria-label={f.name}>
-                    <Initials name={f.name} />
-                  </span>
-                </Tip>
-              ))}
-            </div>
-          </div>
+          ))}
         </div>
-        {peopleActs(true)}
       </div>
+      <div className="ml-auto shrink-0 self-end">{peopleActs(true)}</div>
+    </div>
   );
 }

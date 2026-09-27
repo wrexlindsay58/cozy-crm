@@ -23,7 +23,7 @@ export function isField(target: EventTarget | null) {
 
 export function rowEdge(on: boolean, edge: "first" | "mid" | "last") {
   if (!on) return "";
-  if (edge === "first") return "shadow-[inset_2px_0_0_0_var(--color-navy),inset_0_2px_0_0_var(--color-navy),inset_0_-2px_0_0_var(--color-navy)]";
-  if (edge === "last") return "shadow-[inset_-2px_0_0_0_var(--color-navy),inset_0_2px_0_0_var(--color-navy),inset_0_-2px_0_0_var(--color-navy)]";
-  return "shadow-[inset_0_2px_0_0_var(--color-navy),inset_0_-2px_0_0_var(--color-navy)]";
+  if (edge === "first") return "xl:shadow-[inset_2px_0_0_0_var(--color-navy),inset_0_2px_0_0_var(--color-navy),inset_0_-2px_0_0_var(--color-navy)]";
+  if (edge === "last") return "xl:shadow-[inset_-2px_0_0_0_var(--color-navy),inset_0_2px_0_0_var(--color-navy),inset_0_-2px_0_0_var(--color-navy)]";
+  return "xl:shadow-[inset_0_2px_0_0_var(--color-navy),inset_0_-2px_0_0_var(--color-navy)]";
 }

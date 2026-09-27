@@ -9,6 +9,7 @@ import type { ConvLane } from "../lanes";
 import type { RecordShellProps } from "../types";
 import { cn } from "@/lib/cn";
 import { RecordShellView, RecordShellView4 } from "./part-02";
+import { TalkEdge } from "../talk-edge";
 
 export function pipeName(kind: RecordShellProps["kind"]) {
   if (kind === "assessment") return "Assessment";
@@ -32,8 +33,9 @@ export function RecordShell(props: RecordShellProps) {
   const [draft, setDraft] = useState<"ticket" | "task" | "request" | null>(null);
   const [talkScope, setTalkScope] = useState<"action" | "house">(props.actionId ? "action" : "house");
   const [mobileTalk, setMobileTalk] = useState(false);
-  const { leads } = useOps();
-  const lead = leads.find((l) => l.id === props.personId);
+  const { leads, personDnd } = useOps();
+  const lead = leads.find((l) => l.id === props.personId) ?? leads.find((l) => l.name === props.title);
+  const dndLead = lead ?? ({ id: props.personId, name: props.title, dnd: personDnd[props.personId] ?? [] } as NonNullable<typeof lead>);
   const { numbers } = useMoneySettings();
 
   function openThread() {
@@ -45,7 +47,7 @@ export function RecordShell(props: RecordShellProps) {
   }
 
   function startCall() {
-    if (dndOn(lead, "call")) return;
+    if (dndOn(dndLead, "call")) return;
     setLane("customer");
     setMobileTalk(true);
     setCallOpen(true);
@@ -101,7 +103,7 @@ export function RecordShell(props: RecordShellProps) {
           onText={openThread}
           onStage={props.onStage ?? (props.kind === "lead" && lead ? (status) => setLeadStatus(lead.id, status) : undefined)}
           stageOptions={props.stageOptions}
-          lead={lead}
+          lead={dndLead}
         />
         <PeopleRow
           personId={props.personId}
@@ -113,6 +115,7 @@ export function RecordShell(props: RecordShellProps) {
         />
       </div>
 
+      <TalkEdge open={mobileTalk} onOpen={openThread} onClose={() => setMobileTalk(false)} />
       <RecordShellView bag={{ mobileTalk, props, setMobileTalk, lane, setLane, lead, callOpen, setCallOpen, draft, setDraft, talkScope, setTalkScope, talkLane, startCall }} />
     </div>
   );

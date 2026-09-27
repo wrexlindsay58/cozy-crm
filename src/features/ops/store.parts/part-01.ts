@@ -1,4 +1,4 @@
-import { activities, appointments as seedAppts, leads as seedLeads, tickets as seedTickets, type Appointment, type Lead, type Ticket } from "@/lib/crm-data";
+import { activities, appointments as seedAppts, leads as seedLeads, tickets as seedTickets, type Appointment, type DndChannel, type Lead, type Ticket } from "@/lib/crm-data";
 import { followersByPerson, type PersonRef } from "@/lib/file-data";
 import type { WorkStatus } from "@/lib/chrome";
 import type { ShopAction } from "@/features/action/types";
@@ -115,12 +115,13 @@ export let history: Record<string, { at: string; who: string; what: string }[]> 
 export let followers: Record<string, PersonRef[]> = Object.fromEntries(Object.entries(followersByPerson).map(([k, v]) => [k, [...v]]));
 export let tagPool = ["HOA", "Rebate", "Renter", "Spanish", "Veteran", "Callback", "Air seal"];
 export let flowPool = ["New lead drip", "No-sit follow-up", "Ran, no decision", "Review ask"];
+export let personDnd: Record<string, DndChannel[] | undefined> = {};
 export let cached = pack();
 export const listeners = new Set<() => void>();
 function pack() {
   const tickets = actions.filter((a) => a.kind === "ticket").map(toTicket);
   const tasks = actions.filter((a) => a.kind === "task").map(toTask);
-  return { leads, appointments, tickets, tasks, actions, history, followers, tagPool, flowPool };
+  return { leads, appointments, tickets, tasks, actions, history, followers, tagPool, flowPool, personDnd };
 }
 export function emit() {
   cached = pack();
@@ -133,3 +134,4 @@ export function write_tagPool(__v: any) { tagPool = __v; }
 export function write_flowPool(__v: any) { flowPool = __v; }
 export function write_appointments(__v: any) { appointments = __v; }
 export function write_leads(__v: any) { leads = __v; }
+export function write_personDnd(__v: any) { personDnd = __v; }

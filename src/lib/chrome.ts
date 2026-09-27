@@ -1,6 +1,7 @@
 import type { LucideIcon } from "lucide-react";
 import {
   ArrowRightLeft,
+  BadgeCheck,
   Ban,
   Briefcase,
   Calendar,
@@ -50,6 +51,7 @@ export const ACT_ICONS: Record<string, LucideIcon> = {
   Book: Calendar,
   "Book service": Wrench,
   "New job": Briefcase,
+  Plan: BadgeCheck,
   Review: Star,
   Complete: Check,
   Generate: FileText,

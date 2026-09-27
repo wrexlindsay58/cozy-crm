@@ -1,10 +1,13 @@
 import { dropLead, mergeLead, transferOwner } from "@/features/ops/store";
+import { cn } from "@/lib/cn";
+import { useHeadOpen } from "../head-open";
 import { PeopleRowView, PeopleRowView2 } from "./part-02";
 
 export function PeopleRowView3(props: { bag: { owner: any; list: any; peopleActs: any; ownerBlock: any; followChips: any; mode: any; pick: any; setPick: any; people: any; departments: any; addFollowPerson: any; setMode: any; newFollow: any; setNewFollow: any; reason: any; setReason: any; personId: any; into: any; setInto: any; others: any; onCancelJob: any } }) {
   const { owner, list, peopleActs, ownerBlock, followChips, mode, pick, setPick, people, departments, addFollowPerson, setMode, newFollow, setNewFollow, reason, setReason, personId, into, setInto, others, onCancelJob } = props.bag;
+  const open = useHeadOpen();
   return (
-    <div className="border-b border-line bg-card px-4 py-2 md:px-5">
+    <div className={cn("border-b border-line bg-card px-4 py-2 md:px-5", !open && "max-md:hidden")}>
       <PeopleRowView2 bag={{ owner, list, peopleActs }} />
       <div className="hidden min-w-0 flex-nowrap items-start gap-6 overflow-x-auto md:flex">
         {ownerBlock()}
