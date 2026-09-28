@@ -62,7 +62,7 @@ export function CreateCard({
     >
       <div className="flex items-center justify-between gap-2">
         <p className="min-w-0 truncate text-[11px] font-bold tracking-wide text-muted uppercase">New {word.toLowerCase()}</p>
-        <button type="button" className="h-10 shrink-0 px-2 text-sm font-semibold text-muted" onClick={onCancel}>
+        <button type="button" className="h-11 shrink-0 px-2 text-sm font-semibold text-muted" onClick={onCancel}>
           Cancel
         </button>
       </div>
@@ -71,21 +71,21 @@ export function CreateCard({
         value={title}
         onChange={(e) => setTitle(e.target.value)}
         placeholder={`${word} name`}
-        className="mt-2 h-11 w-full rounded-md border border-line bg-card px-3 text-sm outline-none focus:border-navy"
+        className="mt-2 h-11 w-full rounded-md border border-line bg-card px-3 text-sm focus:border-navy"
       />
       <textarea
         value={description}
         onChange={(e) => setDescription(e.target.value)}
         placeholder="What needs to happen."
         rows={2}
-        className="mt-2 w-full rounded-md border border-line bg-card px-3 py-2 text-sm outline-none focus:border-navy"
+        className="mt-2 w-full rounded-md border border-line bg-card px-3 py-2 text-sm focus:border-navy"
       />
       <div className="mt-2 grid gap-2 sm:grid-cols-2">
         <input
           value={due}
           onChange={(e) => setDue(e.target.value)}
           placeholder="Due date"
-          className="h-11 rounded-md border border-line bg-card px-3 text-sm outline-none focus:border-navy"
+          className="h-11 rounded-md border border-line bg-card px-3 text-sm focus:border-navy"
         />
         <SelectField value={assignee} onChange={(e) => setAssignee(e.target.value)}>
           {people.map((n) => (
@@ -113,7 +113,7 @@ export function CreateCard({
         </SelectField>
       )}
       {nestUnder ? (
-        <label className="mt-2 flex min-h-10 items-center gap-2 text-sm">
+        <label className="mt-2 flex min-h-11 items-center gap-2 text-sm">
           <input type="checkbox" checked={nest} onChange={(e) => setNest(e.target.checked)} className="size-4 shrink-0" />
           <span className="min-w-0 truncate">Nest under {nestUnder.title}</span>
         </label>

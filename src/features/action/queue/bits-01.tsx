@@ -65,7 +65,7 @@ export function CountStrip({
               aria-label={`${c.n} ${c.label}`}
               onClick={() => onStatus(on ? "all" : c.id)}
               className={cn(
-                "flex h-10 w-full items-center justify-center gap-1.5 rounded-md border px-2 text-[13px] font-semibold",
+                "flex h-11 w-full items-center justify-center gap-1.5 rounded-md border px-2 text-[13px] font-semibold",
                 on ? "border-navy bg-navy text-card" : "border-line",
               )}
             >
@@ -85,7 +85,7 @@ export function SelectField({ className, ...props }: SelectHTMLAttributes<HTMLSe
     <span className={cn("relative block", className)}>
       <select
         {...props}
-        className="h-11 w-full appearance-none rounded-md border border-line bg-card py-0 pr-10 pl-3 text-sm outline-none focus:border-navy"
+        className="h-11 w-full appearance-none rounded-md border border-line bg-card py-0 pr-10 pl-3 text-sm focus:border-navy"
       />
       <ChevronDown className="pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2 text-muted" />
     </span>

@@ -19,14 +19,14 @@ export function VActionQueue02({ bag }: { bag: ReturnType<typeof useActionQueue2
                   <button
                     type="button"
                     aria-label="Back to actions"
-                    className="grid size-10 shrink-0 place-items-center rounded-md text-navy md:hidden"
+                    className="grid size-11 shrink-0 place-items-center rounded-md text-navy md:hidden"
                     onClick={() => setMobileTalk(false)}
                   >
                     <ChevronLeft className="size-5" />
                   </button>
                   <a href={house.href} className="flex min-w-0 items-center gap-1.5">
                     <span className="min-w-0 truncate text-sm font-semibold text-navy">{house.name}</span>
-                    <span aria-label="Open house file" className="grid size-9 shrink-0 place-items-center rounded-md text-navy">
+                    <span aria-label="Open house file" className="grid size-11 shrink-0 place-items-center rounded-md text-navy">
                       <SquareArrowOutUpRight className="size-4" />
                     </span>
                   </a>
@@ -35,7 +35,7 @@ export function VActionQueue02({ bag }: { bag: ReturnType<typeof useActionQueue2
                       type="button"
                       aria-label="Edit"
                       aria-pressed={editOpen}
-                      className={cn("grid size-10 shrink-0 place-items-center rounded-md", editOpen ? "bg-page text-navy" : "text-navy")}
+                      className={cn("grid size-11 shrink-0 place-items-center rounded-md", editOpen ? "bg-page text-navy" : "text-navy")}
                       onClick={() => setEditOpen((v) => !v)}
                     >
                       <Pencil className="size-4" />

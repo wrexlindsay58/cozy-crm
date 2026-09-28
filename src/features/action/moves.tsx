@@ -53,7 +53,7 @@ export function WorkMoves({
               aria-pressed={on}
               onClick={() => setWorkStatus(kind, id, s)}
               className={cn(
-                "grid size-9 place-items-center rounded-md",
+                "grid size-11 place-items-center rounded-md",
                 on ? "bg-navy text-card" : s === "Cancel" ? "border border-line text-stop" : "border border-line text-muted",
               )}
             >
@@ -73,7 +73,7 @@ export function WorkMoves({
                 setAnchor(e.currentTarget.getBoundingClientRect());
                 setAddOpen((v) => !v);
               }}
-              className="grid size-9 place-items-center rounded-md border border-line text-navy"
+              className="grid size-11 place-items-center rounded-md border border-line text-navy"
             >
               <Plus className="size-4" />
             </button>
@@ -84,7 +84,7 @@ export function WorkMoves({
                 <button
                   key={item.id}
                   type="button"
-                  className="block w-full min-w-40 px-3 py-2 text-left text-sm hover:bg-page"
+                  className="flex h-11 w-full min-w-40 items-center px-3 text-left text-sm hover:bg-page"
                   onClick={() => {
                     onAdd(item.id);
                     setAddOpen(false);

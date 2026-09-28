@@ -1,5 +1,6 @@
 import { useActionQueue1 } from "./useActionQueue1";
-import { useMemo } from "react";
+import { useQueueKeys } from "./use-queue-keys";
+import { useCallback, useMemo, useRef } from "react";
 import type { ActionKind, ShopAction } from "@/features/action/types";
 import { houseOf } from "@/features/action/house";
 import { descendantsOf } from "@/features/ops/store";
@@ -7,7 +8,8 @@ import { liveStatus } from "@/lib/chrome";
 
 export function useActionQueue2(bag: ReturnType<typeof useActionQueue1>) {
   const { actions, leads, navigate, query, kind, office, activeId, setActiveId, setLane, setTalkScope, setMobileTalk, setCreating, setNestUnderId, setCallOpen, rows } = bag;
-const tally = useMemo(() => {
+  const listRef = useRef<HTMLUListElement>(null);
+  const tally = useMemo(() => {
     const needle = query.trim().toLowerCase();
     const pool = actions.filter((a) => {
       if (kind !== "all" && a.kind !== kind) return false;
@@ -37,32 +39,50 @@ const tally = useMemo(() => {
     return { past, soon, open, complete, pause, cancel };
   }, [actions, kind, query, leads, office]);
 
-const active = actions.find((a) => a.id === activeId) ?? rows[0];
+  const active = actions.find((a) => a.id === activeId) ?? rows[0];
+  const house = active ? houseOf(active.personId, leads) : undefined;
+  const parent = active?.parentId ? actions.find((a) => a.id === active.parentId) : undefined;
+  const kidIds = active ? [active.id, ...descendantsOf(active.id)] : [];
 
-const house = active ? houseOf(active.personId, leads) : undefined;
+  const open = useCallback(
+    (id: string) => {
+      setActiveId(id);
+      setTalkScope("action");
+      setLane("internal");
+      setCallOpen(false);
+      setMobileTalk(true);
+      void navigate({ to: "/tickets/$actionId", params: { actionId: id } });
+    },
+    [navigate, setActiveId, setCallOpen, setLane, setMobileTalk, setTalkScope],
+  );
 
-const parent = active?.parentId ? actions.find((a) => a.id === active.parentId) : undefined;
+  const move = useCallback(
+    (id: string) => {
+      const same = id === activeId;
+      setActiveId(id);
+      setMobileTalk(true);
+      if (!same) {
+        setTalkScope("action");
+        setLane("internal");
+        setCallOpen(false);
+      }
+      void navigate({ to: "/tickets/$actionId", params: { actionId: id }, replace: true });
+    },
+    [activeId, navigate, setActiveId, setCallOpen, setLane, setMobileTalk, setTalkScope],
+  );
 
-const kidIds = active ? [active.id, ...descendantsOf(active.id)] : [];
+  useQueueKeys(rows, active?.id, move, listRef);
 
-function open(id: string) {
-    setActiveId(id);
-    setTalkScope("action");
-    setLane("internal");
-    setCallOpen(false);
-    setMobileTalk(true);
-    void navigate({ to: "/tickets/$actionId", params: { actionId: id } });
-  }
-
-function onCreated(row: ShopAction | undefined) {
+  function onCreated(row: ShopAction | undefined) {
     setCreating(null);
     setNestUnderId(null);
     if (row) open(row.id);
   }
 
-function startCreate(kind: ActionKind, parentId?: string) {
+  function startCreate(kind: ActionKind, parentId?: string) {
     setNestUnderId(parentId ?? null);
     setCreating(kind);
   }
-  return { ...bag, tally, active, house, parent, kidIds, open, onCreated, startCreate };
+
+  return { ...bag, tally, active, house, parent, kidIds, listRef, open, onCreated, startCreate };
 }

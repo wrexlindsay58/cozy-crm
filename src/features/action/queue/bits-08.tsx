@@ -41,7 +41,7 @@ export function MenuPick<T extends string>({
             iconsOnly
               ? "h-11 w-full justify-center"
               : compact
-                ? "h-9 shrink-0 gap-1.5 px-2.5 text-[12px]"
+                ? "h-11 shrink-0 gap-1.5 px-2.5 text-[12px]"
                 : "h-11 min-w-0 gap-1.5 px-3 text-[13px]",
             hot ? "bg-navy text-card" : "border border-line bg-card text-muted hover:text-ink",
           )}
@@ -65,7 +65,7 @@ export function MenuPick<T extends string>({
             <button
               key={o.id}
               type="button"
-              className="flex h-10 w-full min-w-44 items-center justify-between gap-2 px-3 text-left text-sm hover:bg-page"
+              className="flex h-11 w-full min-w-44 items-center justify-between gap-2 px-3 text-left text-sm hover:bg-page"
               onClick={() => {
                 onChange(o.id);
                 setOpen(false);

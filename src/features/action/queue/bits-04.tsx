@@ -70,7 +70,7 @@ export function DetailRail({ action, house, onAdd }: { action: ShopAction; house
             patchAction(action.id, { due: due.trim() });
           }}
           placeholder="Sep 18"
-          className="mt-1 h-11 w-full rounded-md border border-line px-3 text-sm outline-none focus:border-navy"
+          className="mt-1 h-11 w-full rounded-md border border-line px-3 text-sm focus:border-navy"
         />
       </section>
       <section>
@@ -96,7 +96,7 @@ export function DetailRail({ action, house, onAdd }: { action: ShopAction; house
           }}
           placeholder="What needs to happen."
           rows={4}
-          className="mt-1 w-full rounded-md border border-line px-3 py-2 text-sm outline-none focus:border-navy"
+          className="mt-1 w-full rounded-md border border-line px-3 py-2 text-sm focus:border-navy"
         />
       </section>
       {allowDelete ? (

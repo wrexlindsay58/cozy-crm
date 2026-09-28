@@ -12,7 +12,7 @@ export function ViewDesc({ text }: { text: string }) {
       <button
         type="button"
         className={cn(
-          "inline-flex h-8 shrink-0 items-center rounded-md px-2 text-[13px] font-semibold text-navy underline decoration-navy/50 underline-offset-[3px]",
+          "inline-flex h-11 shrink-0 items-center rounded-md px-2 text-[13px] font-semibold text-navy underline decoration-navy/50 underline-offset-[3px]",
           "hover:bg-page hover:decoration-navy",
           open && "bg-page decoration-navy",
         )}
