@@ -3,7 +3,7 @@ import { followersByPerson, type PersonRef } from "@/lib/file-data";
 import type { WorkStatus } from "@/lib/chrome";
 import type { ShopAction } from "@/features/action/types";
 export type Disposition = string;
-export const DISPOSITIONS = ["Unmarked", "Confirmed", "No sit", "Missed", "One legger", "Ran"] as const;
+export const DISPOSITIONS = ["Unmarked", "Confirmed", "No run", "Missed", "One legger", "Ran"] as const;
 export type LeadDraft = {
   name: string;
   phone: string;
@@ -114,7 +114,7 @@ export let history: Record<string, { at: string; who: string; what: string }[]> 
 );
 export let followers: Record<string, PersonRef[]> = Object.fromEntries(Object.entries(followersByPerson).map(([k, v]) => [k, [...v]]));
 export let tagPool = ["HOA", "Rebate", "Renter", "Spanish", "Veteran", "Callback", "Air seal"];
-export let flowPool = ["New lead drip", "No-sit follow-up", "Ran, no decision", "Review ask"];
+export let flowPool = ["New lead drip", "No-run follow-up", "Ran, no decision", "Review ask"];
 export let personDnd: Record<string, DndChannel[] | undefined> = {};
 export let cached = pack();
 export const listeners = new Set<() => void>();

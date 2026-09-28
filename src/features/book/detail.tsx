@@ -3,6 +3,7 @@ import { addHistory } from "@/features/ops/store";
 import { BOOK_STATUSES, type BookEvent } from "./types";
 import { labelDay, labelTime } from "./time";
 import { setBookStatus } from "./store";
+import { eventCreator } from "./creator";
 import { cn } from "@/lib/cn";
 
 export function BookDetail({ e, onClose }: { e: BookEvent; onClose: () => void }) {
@@ -13,6 +14,7 @@ export function BookDetail({ e, onClose }: { e: BookEvent; onClose: () => void }
         <p className="text-muted">
           {e.type} · {labelDay(e.start)} {labelTime(e.start)}–{labelTime(e.end)}
           {e.city ? ` · ${e.city}` : ""}
+          {eventCreator(e) ? ` · Created by ${eventCreator(e)}` : ""}
           {e.hold ? " · Hold" : ""}
           {!e.woSigned && e.type === "Install" ? " · WO unsigned" : ""}
         </p>

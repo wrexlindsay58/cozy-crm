@@ -4,9 +4,12 @@ import { durationHrs, labelDay, labelTime } from "../time";
 import { findSlot } from "../store";
 import { field, label, EventModalView3 } from "./part-01";
 import { EventModalView2, EventModalView4 } from "./part-04";
+import { RunQualify } from "../run-qualify";
+import { WorkPicks } from "../work-picks";
+import { VisitKind } from "../visit-kind";
 
-export function EventModalView(props: { bag: { blank: any; setBlank: any; type: any; onType: any; status: any; setStatus: any; who: any; assigneeId: any; setAssigneeId: any; sales: any; techId: any; setTechId: any; shopPeople: any; individuals: any; crewId: any; setCrewId: any; crews: any; lead: any; query: any; setLeadId: any; setQuery: any; hits: any; pickLead: any; products: any; sow: any; job: any; title: any; setTitle: any; setLength: any; length: any; start: any; hours: any; setStart: any; editing: any; setRepeat: any; repeat: any; repeatCount: any; setRepeatCount: any; notes: any; setNotes: any; setSow: any; linkDraft: any; setLinkDraft: any; setLinks: any; links: any } }) {
-  const { blank, setBlank, type, onType, status, setStatus, who, assigneeId, setAssigneeId, sales, techId, setTechId, shopPeople, individuals, crewId, setCrewId, crews, lead, query, setLeadId, setQuery, hits, pickLead, products, sow, job, title, setTitle, setLength, length, start, hours, setStart, editing, setRepeat, repeat, repeatCount, setRepeatCount, notes, setNotes, setSow, linkDraft, setLinkDraft, setLinks, links } = props.bag;
+export function EventModalView(props: { bag: { blank: any; setBlank: any; type: any; onType: any; status: any; setStatus: any; who: any; assigneeId: any; setAssigneeId: any; sales: any; techId: any; setTechId: any; shopPeople: any; individuals: any; crewId: any; setCrewId: any; crews: any; lead: any; query: any; setLeadId: any; setQuery: any; hits: any; pickLead: any; products: any; sow: any; job: any; title: any; setTitle: any; setLength: any; length: any; start: any; hours: any; setStart: any; editing: any; setRepeat: any; repeat: any; repeatCount: any; setRepeatCount: any; notes: any; setNotes: any; setSow: any; setProducts: any; linkDraft: any; setLinkDraft: any; setLinks: any; links: any; creator: any; visit: any; setVisit: any; visitWhy: any; setVisitWhy: any; visitNote: any; setVisitNote: any } }) {
+  const { blank, setBlank, type, onType, status, setStatus, who, assigneeId, setAssigneeId, sales, techId, setTechId, shopPeople, individuals, crewId, setCrewId, crews, lead, query, setLeadId, setQuery, hits, pickLead, products, sow, job, title, setTitle, setLength, length, start, hours, setStart, editing, setRepeat, repeat, repeatCount, setRepeatCount, notes, setNotes, setSow, setProducts, linkDraft, setLinkDraft, setLinks, links, creator, visit, setVisit, visitWhy, setVisitWhy, visitNote, setVisitNote } = props.bag;
   return (
     <div className="min-h-0 flex-1 space-y-3 overflow-auto p-4">
           <label className="flex h-10 items-center gap-2 text-sm font-semibold">
@@ -33,7 +36,10 @@ export function EventModalView(props: { bag: { blank: any; setBlank: any; type: 
             </label>
           </div>
 
+          <VisitKind type={type} visit={visit} setVisit={setVisit} visitWhy={visitWhy} setVisitWhy={setVisitWhy} visitNote={visitNote} setVisitNote={setVisitNote} />
+
           <p className="text-[11px] font-bold tracking-wide text-muted uppercase">Assign</p>
+          {creator ? <p className="text-[12px] text-muted">Created by {creator}</p> : null}
           <EventModalView3 bag={{ who, assigneeId, setAssigneeId, sales, techId, setTechId, shopPeople, individuals, crewId, setCrewId, crews }} />
 
           {!blank ? (
@@ -44,11 +50,23 @@ export function EventModalView(props: { bag: { blank: any; setBlank: any; type: 
               <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Open slot" className={field} />
             </label>
           )}
+          {!blank && lead && (type === "Sales" || type === "Assessment") ? <RunQualify leadId={lead.id} /> : null}
+          {!blank && lead ? (
+            <WorkPicks
+              leadId={lead.id}
+              type={type}
+              onApply={(text, picked) => {
+                setSow(text);
+                setProducts(picked);
+                if (text) setNotes((n: string) => n || text);
+              }}
+            />
+          ) : null}
 
           <div>
             <p className="text-[11px] font-bold tracking-wide text-muted uppercase">Length</p>
             <div className="mt-1 flex flex-wrap gap-1">
-              {["30m", "1h", "1.5h", "2h", "All day"].map((d) => (
+              {(type === "Time-off" ? ["All day"] : type === "Block" ? ["30m", "1h", "1.5h", "2h"] : ["30m", "1h", "1.5h", "2h", "All day"]).map((d) => (
                 <button key={d} type="button" onClick={() => setLength(d)} className={cn("h-8 rounded-md px-2.5 text-[12px] font-semibold", length === d ? "bg-navy text-card" : "border border-line")}>
                   {d}
                 </button>

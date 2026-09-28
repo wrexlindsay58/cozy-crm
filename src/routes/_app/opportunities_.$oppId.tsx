@@ -47,13 +47,13 @@ function OppFile() {
       personId={opp.leadId}
       title={opp.name}
       subtitle={placeLine(lead?.address ?? "", lead?.city ?? "", lead?.office ?? opp.office)}
+      code={opp.id}
       stage={stage}
       moneyLabel={money(shown)}
       owner={{ name: opp.closer, role: "Closer" }}
       followers={followersByPerson[opp.leadId] ?? []}
       related={
         [
-          lead ? { label: `Lead ${lead.id}`, href: `/leads/${lead.id}` } : null,
           assess ? { label: `Assessment ${assess.id}`, href: `/assessments/${assess.id}` } : null,
           job ? { label: `Job ${job.id}`, href: `/projects/${job.id}` } : null,
           member ? { label: `${member.planName} · ${member.years} yr`, href: `/memberships/${member.id}` } : null,

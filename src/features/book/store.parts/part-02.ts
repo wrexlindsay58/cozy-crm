@@ -44,6 +44,9 @@ export function createBook(input: {
   jobId?: string;
   source?: BookEvent["source"];
   sourceId?: string;
+  visit?: BookEvent["visit"];
+  visitWhy?: string;
+  visitNote?: string;
 }) {
   const crewId = input.crewId ?? "";
   const techId = input.techId ?? "";
@@ -77,6 +80,9 @@ export function createBook(input: {
     links: input.links ?? [],
     source: input.source ?? (input.personId && !input.blank ? "appointment" : "shop"),
     sourceId: input.sourceId ?? "",
+    visit: input.visit ?? "",
+    visitWhy: input.visitWhy ?? "",
+    visitNote: input.visitNote ?? "",
   };
   write_events([row, ...events]);
   emit();

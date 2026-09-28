@@ -27,7 +27,7 @@ export function VTodayBoard06({ bag }: { bag: ReturnType<typeof useTodayBoard> }
             <div className="flex min-w-0 flex-col bg-card px-5 py-4">
               <p className="whitespace-nowrap text-[11px] font-bold tracking-wide text-muted uppercase">Reps</p>
               <div className="mt-3">
-                <Tip label="Closers with a sit today" on>
+                <Tip label="Closers with a run today" on>
                   <p className="type-metric min-w-0">
                     {t.field.repsOut}/{t.field.repsN}
                   </p>

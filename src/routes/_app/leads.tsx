@@ -19,11 +19,11 @@ export const Route = createFileRoute("/_app/leads")({
   component: LeadsPage,
 });
 
-const DISPOSITIONS = ["New", "No answer", "Contacted", "Pending", "Confirmed", "Unmarked", "Ran", "One legger", "No sit", "Missed", "Not qualified", "Cancelled", "Abandoned", "Sold"];
+const DISPOSITIONS = ["New", "No answer", "Contacted", "Pending", "Confirmed", "Unmarked", "Ran", "One legger", "No run", "Missed", "Not qualified", "Cancelled", "Abandoned", "Sold"];
 const RANK: Record<string, number> = { "No-show": 0, "Needs disposition": 1, "One legger": 2, Ran: 3, Confirmed: 4, Booked: 5, Other: 6 };
 
 function queueOf(l: Lead) {
-  if (l.status === "Missed" || l.status === "No sit" || l.status === "No-show") return "No-show";
+  if (l.status === "Missed" || l.status === "No run" || l.status === "No-show") return "No-show";
   if (l.status === "One legger") return "One legger";
   if (l.status === "Ran") return "Ran";
   if (l.status === "Confirmed") return "Confirmed";
@@ -35,11 +35,11 @@ function queueOf(l: Lead) {
 function nextOf(l: Lead) {
   const q = queueOf(l);
   if (q === "Needs disposition") return "Set a disposition";
-  if (q === "No-show") return "Reset the sit";
+  if (q === "No-show") return "Reset the run";
   if (q === "One legger") return "Call the other owner";
-  if (q === "Ran") return "Follow up on the sit";
-  if (l.next) return `Sit · ${l.next}`;
-  return "Book a sit";
+  if (q === "Ran") return "Follow up on the run";
+  if (l.next) return `Run · ${l.next}`;
+  return "Book a run";
 }
 
 function LeadsPage() {

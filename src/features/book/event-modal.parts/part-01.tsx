@@ -45,6 +45,9 @@ export function useEventModal(resources: any, preset: any, event: any, onClose: 
   const [blank, setBlank] = useState(event?.blank ?? false);
   const [type, setType] = useState<BookType>(event?.type && event.type !== "Open" ? event.type : preset?.type ?? (clicked?.kind === "crew" ? "Install" : "Sales"));
   const [status, setStatus] = useState<BookStatus>(event?.status ?? "Confirmed");
+  const [visit, setVisit] = useState<"in-person" | "phone">(event?.visit === "phone" ? "phone" : "in-person");
+  const [visitWhy, setVisitWhy] = useState(event?.visitWhy ?? "");
+  const [visitNote, setVisitNote] = useState(event?.visitNote ?? "");
   const [assigneeId, setAssigneeId] = useState(event?.assigneeId || (clicked?.kind === "closer" || clicked?.kind === "setter" ? clicked.id : ""));
   const [techId, setTechId] = useState(event?.techId || (clicked?.role === "PM" || clicked?.role === "Owner" ? clicked.id : ""));
   const [crewId, setCrewId] = useState(event?.crewId || (clicked?.kind === "crew" ? clicked.id : ""));
@@ -78,7 +81,7 @@ export function useEventModal(resources: any, preset: any, event: any, onClose: 
   const hits = query.trim()
     ? leads.filter((l) => `${l.name} ${l.city} ${l.phone} ${l.address}`.toLowerCase().includes(query.trim().toLowerCase())).slice(0, 8)
     : [];
-  return { leads, setLeadId, setQuery, setTitle, setLeadSource, setNotes, jobs, setProducts, setSow, setType, setCrewId, setTechId, setAssigneeId, length, who, assigneeId, crewId, techId, type, blank, title, lead, notes, setBy, links, status, leadSource, products, sow, job, editing, repeat, start, repeatCount, setBlank, setStatus, sales, shopPeople, individuals, crews, query, hits, setLength, hours, setStart, setRepeat, setRepeatCount, linkDraft, setLinkDraft, setLinks };
+  return { leads, setLeadId, setQuery, setTitle, setLeadSource, setNotes, jobs, setProducts, setSow, setType, setCrewId, setTechId, setAssigneeId, length, who, assigneeId, crewId, techId, type, blank, title, lead, notes, setBy, links, status, leadSource, products, sow, job, editing, repeat, start, repeatCount, setBlank, setStatus, sales, shopPeople, individuals, crews, query, hits, setLength, hours, setStart, setRepeat, setRepeatCount, linkDraft, setLinkDraft, setLinks, visit, setVisit, visitWhy, setVisitWhy, visitNote, setVisitNote };
 }
 
 export function EventModalView3(props: { bag: { who: any; assigneeId: any; setAssigneeId: any; sales: any; techId: any; setTechId: any; shopPeople: any; individuals: any; crewId: any; setCrewId: any; crews: any } }) {

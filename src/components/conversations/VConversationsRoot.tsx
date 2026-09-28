@@ -9,7 +9,9 @@ export function VConversationsRoot({ bag }: { bag: ReturnType<typeof useConversa
   const { active, mobileThread } = bag;
   return (
     <div className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden bg-page">
-      <VConversations01 bag={bag} /><div className="flex min-h-0 min-w-0 flex-1">
+      <div className={cn(mobileThread && "max-md:hidden")}>
+        <VConversations01 bag={bag} />
+      </div><div className="flex min-h-0 min-w-0 flex-1">
         <VConversations02 bag={bag} /><section className={cn("flex min-w-0 flex-1 flex-col bg-card", !mobileThread && "max-md:hidden")}>
           {active ? (
 <>

@@ -23,6 +23,7 @@ export type RecordShellProps = {
   personId: string;
   title: string;
   subtitle: string;
+  addresses?: string[];
   stage: string;
   stageTone?: Tone;
   moneyLabel?: string;
@@ -30,6 +31,7 @@ export type RecordShellProps = {
   followers: PersonRef[];
   acts: RecordAct[];
   related?: RecordLink[];
+  code?: string;
   history: Activity[];
   tickets: Ticket[];
   photos: Photo[];

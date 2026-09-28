@@ -87,7 +87,7 @@ export function PeopleRowView2(props: { bag: { owner: any; list: any; peopleActs
           ))}
         </div>
       </div>
-      <div className="ml-auto shrink-0 self-end">{peopleActs(true)}</div>
+      <div className="act-sm ml-auto shrink-0 self-end">{peopleActs(true)}</div>
     </div>
   );
 }

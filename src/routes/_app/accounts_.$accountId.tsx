@@ -11,7 +11,7 @@ import { useJobs } from "@/features/job/store";
 import { useOps } from "@/features/ops/store";
 import { leads, money } from "@/lib/crm-data";
 import { followersByPerson } from "@/lib/file-data";
-import { placeLine } from "@/lib/place";
+import { cityState } from "@/lib/place";
 
 export const Route = createFileRoute("/_app/accounts_/$accountId")({ component: AccountPage });
 
@@ -27,6 +27,9 @@ function AccountPage() {
   if (!account) return <main className="p-6 text-sm text-muted">Account not found.</main>;
   const lead = leads.find((l) => l.id === file.leadId) ?? leads.find((l) => l.name === account.name);
   const personId = lead?.id ?? file.leadId;
+  const linked = [lead, ...file.childLeads.map((row) => leads.find((item) => item.id === row.id)), ...jobs.map((job) => leads.find((item) => item.id === job.leadId))];
+  const addresses = [...new Set(linked.filter((row) => row?.address).map((row) => [row!.address, cityState(row!.city, row!.office)].filter(Boolean).join(", ")))];
+  const places = addresses.length ? addresses : [[account.address, cityState(account.city)].filter(Boolean).join(", ")];
   const jobIds = new Set(jobs.map((j) => j.jobId));
   const mine = (actions ?? []).filter((a) => a.personId === personId || a.personId === account.id || jobIds.has(a.personId));
   return (
@@ -36,8 +39,10 @@ function AccountPage() {
       kind="account"
       personId={personId}
       title={account.name}
-      subtitle={lead ? placeLine(lead.address, lead.city, lead.office) : account.city}
+      subtitle={places[0]}
+      addresses={places}
       stage={account.type}
+      code={account.id}
       moneyLabel={money(account.lifetime)}
       owner={{ name: account.owner, role: "Owner" }}
       followers={followersByPerson[personId] ?? followersByPerson[account.id] ?? []}

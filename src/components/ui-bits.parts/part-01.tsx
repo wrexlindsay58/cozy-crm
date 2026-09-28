@@ -49,9 +49,9 @@ export function StatusPill({ label, tone }: { label: string; tone: Tone | "watch
   return <StatusBar label={label} tone={tone} />;
 }
 
-export function BackLink({ to, label }: { to: string; label: string }) {
+export function BackLink({ to, label, className }: { to: string; label: string; className?: string }) {
   return (
-    <Link to={to} className="inline-flex h-8 shrink-0 items-center gap-0.5 text-[13px] font-semibold text-navy md:hidden">
+    <Link to={to} className={cn("inline-flex h-8 shrink-0 items-center gap-0.5 text-[13px] font-semibold text-navy md:hidden", className)}>
       <ChevronLeft className="size-4" />
       {label}
     </Link>

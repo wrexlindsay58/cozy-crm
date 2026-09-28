@@ -68,39 +68,130 @@
   .type-hero-lg {
     font-size: 44px;
   }
-
   .type-sold {
     font-size: 40px;
     line-height: 1;
     letter-spacing: -0.03em;
   }
 
-  .pipe :is(button, a).h-11,
-  .pipe :is(button, a).h-10,
-  .pipe div.h-11 {
-    height: 2.25rem;
+  :is(button, a).h-7,
+  :is(button, a).h-8,
+  :is(button, a).h-9,
+  :is(button, a).h-10,
+  :is(button, a).h-11,
+  :is(button, a).h-12,
+  :is(button, a).size-7,
+  :is(button, a).size-8,
+  :is(button, a).size-9,
+  :is(button, a).size-10,
+  div.h-11 {
+    height: 2rem;
+  }
+  :is(button, a).w-11,
+  :is(button, a).min-w-11,
+  :is(button, a).size-7,
+  :is(button, a).size-8,
+  :is(button, a).size-9,
+  :is(button, a).size-10,
+  :is(button, a).size-11 {
+    width: 2rem;
+    min-width: 2rem;
+    height: 2rem;
   }
 
-  .pipe :is(button, a).w-11,
-  .pipe :is(button, a).min-w-11,
-  .pipe :is(button, a).size-11 {
-    width: 2.25rem;
-    min-width: 2.25rem;
-    height: 2.25rem;
+  .pipe .head-acts .act-spread {
+    width: 100%;
+    min-width: 0;
+    justify-content: safe flex-end;
+    gap: 0.25rem;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+  }
+  .pipe .head-acts.has-money > .flex {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+  }
+  .pipe .head-acts.has-money .relative {
+    width: auto;
+    min-width: 0;
+    flex: 1 1 auto;
+    margin-left: auto;
+  }
+  .pipe .head-acts :is(button, a).h-11,
+  .pipe .head-acts div.h-11,
+  .pipe .head-acts :is(button, a).h-10,
+  .pipe .act-sm :is(button, a).h-11,
+  .pipe .act-sm div.h-11,
+  .pipe .act-sm :is(button, a).h-10 {
+    height: 2rem;
+  }
+  .pipe .head-acts :is(button, a).w-11,
+  .pipe .head-acts :is(button, a).min-w-11,
+  .pipe .act-sm :is(button, a).w-11,
+  .pipe .act-sm :is(button, a).min-w-11 {
+    width: 2rem;
+    min-width: 2rem;
+    height: 2rem;
+  }
+  .pipe .head-acts div.h-11 > button,
+  .pipe .act-sm div.h-11 > button {
+    height: 2rem;
+  }
+  .pipe .head-acts :is(button, a).w-8,
+  .pipe .head-acts :is(button, a).min-w-8,
+  .pipe .act-sm :is(button, a).w-8,
+  .pipe .act-sm :is(button, a).min-w-8 {
+    width: 1.375rem;
+    min-width: 1.375rem;
   }
 
-  .pipe :is(button, a).w-8,
-  .pipe :is(button, a).min-w-8 {
-    width: 1.75rem;
-    min-width: 1.75rem;
+  :is(input, select):is(.h-7, .h-8, .h-9, .h-10, .h-11, .h-12):not([type="checkbox"]):not(
+      [type="radio"]
+    ):not([type="range"]):not([type="color"]) {
+    height: 2rem;
+    min-height: 2rem;
   }
-
-  .pipe input[type="file"].h-11 {
-    height: 2.25rem;
+  :is(button, a, input, select):is(.h-9, .h-10, .h-11, .h-12),
+  :is(button, a, input, select):is(.h-9, .h-10, .h-11, .h-12) :is(.text-sm, .text-base),
+  :is(input, select, textarea).text-base {
+    font-size: 13px;
+    line-height: 1.2;
   }
+  input.composer:is(.h-8, .h-10, .h-11):not([type="checkbox"]):not([type="radio"]):not(
+      [type="range"]
+    ):not([type="color"]),
+  :is(button, div).composer:is(.h-8, .h-10, .h-11, .size-10) {
+    height: 2.5rem;
+    min-height: 2.5rem;
+    font-size: 14px;
+    line-height: 1.3;
+  }
+  button.composer:is(.h-8, .h-10, .h-11) {
+    width: 2.5rem;
+    min-width: 2.5rem;
+    padding-inline: 0;
+  }
+  input[type="file"]:is(.h-10, .h-11)::file-selector-button,
+  .file\:h-11::file-selector-button {
+    height: 2rem;
+    min-height: 2rem;
+    font-size: 13px;
+    line-height: 1.2;
+  }
+}
 
-  .pipe input[type="file"].h-11::file-selector-button,
-  .pipe .file\:h-11::file-selector-button {
-    height: 2.25rem;
+@media (max-width: 1023px) {
+  .composer-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
   }
 }

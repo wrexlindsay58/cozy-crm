@@ -5,12 +5,17 @@ import { setLeadQualify, setLeadRebate, useLead } from "@/features/ops/store";
 
 function picks(name: string) {
   if (/homeowner|renter/i.test(name)) return ["Homeowner", "Renter"];
+  if (/bill|power/i.test(name)) return ["Under $150", "$150–300", "Over $300"];
+  if (/age/i.test(name)) return ["Under 10", "10–25", "Over 25"];
+  if (/pain/i.test(name)) return ["Hot rooms", "High bill", "Old unit", "Drafts", "Noise"];
+  if (/product/i.test(name)) return ["Attic", "HVAC", "Ducts", "Air seal"];
   if (/^pay$/i.test(name) || /financ/i.test(name)) return ["Cash", "Finance", "Either"];
   return ["Yes", "No"];
 }
 
-export function qualifyFilled(questions: { id: string }[], answers: Record<string, string>) {
-  return questions.length === 0 || questions.every((q) => Boolean(answers[q.id]));
+export function qualifyFilled(questions: { id: string; note?: string }[], answers: Record<string, string>) {
+  const need = questions.filter((q) => !q.note || /^required/i.test(q.note));
+  return need.length === 0 || need.every((q) => Boolean(answers[q.id]));
 }
 
 function verdict(questions: { id: string; name: string }[], answers: Record<string, string>) {
@@ -50,25 +55,30 @@ export function QualifyCard({ leadId }: { leadId: string }) {
         {questions.map((q) => {
           const options = picks(q.name);
           const on = answers[q.id] ?? "";
+          const many = /pain|product/i.test(q.name);
+          const picked = new Set(on.split(",").map((s) => s.trim()).filter(Boolean));
           return (
             <div key={q.id} className={cn("min-w-0", options.length > 2 && "sm:col-span-2")}>
               <Tip label={q.note} on={Boolean(q.note)}>
                 <p className="text-[11px] font-bold tracking-wide text-muted uppercase">{q.name}</p>
               </Tip>
-              <div className="mt-1.5 flex gap-1">
-                {options.map((p) => (
-                  <button
-                    key={p}
-                    type="button"
-                    onClick={() => setLeadQualify(lead.id, q.id, p)}
-                    className={cn(
-                      "h-7 min-w-0 flex-1 rounded-md px-2 text-[11px] font-semibold",
-                      on === p ? "border border-navy bg-info-bg text-navy" : "border border-line text-muted hover:border-navy hover:text-ink",
-                    )}
-                  >
-                    {p}
-                  </button>
-                ))}
+              <div className="mt-1.5 flex flex-wrap gap-1">
+                {options.map((p) => {
+                  const hot = many ? picked.has(p) : on === p;
+                  return (
+                    <button
+                      key={p}
+                      type="button"
+                      onClick={() => setLeadQualify(lead.id, q.id, many ? (hot ? [...picked].filter((x) => x !== p) : [...picked, p]).join(", ") : p)}
+                      className={cn(
+                        "h-7 min-w-0 rounded-md px-2 text-[11px] font-semibold",
+                        hot ? "border border-navy bg-info-bg text-navy" : "border border-line text-muted hover:border-navy hover:text-ink",
+                      )}
+                    >
+                      {p}
+                    </button>
+                  );
+                })}
               </div>
             </div>
           );

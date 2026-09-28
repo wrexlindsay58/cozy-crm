@@ -19,10 +19,10 @@ export const KIND_LABEL: Record<RecordKind, string> = {
   request: "Request",
 };
 
-export const KIND_BACK: Record<RecordKind, { to: string; label: string }> = {
+export const KIND_BACK: Record<RecordKind, { to: string; label: string; long?: string }> = {
   lead: { to: "/leads", label: "Leads" },
-  assessment: { to: "/assessments", label: "Assess" },
-  opportunity: { to: "/opportunities", label: "Opps" },
+  assessment: { to: "/assessments", label: "Assess", long: "Assessments" },
+  opportunity: { to: "/opportunities", label: "Opps", long: "Opportunities" },
   job: { to: "/projects", label: "Jobs" },
   account: { to: "/accounts", label: "Accounts" },
   membership: { to: "/memberships", label: "Members" },
@@ -31,6 +31,28 @@ export const KIND_BACK: Record<RecordKind, { to: string; label: string }> = {
   task: { to: "/tickets", label: "Actions" },
   request: { to: "/tickets", label: "Actions" },
 };
+
+export function PlaceLine({ lines, className }: { lines: string[]; className?: string }) {
+  const uniq = [...new Set(lines.map((line) => line.trim()).filter(Boolean))];
+  const [at, setAt] = useState(0);
+  const place = uniq[Math.min(at, Math.max(uniq.length - 1, 0))] ?? "";
+  if (!place) return null;
+  return (
+    <p className={cn("flex min-w-0 items-start gap-1", className)}>
+      <span className="min-w-0 break-words">{place}</span>
+      {uniq.length > 1 ? (
+        <button
+          type="button"
+          className="mt-px grid size-5 shrink-0 place-items-center text-muted"
+          aria-label="Other address"
+          onClick={() => setAt((n) => (n + 1) % uniq.length)}
+        >
+          <ChevronDown className="size-3.5" />
+        </button>
+      ) : null}
+    </p>
+  );
+}
 
 export function StageChip({
   label,

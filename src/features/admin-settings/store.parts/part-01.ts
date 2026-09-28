@@ -96,11 +96,13 @@ export let sections: Row[] = [
   { id: "S-2", name: "Qualifying", note: "Assessment file" },
 ];
 export let qualify: Row[] = [
-  { id: "Q-1", name: "Credit pre-qualified", note: "Soft pull or verbal" },
-  { id: "Q-2", name: "All owners will be there", note: "One-legger if no" },
-  { id: "Q-3", name: "Homeowner or renter", note: "Who can sign" },
-  { id: "Q-4", name: "In area", note: "We run this turf" },
-  { id: "Q-5", name: "Pay", note: "Cash or finance" },
+  { id: "Q-1", name: "Credit over 650", note: "Required" },
+  { id: "Q-2", name: "All decision makers", note: "Required" },
+  { id: "Q-3", name: "Homeowner", note: "Required" },
+  { id: "Q-6", name: "Age of home", note: "Required" },
+  { id: "Q-7", name: "Pain points", note: "Optional" },
+  { id: "Q-8", name: "Products they want", note: "Optional" },
+  { id: "Q-9", name: "Power bill", note: "Optional" },
 ];
 export let notifyTemplates: Row[] = [
   { id: "NT-1", name: "Booked SMS", note: "You're on the book {day} {time}" },

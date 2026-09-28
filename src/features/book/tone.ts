@@ -20,5 +20,6 @@ export const TYPE_TONE: Record<BookType, { bg: string; bar: string }> = {
   Office: { bg: "#e8eef1", bar: "#16323f" },
   Training: { bg: "#dce8f4", bar: "#0f4a62" },
   "Time-off": { bg: "#eef2f4", bar: "#8aa0ab" },
+  Block: { bg: "#0b3a4d", bar: "#0b3a4d" },
   Open: { bg: "#ffffff", bar: "#b7c5cd" },
 };

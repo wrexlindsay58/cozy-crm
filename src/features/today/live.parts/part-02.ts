@@ -21,8 +21,8 @@ export function prep_buildToday(opts: any) {
   const left = sales.filter((e: any) => hourOf(e.end) > hour);
   const yestPassed = yestSales.filter((e: any) => hourOf(e.end) <= hour);
   const yestLeft = yestSales.filter((e: any) => hourOf(e.end) > hour);
-  const nosit = day.filter((e: any) => (e.status === "No-sit" || e.status === "No-show") && hourOf(e.end) <= hour);
-  const yestNosit = yest.filter((e: any) => (e.status === "No-sit" || e.status === "No-show") && hourOf(e.end) <= hour);
+  const nosit = day.filter((e: any) => (e.status === "No-run" || e.status === "No-show") && hourOf(e.end) <= hour);
+  const yestNosit = yest.filter((e: any) => (e.status === "No-run" || e.status === "No-show") && hourOf(e.end) <= hour);
   const cancelled = snapshot.cancelledToday;
   const decided = soldN + nosit.length + cancelled;
   const closeRate = decided ? Math.round((soldN / decided) * 100) : 0;

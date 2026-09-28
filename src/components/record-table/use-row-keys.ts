@@ -4,7 +4,7 @@ import { isField } from "@/components/record-table/types";
 
 export function useRowKeys<T extends { id: string }>(rows: T[], href: (row: T) => string, box: RefObject<HTMLDivElement | null>) {
   const navigate = useNavigate();
-  const [active, setActive] = useState(0);
+  const [active, setActive] = useState(-1);
   const rowsRef = useRef(rows);
   const hrefRef = useRef(href);
   rowsRef.current = rows;
@@ -36,7 +36,7 @@ export function useRowKeys<T extends { id: string }>(rows: T[], href: (row: T) =
         setActive(Math.min(list.length - 1, Math.max(0, current + step)));
         return;
       }
-      if (e.key === "Enter") {
+      if (e.key === "Enter" && current >= 0) {
         const row = list[current];
         if (!row) return;
         if (e.target instanceof HTMLElement && e.target.closest("a, button")) return;
@@ -44,8 +44,15 @@ export function useRowKeys<T extends { id: string }>(rows: T[], href: (row: T) =
         void navigate({ to: hrefRef.current(row) as never });
       }
     }
+    function onPointer() {
+      setActive(-1);
+    }
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    window.addEventListener("pointerdown", onPointer);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      window.removeEventListener("pointerdown", onPointer);
+    };
   }, [box, index, navigate]);
 
   return index;

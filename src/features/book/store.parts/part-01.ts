@@ -111,9 +111,9 @@ export function moveBook(id: string, start: string, end: string, resourceId: str
   const cur = events.find((e) => e.id === id);
   if (!cur) return;
   let status = cur.status;
-  if (resourceId && status !== "Done" && status !== "No-sit" && status !== "No-show") status = "Dispatched";
+  if (resourceId && status !== "Done" && status !== "No-run" && status !== "No-show") status = "Dispatched";
   if (!resourceId && status === "Dispatched") status = "Confirmed";
-  return patchBook(id, { start, end, resourceId, status });
+  return patchBook(id, resourceId ? { start, end, resourceId, status } : { start, end, resourceId: "", crewId: "", techId: "", assigneeId: "", status });
 }
 
 export function setBookStatus(id: string, status: BookStatus) {

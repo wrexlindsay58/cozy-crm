@@ -6,7 +6,7 @@ export const LEAD_STATUSES: { label: string; tone: Tone }[] = [
   { label: "Confirmed", tone: "navy" },
   { label: "Ran", tone: "up" },
   { label: "One legger", tone: "alert" },
-  { label: "No sit", tone: "alert" },
+  { label: "No run", tone: "alert" },
   { label: "Missed", tone: "alert" },
   { label: "No-show", tone: "alert" },
   { label: "Sold", tone: "up" },

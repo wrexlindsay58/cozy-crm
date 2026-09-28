@@ -69,7 +69,7 @@ export const __rows1 = [
         id: "ran",
         label: "Most sits that ran",
         kind: "num",
-        sample: "sit",
+        sample: "run",
         noun: "ran",
         periods: six((id) => {
           if (id === "day") return { history: [set([["Amber", 4, 4], ["Priya", 3, 3]])], current: set([["Priya", 3, 3], ["Amber", 2, 2]]) };

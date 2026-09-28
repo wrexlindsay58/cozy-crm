@@ -37,6 +37,7 @@ function JobFilePage() {
       personId={personId}
       title={lead?.name ?? job.name}
       subtitle={lead ? placeLine(lead.address, lead.city, lead.office) : `${job.product} · ${job.window}`}
+      code={job.jobId}
       stage={job.stage}
       stageTone={jobTone(job)}
       onStage={(status) => setStage(job.jobId, status as (typeof STAGES)[number])}
@@ -46,7 +47,6 @@ function JobFilePage() {
       followers={followersByPerson[personId] ?? followersByPerson[job.accountId] ?? [{ name: job.closer, role: "Closer" }]}
       related={
         [
-          lead ? { label: `Lead ${lead.id}`, href: `/leads/${lead.id}` } : null,
           assess ? { label: `Assessment ${assess.id}`, href: `/assessments/${assess.id}` } : null,
           opp ? { label: `Opportunity ${opp.id}`, href: `/opportunities/${opp.id}` } : null,
           account ? { label: `Account ${account.id}`, href: `/accounts/${account.id}` } : null,

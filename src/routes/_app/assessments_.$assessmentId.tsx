@@ -40,10 +40,11 @@ function AssessmentFile() {
       personId={file.leadId}
       title={file.name}
       subtitle={placeLine(lead?.address ?? file.address, lead?.city ?? "", lead?.office)}
+      code={file.id}
       stage={file.status}
       owner={{ name: file.closer, role: "Closer" }}
       followers={followersByPerson[file.leadId] ?? []}
-      related={[ { label: `Lead ${file.leadId}`, href: `/leads/${file.leadId}` }, file.oppId ? { label: `Opportunity ${file.oppId}`, href: `/opportunities/${file.oppId}` } : null, member ? { label: `${member.planName} · ${member.years} yr`, href: `/memberships/${member.id}` } : null ].filter(Boolean) as { label: string; href: string }[]}
+      related={[ file.oppId ? { label: `Opportunity ${file.oppId}`, href: `/opportunities/${file.oppId}` } : null, member ? { label: `${member.planName} · ${member.years} yr`, href: `/memberships/${member.id}` } : null ].filter(Boolean) as { label: string; href: string }[]}
       acts={[
         { label: "Call" },
         { label: "Text", opens: "thread" },

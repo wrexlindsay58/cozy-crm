@@ -59,7 +59,7 @@ ctx.repOut = ctx.closers.filter((r: any) => ctx.sales.some((e: any) => e.resourc
 ctx.installsLive = ctx.prod.filter((e: any) => e.status === "Dispatched").length;
 ctx.installsWait = ctx.prod.filter((e: any) => e.status === "Set" || e.hold).length;
 ctx.runsLive = ctx.sales.filter(
-    (e: any) => hourOf(e.start) <= ctx.hour && hourOf(e.end) > ctx.hour && e.status !== "Done" && e.status !== "No-sit" && e.status !== "No-show",
+    (e: any) => hourOf(e.start) <= ctx.hour && hourOf(e.end) > ctx.hour && e.status !== "Done" && e.status !== "No-run" && e.status !== "No-show",
   ).length;
 ctx.demandN = ctx.prod.length;
 ctx.capacityN = Math.max(ctx.crews.length, 1);

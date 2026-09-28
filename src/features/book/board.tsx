@@ -1,13 +1,22 @@
 import { useEffect, useRef, type DragEvent } from "react";
-import { EventChip } from "./chip";
-import { pack, packStyle } from "./layout";
-import { hoursFor, type Resource } from "./roster";
+import { DayColumn } from "./column";
 import { loadHours } from "./store";
-import { hourOf } from "./time";
+import { TODAY, toIso } from "./time";
+import { UnassignedQueue } from "./queue";
 import { assignedIds, type BookEvent as E } from "./types";
+import { hoursFor, type Resource } from "./roster";
 
 const ROW = 52;
-const COL = "minmax(10rem, 1fr)";
+const PHONE_ROW = 48;
+const COL_MIN = "10rem";
+const PHONE_COL = "7.25rem";
+
+function phoenixHour() {
+  const parts = new Intl.DateTimeFormat("en-US", { timeZone: "America/Phoenix", hour: "numeric", minute: "numeric", hourCycle: "h23" }).formatToParts(new Date());
+  const h = Number(parts.find((p) => p.type === "hour")?.value ?? 0);
+  const m = Number(parts.find((p) => p.type === "minute")?.value ?? 0);
+  return h + m / 60;
+}
 
 export function ResourceBoard({
   day,
@@ -29,14 +38,17 @@ export function ResourceBoard({
   phone?: boolean;
 }) {
   const hours = hoursFor(resources.length ? resources : [{ kind: "closer" } as Resource]);
-  const height = hours.length * ROW;
+  const row = phone ? PHONE_ROW : ROW;
+  const colMin = phone ? PHONE_COL : COL_MIN;
+  const height = hours.length * row;
   const startH = hours[0] ?? 7;
-  const cols = [{ id: "", name: "Unassigned", kind: "office" as const, office: "PHX" as const, role: "Office" }, ...resources];
-  const gutter = phone ? "2.25rem" : "3rem";
-  const namesWidth = `max(100%, calc(${cols.length} * 10rem))`;
-  const minWidth = `max(100%, calc(${gutter} + ${cols.length} * 10rem))`;
-  const gridCols = `${gutter} repeat(${cols.length}, ${COL})`;
-  const namesCols = `repeat(${cols.length}, ${COL})`;
+  const cols = resources;
+  const gutter = phone ? "calc(2.25rem - 3px)" : "3rem";
+  const namesWidth = `max(100%, calc(${cols.length} * ${colMin}))`;
+  const minWidth = `max(100%, calc(${gutter} + ${cols.length} * ${colMin}))`;
+  const gridCols = `${gutter} repeat(${cols.length}, minmax(${colMin}, 1fr))`;
+  const namesCols = `repeat(${cols.length}, minmax(${colMin}, 1fr))`;
+  const nowTop = day === toIso(TODAY).slice(0, 10) ? phoenixHour() : null;
   const bodyRef = useRef<HTMLDivElement>(null);
   const namesRef = useRef<HTMLDivElement>(null);
 
@@ -72,16 +84,21 @@ export function ResourceBoard({
   }
 
   return (
-    <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+    <div className="relative flex min-h-0 min-w-0 flex-1 overflow-hidden">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
       <div className="flex h-12 shrink-0 overflow-hidden border-b border-line bg-card">
         <div className="shrink-0 border-r border-line bg-card" style={{ width: gutter }} />
         <div className="min-w-0 flex-1 overflow-hidden">
           <div ref={namesRef} className="grid h-12 will-change-transform" style={{ minWidth: namesWidth, gridTemplateColumns: namesCols }}>
             {cols.map((u) => {
               const load = loadHours(events, u.id, day);
+              const count = events.filter((e) => assignedIds(e).includes(u.id) && e.start.slice(0, 10) === day).length;
               return (
                 <div key={u.id || "none"} className="flex flex-col justify-center border-r border-line px-2">
-                  <p className="truncate text-[12px] font-semibold">{u.name}</p>
+                  <div className="flex min-w-0 items-baseline gap-1">
+                    <p className="min-w-0 flex-1 truncate text-[12px] font-semibold">{u.name}</p>
+                    <p className="shrink-0 text-[11px] font-bold tabular-nums">{count}</p>
+                  </div>
                   <p className="text-[10px] text-muted">{load ? `${load.toFixed(1)}h` : "Open"}</p>
                 </div>
               );
@@ -94,55 +111,32 @@ export function ResourceBoard({
         className="min-h-0 min-w-0 flex-1 overflow-auto overscroll-contain [-webkit-overflow-scrolling:touch]"
       >
         <div
-          className="grid min-w-full"
+          className="relative grid min-w-full"
           style={{
             minWidth,
             gridTemplateColumns: gridCols,
             gridTemplateRows: `${height}px`,
           }}
         >
+          {nowTop != null && nowTop >= startH && nowTop < startH + hours.length ? (
+            <div className="pointer-events-none absolute right-0 left-0 z-20 h-0.5 bg-navy" style={{ top: (nowTop - startH) * row }} />
+          ) : null}
           <div className="sticky left-0 z-10 border-r border-line bg-card">
             <div className="relative" style={{ height }}>
               {hours.map((h, i) => (
-                <div key={h} className="absolute inset-x-0 border-b border-line px-1 text-right text-[10px] font-bold text-muted" style={{ top: i * ROW, height: ROW }}>
+                <div key={h} className="absolute inset-x-0 border-b border-line px-1 text-right text-[10px] font-bold text-muted" style={{ top: i * row, height: row }}>
                   {h === 12 ? "12" : h > 12 ? `${h - 12}p` : `${h}a`}
                 </div>
               ))}
             </div>
           </div>
-          {cols.map((u) => {
-            const mine = events.filter((e) => assignedIds(e).includes(u.id) && e.start.slice(0, 10) === day);
-            return (
-              <div key={u.id || "none"} className="relative z-0 isolate overflow-hidden border-r border-line bg-page">
-                {hours.map((h, i) => (
-                  <button
-                    key={h}
-                    type="button"
-                    onClick={() => onSlot(u.id, `${day}T${String(h).padStart(2, "0")}:00`)}
-                    onDragOver={(e) => e.preventDefault()}
-                    onDrop={(e) => {
-                      e.preventDefault();
-                      drop(u.id, h, e);
-                    }}
-                    className="absolute inset-x-0 border-b border-line/80"
-                    style={{ top: i * ROW, height: ROW }}
-                    aria-label={`${u.name} ${h}`}
-                  />
-                ))}
-                {pack(mine).map((p) => {
-                  const top = Math.max(0, (hourOf(p.e.start) - startH) * ROW + 2);
-                  const hrs = Math.max(0.45, hourOf(p.e.end) - hourOf(p.e.start));
-                  return (
-                    <div key={p.e.id} style={packStyle(p, top, hrs * ROW - 4)}>
-                      <EventChip e={p.e} selected={selectedId === p.e.id} thin={p.cols >= 3 || hrs * ROW < 40} drag={!phone} onClick={() => onSelect(p.e.id)} />
-                    </div>
-                  );
-                })}
-              </div>
-            );
-          })}
+          {cols.map((u) => (
+            <DayColumn key={u.id || "none"} u={u} day={day} events={events} row={row} startH={startH} hours={hours} selectedId={selectedId} onSelect={onSelect} onSlot={onSlot} onDropHour={drop} />
+          ))}
         </div>
       </div>
+      </div>
+      {phone ? <UnassignedQueue day={day} events={events} resources={resources} selectedId={selectedId} onSelect={onSelect} onMove={onMove} phone /> : null}
     </div>
   );
 }

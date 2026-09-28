@@ -84,6 +84,7 @@ export type Account = {
   phone?: string;
   email?: string;
   type: "New" | "Repeat";
+  address?: string;
   city: string;
   owner: string;
   jobs: number;
@@ -144,7 +145,6 @@ export const reps: { name: string; role: string; office: string; sold: number; r
   { name: "Wrex Lindsay", role: "Owner", office: "Phoenix", sold: 9, rev: 214000, close: 52 },
 ];
 
-export const money = (n: number) =>
-  n.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
+export const money = (n: number) => n.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
 
 export type Channel = "sms" | "call" | "email" | "note";

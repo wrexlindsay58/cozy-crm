@@ -38,7 +38,7 @@ export function VSalesDashboard04({ bag }: { bag: ReturnType<typeof useSalesDash
           <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
             {[
               { n: t.unmarked, l: "Unmarked", stop: true },
-              { n: t.nosit, l: "No sit" },
+              { n: t.nosit, l: "No run" },
               { n: t.missed, l: "Missed" },
               { n: t.oneleg, l: "One legger" },
               { n: t.runs, l: "Ran" },

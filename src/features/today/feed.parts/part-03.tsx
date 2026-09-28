@@ -1,3 +1,4 @@
+import { Send } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { Tip } from "@/components/tip";
 import type { ChatLine } from "@/features/today/feed-data";
@@ -52,7 +53,7 @@ export function ChatLineView({
         </div>
         {replyOpen ? (
           <form
-            className="mt-2 flex gap-2"
+            className="mt-2 flex items-center gap-2"
             onSubmit={(e) => {
               e.preventDefault();
               onSendReply();
@@ -62,11 +63,12 @@ export function ChatLineView({
               value={reply}
               onChange={(e) => onReplyChange(e.target.value)}
               placeholder={`Reply to ${shortName(m.who)}`}
-              className="h-8 min-w-0 flex-1 rounded-md border border-line px-2 text-[12px]"
+              className="composer h-8 min-w-0 flex-1 rounded-md border border-line px-2 text-sm"
               aria-label="Reply"
             />
-            <button type="submit" className="h-8 rounded-md bg-navy px-2 text-[11px] font-bold text-card">
-              Send
+            <button type="submit" aria-label="Send" className="composer grid h-8 w-8 shrink-0 place-items-center rounded-md bg-navy text-card lg:inline-flex lg:w-auto lg:gap-1.5 lg:px-2 lg:text-sm lg:font-bold">
+              <Send className="size-4" />
+              <span className="composer-label">Send</span>
             </button>
           </form>
         ) : null}
@@ -93,7 +95,7 @@ export function ShopFeedView(props: { bag: { send: any; file: any; setFile: any;
                 </button>
               </p>
             ) : null}
-            <div className="flex gap-2">
+            <div className="flex items-center gap-2">
               <input
                 ref={pick}
                 type="file"
@@ -105,7 +107,7 @@ export function ShopFeedView(props: { bag: { send: any; file: any; setFile: any;
                 }}
               />
               <Tip label="Add a photo or file" on>
-                <button type="button" onClick={() => pick.current?.click()} className="grid size-10 shrink-0 place-items-center rounded-md border border-line" aria-label="Add media">
+                <button type="button" onClick={() => pick.current?.click()} className="grid size-8 shrink-0 place-items-center rounded-md border border-line" aria-label="Add media">
                   <ClipIco />
                 </button>
               </Tip>
@@ -113,11 +115,12 @@ export function ShopFeedView(props: { bag: { send: any; file: any; setFile: any;
                 value={draft}
                 onChange={(e) => setDraft(e.target.value)}
                 placeholder="Message the shop"
-                className="h-10 min-w-0 flex-1 rounded-md border border-line px-3 text-sm"
+                className="composer h-10 min-w-0 flex-1 rounded-md border border-line px-3 text-sm"
                 aria-label="Message the shop"
               />
-              <button type="submit" className="h-10 rounded-md bg-navy px-3 text-[12px] font-bold text-card">
-                Send
+              <button type="submit" aria-label="Send" className="composer grid h-10 w-10 shrink-0 place-items-center rounded-md bg-navy text-card lg:inline-flex lg:w-auto lg:gap-1.5 lg:px-3 lg:text-sm lg:font-bold">
+                <Send className="size-4" />
+                <span className="composer-label">Send</span>
               </button>
             </div>
           </form>

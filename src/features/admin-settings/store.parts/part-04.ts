@@ -13,6 +13,11 @@ export function toggleFlag(id: string) {
   emit();
 }
 
+export function toggleQualifyRequired(id: string) {
+  write_qualify(qualify.map((q) => (q.id === id ? { ...q, note: /^required/i.test(q.note) ? "Optional" : "Required" } : q)));
+  emit();
+}
+
 export function addRow(bucket: keyof ReturnType<typeof pack>, name: string, note: string) {
   const n = name.trim();
   if (!n || bucket === "flags" || bucket === "salesforce") return;

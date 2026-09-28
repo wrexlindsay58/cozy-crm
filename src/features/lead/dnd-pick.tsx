@@ -69,7 +69,7 @@ export function DndPick({
           className={cn(
             "inline-flex h-7 shrink-0 items-center gap-1 rounded-md px-1.5 text-[11px] font-bold tracking-wide uppercase",
             hot ? "bg-alert-bg text-alert" : compact ? "bg-page text-muted" : "border border-line text-muted",
-            compact && "max-md:w-7 max-md:justify-center max-md:px-0",
+            compact && "max-md:size-8 max-md:justify-center max-md:px-0",
           )}
         >
           <DndMarks dnd={lead.dnd} />

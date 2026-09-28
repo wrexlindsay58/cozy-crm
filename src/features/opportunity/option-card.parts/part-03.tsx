@@ -20,9 +20,9 @@ export function OptionCardView2(props: { bag: { accepted: any; option: any; lock
             className="mt-1 h-10 w-full rounded-md border border-line bg-card px-3 text-sm font-semibold text-ink outline-none"
           />
         </label>
-        <p className="flex h-10 items-center text-lg font-extrabold text-navy tabular-nums">{money(total)}</p>
+        <p className="flex h-8 items-center text-base font-extrabold text-navy tabular-nums md:h-10 md:text-lg">{money(total)}</p>
         {!locked && proposal.options.length > 1 ? (
-          <button type="button" aria-label="Remove option" className="grid size-10 shrink-0 place-items-center text-muted hover:text-alert" onClick={() => removeOption(proposal.oppId, option.id)}>
+          <button type="button" aria-label="Remove option" className="grid size-8 shrink-0 place-items-center text-muted hover:text-alert md:size-10" onClick={() => removeOption(proposal.oppId, option.id)}>
             <Trash2 className="size-4" />
           </button>
         ) : null}

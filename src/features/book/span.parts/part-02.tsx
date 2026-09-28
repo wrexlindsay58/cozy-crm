@@ -57,7 +57,7 @@ export function DaySpanView(props: { bag: { colsTemplate: any; cols: any; hours:
                     className="absolute"
                     style={{
                       top: `${((hourOf(p.e.start) - startH) / span) * 100}%`,
-                      height: `${(hrs / span) * 100}%`,
+                      height: `max(${(hrs / span) * 100}%, 22px)`,
                       left: `calc(${shift}% + 2px)`,
                       width: `calc(${100 - shift}% - 4px)`,
                       zIndex: 1 + p.col,

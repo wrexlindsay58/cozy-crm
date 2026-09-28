@@ -19,7 +19,7 @@ const __rows0 = [
         label: "Highest close rate",
         kind: "pct",
         min: 3,
-        sample: "sit",
+        sample: "run",
         noun: "close",
         periods: [
           span("day", "day", [c([["Dana", 50, 2], ["Marco", 100, 1]])], c([["Dana", 100, 1], ["Marco", 0, 1], ["Cole", 100, 1]])),
@@ -35,7 +35,7 @@ const __rows0 = [
         label: "Highest NRA",
         kind: "money",
         min: 3,
-        sample: "sit",
+        sample: "run",
         noun: "per sit",
         periods: [
           span("day", "day", [], c([["Dana", 18600, 1], ["Marco", 14200, 1], ["Cole", 9800, 1]])),

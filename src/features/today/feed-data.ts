@@ -46,7 +46,7 @@ export const seedChat: ChatLine[] = [
   },
   { id: "c4", who: "Evan Cole", text: "Whitaker WO signed. Dumpster is on the street.", at: "3:58p" },
   { id: "c5", who: "Marco Velez", text: "Need a second sit tomorrow in Gilbert if anyone's light.", at: "3:41p" },
-  { id: "c6", who: "Luis Haddad", text: "Dallas sit ran. No-sit, wife wasn't home.", at: "3:22p" },
+  { id: "c6", who: "Luis Haddad", text: "Dallas run. No-run, wife wasn't home.", at: "3:22p" },
 ];
 
 export const seedActivity: ActivityLine[] = [

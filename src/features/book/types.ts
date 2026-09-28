@@ -18,12 +18,13 @@ export const BOOK_TYPES = [
   "Office",
   "Training",
   "Time-off",
+  "Block",
   "Open",
 ] as const;
 export type BookType = (typeof BOOK_TYPES)[number];
-export const BOOK_STATUSES = ["Set", "Confirmed", "Dispatched", "Done", "No-sit", "No-show"] as const;
+export const BOOK_STATUSES = ["Set", "Confirmed", "Dispatched", "Done", "No-run", "No-show"] as const;
 export type BookStatus = (typeof BOOK_STATUSES)[number];
-export const BOOK_DISPOSITIONS = ["Unmarked", "Set", "Confirmed", "Dispatched", "Ran", "Done", "No-sit", "No-show", "One legger", "Missed"] as const;
+export const BOOK_DISPOSITIONS = ["Unmarked", "Set", "Confirmed", "Dispatched", "Ran", "Done", "No-run", "No-show", "One legger", "Missed"] as const;
 export type BookFamily = "sales" | "production" | "shop";
 
 export type BookLink = { id: string; label: string; url: string };
@@ -58,11 +59,16 @@ export type BookEvent = {
   links: BookLink[];
   source: "appointment" | "job" | "visit" | "shop";
   sourceId: string;
+  result?: string;
+  resultNote?: string;
+  visit?: "" | "in-person" | "phone";
+  visitWhy?: string;
+  visitNote?: string;
 };
 
 export function familyOf(t: BookType): BookFamily {
   if (t === "Sales" || t === "Assessment" || t === "Callback" || t === "Ride-along") return "sales";
-  if (t === "Office" || t === "Training" || t === "Time-off" || t === "Materials" || t === "Open") return "shop";
+  if (t === "Office" || t === "Training" || t === "Time-off" || t === "Block" || t === "Materials" || t === "Open") return "shop";
   return "production";
 }
 
@@ -70,8 +76,16 @@ export function assignedIds(e: { resourceId: string; crewId?: string; techId?: s
   return Array.from(new Set([e.resourceId, e.crewId ?? "", e.techId ?? "", e.assigneeId ?? ""].filter(Boolean)));
 }
 
+export function needsResult(t: BookType) {
+  return familyOf(t) !== "shop";
+}
+
+export function isResulted(status: BookStatus) {
+  return status === "Done" || status === "No-run" || status === "No-show";
+}
+
 export function isWatch(e: BookEvent) {
-  if (e.status === "No-sit" || e.status === "No-show") return true;
+  if (e.status === "No-run" || e.status === "No-show") return true;
   if (familyOf(e.type) === "production" && !e.woSigned && e.status !== "Done") return true;
   if (e.hold) return true;
   return false;
@@ -80,7 +94,7 @@ export function isWatch(e: BookEvent) {
 export function mapStatus(raw: string): BookStatus {
   if (raw === "Confirmed" || raw === "Install" || raw === "Ran") return raw === "Ran" ? "Done" : "Confirmed";
   if (raw === "Done") return "Done";
-  if (raw === "No sit") return "No-sit";
+  if (raw === "No sit" || raw === "No run" || raw === "No-sit" || raw === "No-run") return "No-run";
   if (raw === "Missed" || raw === "No-show") return "No-show";
   if (raw === "Dispatched") return "Dispatched";
   return "Set";

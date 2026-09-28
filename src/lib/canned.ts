@@ -14,7 +14,7 @@ export const CANNED: Canned[] = [
   { id: "thanks", label: "Thanks for the time", channel: "both", body: "Thanks for the time tonight. I'll send next steps in the morning." },
   { id: "proposal", label: "Proposal sent", channel: "email", subject: "Your Cozy proposal", body: "Proposal is attached. Cash and 12-month options are on page 2. Reply with questions." },
   { id: "hoa", label: "HOA packet", channel: "email", subject: "HOA packet", body: "HOA packet is attached. Color match is on page 3." },
-  { id: "confirm-email", label: "Confirm the sit", channel: "email", subject: "Sunday at 6:00p", body: "Confirming Sunday at 6:00p for attic and air seal. Both of you home. Dog in the backyard is fine." },
+  { id: "confirm-email", label: "Confirm the run", channel: "email", subject: "Sunday at 6:00p", body: "Confirming Sunday at 6:00p for attic and air seal. Both of you home. Dog in the backyard is fine." },
 ];
 
 export function cannedFor(channel: "sms" | "email") {

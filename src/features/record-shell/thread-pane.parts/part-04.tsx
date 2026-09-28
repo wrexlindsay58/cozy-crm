@@ -1,4 +1,4 @@
-import { Braces, DollarSign, FileText, Link, Paperclip, Plus, Smile } from "lucide-react";
+import { Braces, DollarSign, FileText, Link, Paperclip, Plus, Send, Smile } from "lucide-react";
 import { Float } from "@/components/float";
 import { Tip } from "@/components/tip";
 import { ThreadPaneView3 } from "./part-02";
@@ -47,15 +47,15 @@ export function ThreadPaneView(props: { bag: { send: any; mode: any; channel: an
         <label className="sr-only" htmlFor={`composer-${personId}-${mode}`}>
           {placeholder}
         </label>
-        <div className="flex gap-1">
-          <div className="flex h-11 min-w-0 flex-1 items-stretch rounded-md border border-line bg-card focus-within:border-navy">
+        <div className="flex items-center gap-1">
+          <div className="composer flex h-11 min-w-0 flex-1 items-center rounded-md border border-line bg-card focus-within:border-navy">
             <input
               id={`composer-${personId}-${mode}`}
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
               placeholder={placeholder}
               disabled={blocked}
-              className="h-11 min-w-0 flex-1 border-0 bg-transparent px-3 text-sm outline-none disabled:opacity-50"
+              className="composer h-11 min-w-0 flex-1 border-0 bg-transparent px-3 text-sm outline-none disabled:opacity-50"
             />
             {mode === "customer" ? (
               <ComposeExtras
@@ -70,8 +70,9 @@ export function ThreadPaneView(props: { bag: { send: any; mode: any; channel: an
               />
             ) : null}
           </div>
-          <button type="submit" className="h-11 rounded-md bg-navy px-3 text-sm font-semibold text-card">
-            {sendLabel}
+          <button type="submit" aria-label={sendLabel} className="composer grid h-11 w-11 shrink-0 place-items-center rounded-md bg-navy text-card lg:inline-flex lg:w-auto lg:gap-1.5 lg:px-3 lg:text-sm lg:font-semibold">
+            <Send className="size-4" />
+            <span className="composer-label">{sendLabel}</span>
           </button>
         </div>
       </form>
@@ -81,7 +82,7 @@ export function ThreadPaneView(props: { bag: { send: any; mode: any; channel: an
 export function ComposeExtrasView2(props: { bag: { fileRef: any; addFile: any; open: any; btnRef: any; toggle: any; files: any; box: any; pane: any; close: any; setPane: any; canned: any; onTemplate: any; onInsert: any } }) {
   const { fileRef, addFile, open, btnRef, toggle, files, box, pane, close, setPane, canned, onTemplate, onInsert } = props.bag;
   return (
-    <div className="relative shrink-0">
+    <div className="relative flex h-full w-10 shrink-0 items-center justify-center self-stretch border-l border-line">
       <input ref={fileRef} type="file" className="sr-only" accept="image/*,video/*,.pdf,.doc,.docx" onChange={(e) => addFile(e.target.files?.[0])} />
       <Tip label="Insert" on={!open} side="top">
         <button
@@ -90,7 +91,7 @@ export function ComposeExtrasView2(props: { bag: { fileRef: any; addFile: any; o
           aria-label="Insert"
           aria-expanded={open}
           onClick={toggle}
-          className="relative grid h-11 w-10 place-items-center border-l border-line text-navy"
+          className="grid size-8 place-items-center text-navy"
         >
           <Plus className="size-4" />
           {files.length ? (

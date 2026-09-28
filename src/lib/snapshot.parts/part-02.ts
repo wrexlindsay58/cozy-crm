@@ -13,7 +13,7 @@ export const jobsToday = [
     role: "Closer",
     amount: 9800,
     pay: "Card",
-    status: "No sit",
+    status: "No run",
     flag: "stop" as Flag,
   },
   {
@@ -53,7 +53,7 @@ export const incidents = [
   {
     id: "I-12",
     flag: "watch" as Flag,
-    title: "Nina Patel no sit",
+    title: "Nina Patel no run",
     detail: "4:00p Dallas. Luis. Not home.",
     to: "/leads/$leadId" as const,
     params: { leadId: "L-4774" },

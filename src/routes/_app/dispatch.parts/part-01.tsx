@@ -36,7 +36,7 @@ export function clockHour(cursor: Date) {
 }
 
 export function active(e: BookEvent) {
-  return e.status !== "Done" && e.status !== "No-sit" && e.status !== "No-show";
+  return e.status !== "Done" && e.status !== "No-run" && e.status !== "No-show";
 }
 
 export function behind(list: BookEvent[], hour: number) {

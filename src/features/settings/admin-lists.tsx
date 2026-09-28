@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { addRow, setSalesforce, toggleFlag, useAdminSettings } from "@/features/admin-settings/store";
+import { addRow, setSalesforce, toggleFlag, toggleQualifyRequired, useAdminSettings } from "@/features/admin-settings/store";
 
 type Bucket = Exclude<keyof ReturnType<typeof useAdminSettings>, "flags" | "salesforce">;
 
@@ -47,9 +47,16 @@ export function NamedRows({ title, bucket }: { title: string; bucket: Bucket }) 
       <h2 className="mb-3 text-[11px] font-bold tracking-[0.14em] text-muted uppercase">{title}</h2>
       <ul className="space-y-2 text-sm">
         {rows.map((r) => (
-          <li key={r.id}>
-            <b>{r.name}</b>
-            <span className="text-muted"> · {r.note}</span>
+          <li key={r.id} className="flex items-center justify-between gap-2">
+            <span>
+              <b>{r.name}</b>
+              <span className="text-muted"> · {r.note}</span>
+            </span>
+            {bucket === "qualify" ? (
+              <button type="button" className="h-8 shrink-0 rounded-md border border-line px-2 text-[12px] font-semibold" onClick={() => toggleQualifyRequired(r.id)}>
+                {/^required/i.test(r.note) ? "Required" : "Optional"}
+              </button>
+            ) : null}
           </li>
         ))}
       </ul>

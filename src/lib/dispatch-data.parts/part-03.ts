@@ -18,7 +18,7 @@ export type BoardBlock = {
 };
 
 export const board: BoardBlock[] = [
-  { personId: "luis", day: 13, hour: 16, hours: 2, name: "Nina Patel", job: "Air sealing", kind: "run", status: "No sit", leadId: "L-4774", amount: 9800, city: "Dallas" },
+  { personId: "luis", day: 13, hour: 16, hours: 2, name: "Nina Patel", job: "Air sealing", kind: "run", status: "No run", leadId: "L-4774", amount: 9800, city: "Dallas" },
   { personId: "dana", day: 13, hour: 17, hours: 2, name: "Todd Hale", job: "HVAC 4-ton", kind: "run", status: "Ran", leadId: "L-4819", amount: 28640, city: "Scottsdale" },
   { personId: "marco", day: 14, hour: 18, hours: 2, name: "Elena Vargas", job: "Attic R-49", kind: "run", status: "Confirmed", leadId: "L-4821", amount: 18420, city: "Surprise" },
   { personId: "cole", day: 14, hour: 17, hours: 2, name: "Patterson neighbor", job: "Attic", kind: "run", status: "Set", leadId: "L-4754", amount: 9800, city: "Fort Worth" },
@@ -34,7 +34,7 @@ export const board: BoardBlock[] = [
 ];
 
 export function statusTone(s: UnitStatus | string) {
-  if (s === "late" || s === "No sit" || s === "Unmarked" || s === "Missed") return "stop" as const;
+  if (s === "late" || s === "No run" || s === "Unmarked" || s === "Missed") return "stop" as const;
   if (s === "en-route" || s === "Set" || s === "Unconfirmed" || s === "Reset" || s === "Follow-up") return "watch" as const;
   if (s === "done" || s === "Ran" || s === "Install") return "go" as const;
   if (s === "on-site" || s === "Confirmed") return "info" as const;

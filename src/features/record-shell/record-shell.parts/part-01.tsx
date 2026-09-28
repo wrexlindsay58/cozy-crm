@@ -94,11 +94,12 @@ export function RecordShell(props: RecordShellProps) {
           kind={props.kind}
           title={props.title}
           subtitle={props.subtitle}
+          addresses={props.addresses}
           stage={props.kind === "lead" ? (lead?.status ?? props.stage) : props.stage}
           stageTone={props.kind === "lead" ? (lead?.tone ?? props.stageTone) : props.stageTone}
           dndLabel={dndChip(lead?.dnd)}
           moneyLabel={props.moneyLabel}
-          related={props.related}
+          code={props.code}
           acts={acts}
           onText={openThread}
           onStage={props.onStage ?? (props.kind === "lead" && lead ? (status) => setLeadStatus(lead.id, status) : undefined)}

@@ -38,6 +38,7 @@ function LeadFile() {
       personId={lead.id}
       title={lead.name}
       subtitle={placeLine(lead.address, lead.city, lead.office, second)}
+      code={lead.id}
       stage={lead.status}
       stageTone={lead.tone}
       owner={{ name: lead.closer, role: "Closer" }}

@@ -44,7 +44,7 @@ function AccountsPage() {
         const q = open ? "Open issue" : reviewDue ? "Review due" : warranty ? "Warranty ending" : "Quiet";
         const next = open ? `Resolve ${open} open` : reviewDue ? "Ask for a review" : warranty ? `Warranty through ${file?.warrantyUntil}` : "Nothing waiting";
         const rank = open ? 0 : reviewDue ? 1 : warranty ? 2 : 3;
-        return { ...a, lead, q, next, rank, phone: lead?.phone || a.phone || "", email: lead?.email || a.email || "", address: lead?.address || a.city };
+        return { ...a, lead, q, next, rank, phone: lead?.phone || a.phone || "", email: lead?.email || a.email || "", address: lead?.address || a.address || a.city };
       })
       .filter((a) => {
         const file = files[a.id];

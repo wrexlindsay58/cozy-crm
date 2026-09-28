@@ -81,7 +81,7 @@ export let viewAs = "Owner";
 export let actorName = "Wrex Lindsay";
 export let employeeLog: EmployeeAct[] = [];
 export let sources = ["Canvass", "Google", "Website", "Referral", "Partner"];
-export let dispositions = ["Unmarked", "No sit", "One legger", "Sold", "Confirmed"];
+export let dispositions = ["Unmarked", "No run", "One legger", "Sold", "Confirmed"];
 export let ticketCats = ["Permit", "HOA", "Material", "Callback", "Warranty"];
 export let territories = [
   { id: "T-PHX", name: "West Valley", zips: "85388, 85374, 85379" },
